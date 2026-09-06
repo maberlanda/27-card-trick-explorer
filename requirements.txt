@@ -1,0 +1,15 @@
+# Dipendenze di Gioco delle 27 Carte
+#
+# OBBLIGATORIE
+numpy>=1.20
+# (tkinter fa parte della libreria standard ma su Linux va installato a parte:
+#  sudo apt install python3-tk)
+#
+# OPZIONALI — servono solo per gli export. Il programma parte e funziona anche
+# senza: i pulsanti di export lo segnalano. Per installarle tutte in un colpo:
+#     pip install .[export]
+reportlab>=3.6   # opzionale: export in PDF
+openpyxl>=3.0    # opzionale: export in Excel (.xlsx)
+pypdf>=3.0       # opzionale: unione dei PDF nell'export parallelo
+pikepdf>=8.0     # opzionale: deduplica le risorse nei PDF uniti
+                 #            (senza, i PDF paralleli pesano ~50% in piu')

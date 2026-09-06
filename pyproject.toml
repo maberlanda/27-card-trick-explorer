@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gioco27"
+version = "3.1.1"
+description = "Gioco delle 27 carte — analisi combinatoria e algebrica del trucco delle 27 carte"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "Proprietary" }
+authors = [{ name = "Maurizio Berlanda" }]
+dependencies = [
+    "numpy>=1.20",
+]
+
+[project.optional-dependencies]
+export = [
+    "reportlab>=3.6",   # export PDF
+    "openpyxl>=3.0",    # export Excel (.xlsx)
+    "pypdf>=3.0",       # unione PDF nell'export parallelo
+    "pikepdf>=8.0",     # deduplicazione risorse nei PDF uniti
+]
+dev = [
+    "gioco27[export]",
+    "pytest>=7.0",
+    "pyflakes>=3.0",
+    "pyinstaller>=6.0",
+]
+
+[project.gui-scripts]
+gioco27 = "gioco27.__main__:main"
+
+[tool.setuptools.packages.find]
+include = ["gioco27*"]
+
+[tool.setuptools.package-data]
+gioco27 = ["assets/*.ttf"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

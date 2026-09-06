@@ -1,0 +1,4 @@
+# Dipendenze per sviluppo e test di Gioco delle 27 Carte
+-r requirements.txt
+pytest>=7.0
+pyflakes>=3.0      # test statico (tests/test_static.py)
