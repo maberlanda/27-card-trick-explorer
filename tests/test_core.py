@@ -551,13 +551,110 @@ def test_tre_turni_di_gioco_equivalenti_a_compute_T_full():
         assert r["ok"] and r["perm"] == T_perm
 
 
+@pytest.mark.parametrize("normalizer", ["normalize", "normalize_with_trace"])
+@pytest.mark.parametrize("expr", [
+    "((CDS_U o SDC_U) x SCD_U x SCD_U) o (SCD_U x SCD_U x SCD_U)",
+    "(SCD_U x SCD_U x SCD_U) o (SCD_U x (CDS_U o SDC_U) x SCD_U)",
+    "((CDS_U o SDC_U) x (R_U o CDS_U) x (SDC_U o I_3)) o "
+    "((SDC_U o CDS_U) x (CSD_U o R_U) x (DSC_U o CDS_U))",
+    "MSC o ((CDS_U o SDC_U) x SCD_U x SCD_U) o "
+    "(SCD_U x SCD_U x SCD_U) o MSC",
+])
+def test_normalizzazione_preserva_ast_con_fattori_composti(expr, normalizer):
+    from gioco27.core.algebra import AlgebraEngine, Controller, Evaluator, Parser, Rewriter
+
+    eng = AlgebraEngine()
+    ast = Parser(eng).parse(expr)
+    evaluator = Evaluator(eng)
+    attesa = evaluator.evaluate(ast)
+    rewriter = Rewriter(eng)
+    if normalizer == "normalize":
+        _, normalized = rewriter.normalize(ast)
+    else:
+        normalized, _, _ = rewriter.normalize_with_trace(ast)
+    assert evaluator.evaluate(normalized) == attesa
+    # Ancora numerica del caso minimo: scambio dei primi due blocchi da nove.
+    if expr.startswith("((CDS_U o SDC_U) x SCD_U"):
+        assert attesa == list(range(9, 18)) + list(range(9)) + list(range(18, 27))
+    result = Controller().process(expr)
+    assert result["ok"], result["error"]
+    assert result["perm"] == attesa
+
+
+def test_analisi_forma_normale_valuta_fattori_composti():
+    from gioco27.core.algebra import AlgebraEngine, Evaluator, Parser, Rewriter
+
+    eng = AlgebraEngine()
+    parser = Parser(eng)
+    ast = parser.parse(
+        "((CDS_U o SDC_U) x SCD_U x SCD_U) o (SCD_U x SCD_U x SCD_U)")
+    info = Rewriter(eng)._analyze_normal_form(ast)
+    evaluator = Evaluator(eng)
+    assert evaluator.evaluate(parser.parse(info.symbolic)) == evaluator.evaluate(ast)
+
+
+@pytest.mark.parametrize("method", ["_compose_kron_sequence", "_analyze_normal_form"])
+def test_fusione_kron_rifiuta_fattori_sconosciuti(method):
+    from gioco27.core.algebra import AlgebraEngine, Parser, Rewriter, SymbolicExpr
+
+    eng = AlgebraEngine()
+    ast = Parser(eng).parse(
+        "(SCD_U x SCD_U x SCD_U) o (SCD_U x SCD_U x SCD_U)")
+    ast.children[0].children[0] = SymbolicExpr("sconosciuto", ptype=3)
+    with pytest.raises(ValueError, match="Tipo di nodo sconosciuto"):
+        getattr(Rewriter(eng), method)(ast)
+
+
+def test_controller_rifiuta_normalizzazione_che_altera_la_permutazione(monkeypatch):
+    from gioco27.core.algebra import Controller
+
+    ctrl = Controller()
+    identity_result = ctrl.rewriter.normalize_with_trace(ctrl.parser.parse("I"))
+    monkeypatch.setattr(ctrl.rewriter, "normalize_with_trace", lambda ast: identity_result)
+    result = ctrl.process("(CDS_U x SCD_U x SCD_U)")
+    assert not result["ok"]
+    assert "normalizzazione ha alterato" in result["error"]
+
+
+@pytest.mark.parametrize("source", ["righe", "csv"])
+def test_molteplicita_stage_base0_da_export_reale(tmp_path, source):
+    import csv
+    from gioco27.core.algebra import Controller, analizza_csv, analizza_righe
+    from gioco27.core.permutations import write_csv
+
+    filters = [dict(p0="SCD_U", p1="SCD_U", p2="SCD_U",
+                    j0="I_3", j1="I_3", j2="I_3") for _ in range(3)]
+    filters[0].update(p2=["SCD_U", "DCS_U"], j0=["I_3", "R_U"])
+    path = tmp_path / "combinazioni.csv"
+    assert write_csv(path, filters) == 4
+    with path.open(encoding="utf-8", newline="") as f:
+        # Le chiavi vengono dall'intestazione vera, togliendo le descrizioni.
+        rows = [{key.split()[0]: value for key, value in row.items()}
+                for row in csv.DictReader(f, delimiter=";")]
+    assert len(rows) == 4
+    assert {"Stage0", "Stage1", "Stage2"} <= rows[0].keys()
+    assert "Stage3" not in rows[0]
+    results = analizza_righe(rows) if source == "righe" else analizza_csv(path)
+    assert len(results) == 2
+    assert sorted(r["n_sim"] for r in results) == [2, 2]
+    assert sum(r["n_sim"] for r in results) == len(rows) == 4
+    ctrl = Controller()
+    for result in results:
+        assert len(result["simboliche"]) == 2
+        for formula in result["simboliche"]:
+            assert "[]" not in formula
+            evaluated = ctrl.process(formula)
+            assert evaluated["ok"], evaluated["error"]
+            assert tuple(evaluated["perm"]) == result["perm_tuple"]
+
+
 def test_stage_string_analisi_explorer_stessa_perm():
     """Regressione v2.8.4: l'Analisi invia all'Explorer la Stage string
     completa (P o MSC o J, con R_U/I_3); deve dare la stessa permutazione
     della riga di provenienza."""
     from gioco27.core.constants import ANY
     from gioco27.core.combinations import iter_combinations_ex
-    from gioco27.core.permutations import make_csv_row
+    from gioco27.core.permutations import CSV_HEADER, make_csv_row
     from gioco27.core.algebra import analizza_righe, _prep_explorer_expr, Controller
     filt = [{"p0": "SCD_U", "p1": "SCD_U", "p2": ANY,
              "j0": ANY, "j1": ANY, "j2": ANY, "j_uniform": True}
@@ -565,9 +662,7 @@ def test_stage_string_analisi_explorer_stessa_perm():
     righe = []
     for i, params in enumerate(iter_combinations_ex(filt), 1):
         rd = make_csv_row(i, params)
-        righe.append({"Stage1": rd[1], "Stage2": rd[2], "Stage3": rd[3],
-                      "A1": rd[4], "A2": rd[5], "A3": rd[6],
-                      "T_simbolica": rd[7], "T_permutazione": rd[8]})
+        righe.append(dict(zip((h.split()[0] for h in CSV_HEADER), rd)))
     ctrl = Controller()
     for r in analizza_righe(righe):
         attesa = [int(x) for x in r["perm_str"].strip("[]").split(",")]

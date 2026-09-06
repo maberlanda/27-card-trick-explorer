@@ -699,6 +699,7 @@ class Rewriter:
         if expr.kind != 'compose':
             return expr, False
 
+        evaluator = Evaluator(self.eng)
         terms = list(expr.children)
         changed = False
         made_progress = True
@@ -714,8 +715,8 @@ class Rewriter:
                     k1, k2 = t, terms[i+1]
                     composed_children = []
                     for f1, f2 in zip(k1.children, k2.children):
-                        v1 = f1.value if f1.value else AlgebraEngine.GEN3.get(f1.name, [0,1,2])
-                        v2 = f2.value if f2.value else AlgebraEngine.GEN3.get(f2.name, [0,1,2])
+                        v1 = evaluator.evaluate(f1)
+                        v2 = evaluator.evaluate(f2)
                         comp_val = AlgebraEngine.compose(v1, v2)
                         # Cerca se corrisponde a un generatore noto
                         sym_name = _perm_to_gen3_name(comp_val)
@@ -724,7 +725,7 @@ class Rewriter:
                     merged = SymbolicExpr('kron', children=composed_children, ptype=27)
                     if notes is not None:
                         per_factor = "  |  ".join(
-                            f"{f1.name} ∘ {f2.name} = {c.name}"
+                            f"{repr(f1)} ∘ {repr(f2)} = {c.name}"
                             for f1, f2, c in zip(k1.children, k2.children,
                                                  composed_children))
                         notes.append(f"{repr(k1)} ∘ {repr(k2)} → {repr(merged)}\n"
@@ -1013,15 +1014,14 @@ class Rewriter:
                 # Solo Kronecker + MSC
                 if kron_terms:
                     # Componi tutti i Kronecker in uno solo (numerico)
+                    evaluator = Evaluator(self.eng)
                     composed_k = kron_terms[0]
                     for kt in kron_terms[1:]:
                         # componi fattore per fattore
                         new_children = []
                         for f1, f2 in zip(composed_k.children, kt.children):
-                            v1 = (f1.value if f1.value
-                                  else AlgebraEngine.GEN3.get(f1.name, [0,1,2]))
-                            v2 = (f2.value if f2.value
-                                  else AlgebraEngine.GEN3.get(f2.name, [0,1,2]))
+                            v1 = evaluator.evaluate(f1)
+                            v2 = evaluator.evaluate(f2)
                             cv = AlgebraEngine.compose(v1, v2)
                             nm = _perm_to_gen3_name(cv)
                             new_children.append(
@@ -1494,6 +1494,7 @@ class Controller:
 
             # 1. Parsing
             ast = self.parser.parse(text)
+            original_perm = self.evaluator.evaluate(ast)
 
             # 2. Normalizzazione con traccia completa
             norm_ast, rewrite_trace, nf_info = \
@@ -1523,6 +1524,9 @@ class Controller:
 
             # 3. Valutazione con traccia dei passi parziali
             perm, eval_steps = self.evaluator.evaluate_with_trace(norm_ast)
+            if perm != original_perm:
+                raise ValueError(
+                    "La normalizzazione ha alterato la permutazione originale.")
 
             # Verifica coerenza dimensionale
             if len(perm) not in (3, 27):
@@ -1577,18 +1581,18 @@ class Controller:
 def analizza_righe(righe):
     """Raggruppa per T_permutazione e conta le sequenze Stage distinte.
 
-    Usa la notazione Stage-level "T = [Stage3] o [Stage2] o [Stage1]"
+    Usa la notazione Stage-level "T = [Stage2] o [Stage1] o [Stage0]"
     che distingue (P, J) anche quando la composizione Ai = P∘J coincide,
     dando la granularità corretta come in analisi_sequenze.py.
     """
     gruppi = defaultdict(lambda: {"simboliche": set(), "perm_str": ""})
     for r in righe:
         perm_str = r.get("T_permutazione", "")
+        s0 = r.get("Stage0", "")
         s1 = r.get("Stage1", "")
         s2 = r.get("Stage2", "")
-        s3 = r.get("Stage3", "")
-        if s1 or s2 or s3:
-            t_sim = f"T = [{s3}] o [{s2}] o [{s1}]"
+        if s0 or s1 or s2:
+            t_sim = f"T = [{s2}] o [{s1}] o [{s0}]"
         else:
             t_sim = r.get("T_simbolica", "")
         try:
@@ -1613,7 +1617,7 @@ def analizza_csv(input_path):
     """Legge un CSV COMBINAZIONI (sep=;) e restituisce i risultati di analizza_righe.
 
     Compatibile con il CSV prodotto da write_csv() / il file COMBINAZIONI_DEL_MODELLO.
-    Legge T_simbolica (colonna ridotta Ai) per il raggruppamento, e Stage1/2/3
+    Legge T_simbolica (colonna ridotta Ai) per il raggruppamento, e Stage0/1/2
     per il pannello di dettaglio, esattamente come fa l'analisi in-memoria.
     """
     import csv as _csv
@@ -1629,9 +1633,9 @@ def analizza_csv(input_path):
     with open(input_path, newline="", encoding="utf-8") as f:
         reader = _csv.reader(f, delimiter=";", quotechar='"')
         header = next(reader)
+        idx_s0   = _col(header, "stage0")
         idx_s1   = _col(header, "stage1")
         idx_s2   = _col(header, "stage2")
-        idx_s3   = _col(header, "stage3")
         idx_tsim = _col(header, "t_simbolica")
         idx_perm = _col(header, "t_permutazione")
         for row in reader:
@@ -1640,9 +1644,9 @@ def analizza_csv(input_path):
             def _get(i):
                 return row[i].strip() if i is not None and i < len(row) else ""
             righe.append({
+                "Stage0":         _get(idx_s0),
                 "Stage1":         _get(idx_s1),
                 "Stage2":         _get(idx_s2),
-                "Stage3":         _get(idx_s3),
                 "T_simbolica":    _get(idx_tsim),
                 "T_permutazione": _get(idx_perm),
             })
@@ -1733,5 +1737,4 @@ def scrivi_excel(risultati, output_path):
     ws2.freeze_panes = "A2"
     ws2.auto_filter.ref = f"A1:C{len(righe_inv)+1}"
     wb.save(output_path)
-
 
