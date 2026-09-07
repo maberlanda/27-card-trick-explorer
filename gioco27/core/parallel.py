@@ -68,9 +68,8 @@ _log = get_logger(__name__)
 #   2. ogni worker deve avere almeno MIN_ITEMS_PER_WORKER elementi, altrimenti
 #      si pagano N avvii per briciole di lavoro.
 #
-# In piu' i blocchi sono ora UNO PER WORKER (prima quattro): le pagine hanno
-# tutte lo stesso costo, quindi la suddivisione statica e' gia' bilanciata, e
-# ogni blocco in piu' e' un PDF in piu' da unire, con la sua copia dei font.
+# Si parte da un blocco per worker per contenere le copie dei font nei PDF;
+# oltre MAX_CHUNK_ITEMS si usano piu' blocchi per limitare la memoria.
 
 #: Costo medio per elemento, misurato su questa base di codice. Serve solo a
 #: decidere SE parallelizzare, quindi basta l'ordine di grandezza.
@@ -97,6 +96,11 @@ MIN_ITEMS_PER_WORKER = 8
 #: tempi umani (a ~1 ms per elemento, 20 milioni sono circa 6 ore) e il file
 #: risultante sarebbe comunque inutilizzabile.
 MAX_EXPORT_ITEMS = 20_000_000
+
+# Limite per blocco, indipendente dal totale dell'export. Con la finestra
+# predefinita vengono preparati al massimo 3 * n_workers * MAX_CHUNK_ITEMS
+# elementi prima del primo risultato (per almeno due worker).
+MAX_CHUNK_ITEMS = 1024
 
 
 class ExportAnnullato(Exception):
@@ -221,9 +225,10 @@ def plan_workers(total, n_workers=None, min_per_worker=None,
     distribuire — ma ogni blocco in piu' e' un file parziale in piu' da unire,
     quindi spezzettare all'infinito peggiora.
 
-    Un blocco per worker (`chunks_per_worker=1`): le pagine hanno costo
-    uniforme, la suddivisione statica e' gia' bilanciata.
+    Il blocco calcolato non supera MAX_CHUNK_ITEMS, anche per export grandi.
     """
+    if min_chunk > MAX_CHUNK_ITEMS:
+        raise ValueError("min_chunk supera MAX_CHUNK_ITEMS")
     n_workers = default_workers(n_workers)
     if n_workers <= 1:
         return None
@@ -243,7 +248,8 @@ def plan_workers(total, n_workers=None, min_per_worker=None,
         return None
 
     n_workers = max(2, min(n_workers, total // min_per_worker))
-    chunk = max(min_chunk, math.ceil(total / (n_workers * chunks_per_worker)))
+    chunk = min(MAX_CHUNK_ITEMS,
+                max(min_chunk, math.ceil(total / (n_workers * chunks_per_worker))))
     return n_workers, chunk
 
 
@@ -319,7 +325,7 @@ def imap_ordered(worker, tasks, n_workers, max_pending=None,
                 if annullato():
                     annullamento = True
                     raise ExportAnnullato()
-                wait(list(pending), timeout=attesa,
+                wait([pending[0]], timeout=attesa,
                      return_when=FIRST_COMPLETED)
             while pending and pending[0].done():
                 _check_cancelled(annullato)

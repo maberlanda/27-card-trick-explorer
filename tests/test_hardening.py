@@ -91,7 +91,7 @@ def test_plan_workers_da_lavoro_sensato_a_ogni_worker():
     e il proprio blocco da unire: spezzettare all'infinito peggiora.
     """
     from gioco27.core.parallel import (COSTO_PAGINA_PDF, LAVORO_PER_WORKER_S,
-                                       plan_workers)
+                                       MAX_CHUNK_ITEMS, chunked, plan_workers)
     for totale in (500, 1728, 10_000, 46_656, 200_000):
         piano = plan_workers(totale, 127, cost_per_item=COSTO_PAGINA_PDF)
         if piano is None:
@@ -99,7 +99,11 @@ def test_plan_workers_da_lavoro_sensato_a_ogni_worker():
         nw, chunk = piano
         assert chunk * COSTO_PAGINA_PDF >= LAVORO_PER_WORKER_S * 0.9, \
             f"{totale}: blocchi da {chunk} = troppo poco lavoro per worker"
-        assert nw * chunk >= totale, "i blocchi devono coprire tutto"
+        assert chunk <= MAX_CHUNK_ITEMS
+        # Un worker puo' elaborare piu' blocchi: verifica la copertura del
+        # flusso completo, senza imporre di preparare tutto in un solo giro.
+        assert list(itertools.chain.from_iterable(chunked(range(totale), chunk))) == \
+            list(range(totale))
 
 
 def test_un_blocco_per_worker():

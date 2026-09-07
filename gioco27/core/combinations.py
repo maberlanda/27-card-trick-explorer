@@ -274,6 +274,7 @@ def _render_combinations(c, params_list, start_index=1, progress_cb=None,
 def generate_pdf(path, filters, progress_cb=None, annullato=None):
     """Genera il PDF in modo sequenziale (un'unica Canvas)."""
     _check_cancelled(annullato)
+    check_export_size(count_combinations(filters))
     import io as _io
     from .parallel import atomic_write
     buf = _io.BytesIO()
@@ -622,6 +623,7 @@ def _render_combinations_ex(c, params_list, start_index=1, progress_cb=None,
 def generate_pdf_ex(path, filters, progress_cb=None, annullato=None):
     """Genera il PDF esteso in modo sequenziale (un'unica Canvas)."""
     _check_cancelled(annullato)
+    check_export_size(count_combinations_ex(filters))
     import io as _io
     from .parallel import atomic_write
     buf = _io.BytesIO()
