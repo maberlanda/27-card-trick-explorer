@@ -122,6 +122,11 @@ def mai_annullato():
     return False
 
 
+def _check_cancelled(annullato, fatti=0, totale=0):
+    if annullato is not None and annullato():
+        raise ExportAnnullato(fatti, totale)
+
+
 class ExportTooLarge(RuntimeError):
     """L'export richiesto supera MAX_EXPORT_ITEMS: rifiutato prima di iniziare."""
 
@@ -298,10 +303,12 @@ def imap_ordered(worker, tasks, n_workers, max_pending=None,
 
         def fill():
             while len(pending) < max_pending:
+                _check_cancelled(annullato)
                 try:
                     t = next(task_iter)
                 except StopIteration:
                     return
+                _check_cancelled(annullato)
                 pending.append(pool.submit(worker, t))
 
         fill()
@@ -315,10 +322,15 @@ def imap_ordered(worker, tasks, n_workers, max_pending=None,
                 wait(list(pending), timeout=attesa,
                      return_when=FIRST_COMPLETED)
             while pending and pending[0].done():
+                _check_cancelled(annullato)
                 yield pending.popleft().result()
             fill()
+        _check_cancelled(annullato)
+    except ExportAnnullato:
+        annullamento = True
+        raise
     finally:
-        if annullamento:
+        if annullamento or annullato():
             # Niente attesa: i figli finiscono il blocco in corso per conto
             # loro e il risultato viene scartato.
             pool.shutdown(wait=False, cancel_futures=True)
@@ -364,6 +376,7 @@ def run_export(*, total, items_iter, sequential, parallel_worker, consume,
     Solleva ExportAnnullato se `annullato()` diventa vera.
     Solleva ExportTooLarge se `total` supera il limite di sicurezza.
     """
+    _check_cancelled(annullato, 0, total)
     check_export_size(total)
 
     plan = plan_workers(total, n_workers, min_per_worker, min_chunk,
@@ -387,6 +400,7 @@ def run_export(*, total, items_iter, sequential, parallel_worker, consume,
         annullato = mai_annullato
 
     done = 0
+    consumption_started = False
     try:
         with cronometro(f"{what}: calcolo+unione blocchi"):
             for res, npieces in imap_ordered(_SizedWorker(parallel_worker),
@@ -396,15 +410,22 @@ def run_export(*, total, items_iter, sequential, parallel_worker, consume,
                 # lascia a meta' l'unione del blocco appena arrivato.
                 if annullato():
                     raise ExportAnnullato(done, total)
+                # Anche un consume che fallisce può avere già scritto dati.
+                consumption_started = True
                 consume(res, npieces)
                 done += npieces
                 if progress_cb:
                     progress_cb(done)
+        _check_cancelled(annullato, done, total)
         return done
     except ExportAnnullato:
         _log.info("%s annullato dall'utente dopo %d elementi", what, done)
         raise
     except Exception:
+        if consumption_started:
+            _log.exception("%s: errore dopo l'inizio della scrittura, "
+                           "nessun fallback sequenziale", what)
+            raise
         # Il ripiego sul sequenziale era invisibile all'utente: su una macchina
         # a 128 core OGNI export falliva qui (ValueError sul numero di worker) e
         # si vedeva solo l'1-2% di CPU, senza alcun messaggio. Ora il motivo
@@ -412,6 +433,7 @@ def run_export(*, total, items_iter, sequential, parallel_worker, consume,
         _log.warning("%s: parallelo fallito con %d worker, ripiego sul "
                      "sequenziale. Dettagli qui sotto.", what, n_workers)
         _log.exception("Causa del ripiego di %s", what)
+        _check_cancelled(annullato, done, total)
         return sequential()
 
 
@@ -439,7 +461,7 @@ def cronometro(nome, soglia_s=0.05):
 
 
 @contextlib.contextmanager
-def atomic_write(path, mode="wb", **kwargs):
+def atomic_write(path, mode="wb", *, annullato=None, **kwargs):
     """
     Scrive su un file temporaneo accanto alla destinazione e lo rinomina solo
     a scrittura conclusa.
@@ -453,12 +475,14 @@ def atomic_write(path, mode="wb", **kwargs):
         with atomic_write(path) as f:
             writer.write(f)
     """
+    _check_cancelled(annullato)
     path = os.fspath(path)
     tmp = f"{path}.parziale"
     f = open(tmp, mode, **kwargs)
     try:
         yield f
         f.close()
+        _check_cancelled(annullato)
         os.replace(tmp, path)
     except BaseException:
         try:

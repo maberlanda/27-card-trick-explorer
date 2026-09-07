@@ -42,7 +42,8 @@ from .combinations import count_combinations_ex, iter_combinations_ex
 from .gioco_reale import IMPILAMENTO_DI
 from .log import get_logger
 from .parallel import (COSTO_COMBO_DETTAGLIO, ExportAnnullato, ExportTooLarge,
-                       atomic_write, cronometro, imap_ordered, plan_workers)
+                       atomic_write, cronometro, imap_ordered, plan_workers,
+                       _check_cancelled)
 from .permutations import compute_stage, mat_to_perm27
 
 _log = get_logger(__name__)
@@ -231,9 +232,14 @@ def _order_key(combo):
     return (_p_key(s3), _p_key(s2), _p_key(s1), _j_key(s1), _j_key(s2), _j_key(s3))
 
 
-def order_like_c(params_list):
+def order_like_c(params_list, annullato=None):
     """Ordina le combinazioni come le stampa il programma C (i, j, k, m)."""
-    return sorted(params_list, key=_order_key)
+    def key(combo):
+        _check_cancelled(annullato)
+        return _order_key(combo)
+    result = sorted(params_list, key=key)
+    _check_cancelled(annullato)
+    return result
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -255,7 +261,7 @@ def _perm_of(params, _cache={}):
     return tuple(perm)
 
 
-def annotate_like_c(all_params):
+def annotate_like_c(all_params, annullato=None):
     """Per la lista ordinata di combinazioni calcola:
       labels[n]     — etichetta stile C: "P[i][j][k][m]" per le combinazioni
                       di gioco, altrimenti "D#n" (numerazione da 0 come Cntr);
@@ -265,20 +271,24 @@ def annotate_like_c(all_params):
     """
     labels, perms = [], []
     for n, params in enumerate(all_params):
+        _check_cancelled(annullato)
         perms.append(_perm_of(params))
         ci = _c_indices(params)
         labels.append("P[%d][%d][%d][%d]" % ci if ci else "D#%d" % n)
 
     by_perm = {}
     for lb, pm in zip(labels, perms):
+        _check_cancelled(annullato)
         by_perm.setdefault(pm, []).append(lb)
 
     transposes = []
     for pm in perms:
+        _check_cancelled(annullato)
         inv = [0] * 27
         for i, d in enumerate(pm):
             inv[d] = i
         transposes.append(by_perm.get(tuple(inv), []))
+    _check_cancelled(annullato)
     return labels, transposes
 
 
@@ -772,26 +782,33 @@ def render_detail_pages(c, params_list, start_index=1, progress_cb=None,
 MAX_DETAIL_COMBOS = 200_000
 
 
-def _prepare(filters):
+def _prepare(filters, annullato=None):
     """
     Ordina le combinazioni come il C e calcola etichette + trasposte.
 
     Solleva ExportTooLarge se le combinazioni superano MAX_DETAIL_COMBOS:
     meglio un messaggio chiaro subito che un MemoryError dopo dieci minuti.
     """
+    _check_cancelled(annullato)
     total = count_combinations_ex(filters)
     if total > MAX_DETAIL_COMBOS:
         raise ExportTooLarge(total, MAX_DETAIL_COMBOS)
     # Fase interamente seriale, e con molte combinazioni non e' trascurabile:
     # ordinamento globale + calcolo delle trasposte su tutto l'insieme.
+    def params_checked():
+        for params in iter_combinations_ex(filters):
+            _check_cancelled(annullato)
+            yield params
+
     with cronometro("PDF dettagliato: ordinamento e trasposte"):
-        all_params = order_like_c(list(iter_combinations_ex(filters)))
-        labels, transposes = annotate_like_c(all_params)
+        all_params = order_like_c(list(params_checked()), annullato=annullato)
+        labels, transposes = annotate_like_c(all_params, annullato=annullato)
     return all_params, labels, transposes
 
 
 def _generate_sequential(path, all_params, labels, transposes, progress_cb=None,
                          annullato=None):
+    _check_cancelled(annullato)
     import io as _io
     buf = _io.BytesIO()
     c, painter = _new_detail_canvas(buf)
@@ -799,14 +816,14 @@ def _generate_sequential(path, all_params, labels, transposes, progress_cb=None,
                             labels=labels, transposes=transposes,
                             painter=painter, annullato=annullato)
     c.save()
-    with atomic_write(path) as f:
+    with atomic_write(path, annullato=annullato) as f:
         f.write(buf.getvalue())
     return n
 
 
 def generate_detail_pdf(path, filters, progress_cb=None, annullato=None):
     """Export PDF dettagliato fedele (sequenziale)."""
-    all_params, labels, transposes = _prepare(filters)
+    all_params, labels, transposes = _prepare(filters, annullato=annullato)
     return _generate_sequential(path, all_params, labels, transposes,
                                 progress_cb, annullato)
 
@@ -841,7 +858,7 @@ def generate_detail_pdf_parallel(path, filters, n_workers=None,
     Fallback automatico al sequenziale (pochi elementi, pypdf assente, errori
     di multiprocessing). Solleva ExportTooLarge oltre MAX_DETAIL_COMBOS.
     """
-    all_params, labels, transposes = _prepare(filters)
+    all_params, labels, transposes = _prepare(filters, annullato=annullato)
     total = len(all_params)
 
     def sequential():
@@ -864,6 +881,7 @@ def generate_detail_pdf_parallel(path, filters, n_workers=None,
     def tasks():
         s = 0
         while s < total:
+            _check_cancelled(annullato)
             e = min(s + size, total)
             yield (s + 1, all_params[s:e], labels[s:e], transposes[s:e])
             s = e
@@ -876,7 +894,7 @@ def generate_detail_pdf_parallel(path, filters, n_workers=None,
         _log.info("PDF dettagliato: %d combinazioni, %d worker, blocchi da %d",
                   total, n_workers, size)
         for pdf_bytes, npages in imap_ordered(_detail_chunk_to_bytes, tasks(),
-                                              n_workers):
+                                              n_workers, annullato=annullato):
             if annullato is not None and annullato():
                 raise ExportAnnullato(done, total)
             reader = PdfReader(io.BytesIO(pdf_bytes))
@@ -885,8 +903,9 @@ def generate_detail_pdf_parallel(path, filters, n_workers=None,
             done += npages
             if progress_cb:
                 progress_cb(done)
+        _check_cancelled(annullato, done, total)
         with cronometro("PDF dettagliato: scrittura del PDF finale"):
-            with atomic_write(path) as f:
+            with atomic_write(path, annullato=annullato) as f:
                 writer.write(f)
         with cronometro("PDF dettagliato: deduplicazione risorse"):
             deduplica(path)

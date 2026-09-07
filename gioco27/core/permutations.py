@@ -419,11 +419,12 @@ def write_csv(path, filters, progress_cb=None, annullato=None):
     """
     # Import locale per evitare un import circolare con combinations.py
     from .combinations import iter_combinations_ex
-    from .parallel import ExportAnnullato, atomic_write, mai_annullato
+    from .parallel import ExportAnnullato, atomic_write, mai_annullato, _check_cancelled
     if annullato is None:
         annullato = mai_annullato
     count = 0
-    with atomic_write(path, "w", newline="", encoding="utf-8") as f:
+    with atomic_write(path, "w", annullato=annullato,
+                      newline="", encoding="utf-8") as f:
         w = csv.writer(f, delimiter=";", quotechar='"',
                        quoting=csv.QUOTE_ALL, lineterminator="\n")
         w.writerow(CSV_HEADER)
@@ -434,6 +435,7 @@ def write_csv(path, filters, progress_cb=None, annullato=None):
                 progress_cb(count)
             if count % 200 == 0 and annullato():
                 raise ExportAnnullato(count, 0)
+        _check_cancelled(annullato, count)
     return count
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -485,16 +487,19 @@ def write_csv_parallel(path, filters, n_workers=None, progress_cb=None,
     """
     from .combinations import count_combinations_ex, iter_combinations_ex
     from .parallel import (COSTO_RIGA_CSV, ExportAnnullato, atomic_write,
-                           check_export_size, mai_annullato, run_export)
+                           check_export_size, mai_annullato, run_export,
+                           _check_cancelled)
     if annullato is None:
         annullato = mai_annullato
 
+    _check_cancelled(annullato)
     total = count_combinations_ex(filters)
     # Il controllo va fatto PRIMA di aprire il file: se l'export e' rifiutato
     # non deve restare in giro un CSV con la sola intestazione.
     check_export_size(total)
 
-    with atomic_write(path, "w", newline="", encoding="utf-8") as f:
+    with atomic_write(path, "w", annullato=annullato,
+                      newline="", encoding="utf-8") as f:
         w = csv.writer(f, delimiter=";", quotechar='"',
                        quoting=csv.QUOTE_ALL, lineterminator="\n")
         w.writerow(CSV_HEADER)
@@ -509,6 +514,7 @@ def write_csv_parallel(path, filters, n_workers=None, progress_cb=None,
         def sequential():
             # Il file è già aperto con l'intestazione scritta: continuiamo qui
             # invece di riaprirlo, così il fallback non perde l'header.
+            _check_cancelled(annullato, 0, total)
             state["fallback"] = True
             count = 0
             for params in iter_combinations_ex(filters):
@@ -518,6 +524,7 @@ def write_csv_parallel(path, filters, n_workers=None, progress_cb=None,
                     progress_cb(count)
                 if count % 200 == 0 and annullato():
                     raise ExportAnnullato(count, total)
+            _check_cancelled(annullato, count, total)
             return count
 
         n = run_export(total=total,
@@ -529,6 +536,7 @@ def write_csv_parallel(path, filters, n_workers=None, progress_cb=None,
                        progress_cb=progress_cb, annullato=annullato,
                        what="Export CSV")
 
-    if progress_cb:
-        progress_cb(n)
+        if progress_cb:
+            progress_cb(n)
+        _check_cancelled(annullato, n, total)
     return n

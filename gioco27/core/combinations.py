@@ -7,7 +7,7 @@ from itertools import product as iproduct
 from .constants import P_OPTS, J_OPTS, ANY
 from .log import get_logger
 from .parallel import (COSTO_PAGINA_PDF, ExportAnnullato, check_export_size,
-                       run_export)
+                       run_export, _check_cancelled)
 from .permutations import (compute_stage, compute_R, kron_label, stage_label,
                             R_label, MAT3_P, MAT3_J)
 
@@ -273,6 +273,7 @@ def _render_combinations(c, params_list, start_index=1, progress_cb=None,
 
 def generate_pdf(path, filters, progress_cb=None, annullato=None):
     """Genera il PDF in modo sequenziale (un'unica Canvas)."""
+    _check_cancelled(annullato)
     import io as _io
     from .parallel import atomic_write
     buf = _io.BytesIO()
@@ -280,7 +281,7 @@ def generate_pdf(path, filters, progress_cb=None, annullato=None):
     n = _render_combinations(c, iter_combinations(filters), 1, progress_cb,
                              painter=painter, annullato=annullato)
     c.save()
-    with atomic_write(path) as f:
+    with atomic_write(path, annullato=annullato) as f:
         f.write(buf.getvalue())
     return n
 
@@ -337,6 +338,7 @@ def _pdf_parallel(path, filters, *, total, items_iter, sequential, worker,
     font, e senza deduplicazione il file finisce per pesare il 50% in piu' del
     sequenziale).
     """
+    _check_cancelled(annullato, 0, total)
     check_export_size(total)
 
     try:
@@ -366,7 +368,7 @@ def _pdf_parallel(path, filters, *, total, items_iter, sequential, worker,
     # è già scritto e non c'è nulla da unire.
     if len(scrittore.pages):
         with cronometro(f"{what}: scrittura del PDF finale"):
-            with atomic_write(path) as f:
+            with atomic_write(path, annullato=annullato) as f:
                 scrittore.write(f)
         with cronometro(f"{what}: deduplicazione risorse"):
             deduplica(path)
@@ -619,6 +621,7 @@ def _render_combinations_ex(c, params_list, start_index=1, progress_cb=None,
 
 def generate_pdf_ex(path, filters, progress_cb=None, annullato=None):
     """Genera il PDF esteso in modo sequenziale (un'unica Canvas)."""
+    _check_cancelled(annullato)
     import io as _io
     from .parallel import atomic_write
     buf = _io.BytesIO()
@@ -627,7 +630,7 @@ def generate_pdf_ex(path, filters, progress_cb=None, annullato=None):
                                 progress_cb, painter=painter,
                                 annullato=annullato)
     c.save()
-    with atomic_write(path) as f:
+    with atomic_write(path, annullato=annullato) as f:
         f.write(buf.getvalue())
     return n
 
