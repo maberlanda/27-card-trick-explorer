@@ -860,7 +860,6 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
 
     def _on_simulator_T(self, perm_27):
         """Il simulatore ha calcolato una nuova sequenza di gioco."""
-        self._last_T_perm = perm_27
         self._notify_T_changed(perm_27)
 
     # ── Tab Tavola 216 ──────────────────────────────────────────────────────
@@ -871,6 +870,7 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
     # ── Notifica cambio T ───────────────────────────────────────────────────
     def _notify_T_changed(self, perm_27):
         """Chiamata ogni volta che una nuova T viene calcolata."""
+        self._last_T_perm = list(perm_27)
         if hasattr(self, "_cycles_frame"):
             self._cycles_frame.set_permutation(perm_27)
         if hasattr(self, "_distrib_frame"):

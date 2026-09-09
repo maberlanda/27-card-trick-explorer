@@ -144,7 +144,7 @@ class ShuffleViewerFrame(ttk.Frame):
 
         # Riga 3: vettore inverso T⁻¹ (1 riga × 27 celle)
         inv_row_f = ttk.LabelFrame(
-            self, text=" T⁻¹  —  indice = valore carta,  contenuto = posizione nel mazzo ",
+            self, text=" T⁻¹  —  indice = posizione nel mazzo,  contenuto = valore carta ",
             padding=(4, 2))
         inv_row_f.grid(row=3, column=0, sticky="ew", pady=(4, 2))
         self._inv_labels = []
@@ -156,7 +156,7 @@ class ShuffleViewerFrame(ttk.Frame):
                            padx=1, pady=3, anchor="center")
             lbl.grid(row=0, column=v, padx=1, pady=2, sticky="nsew")
             self._inv_labels.append(lbl)
-        # piccola etichetta sotto ogni cella con il valore carta v
+        # piccola etichetta sotto ogni cella con la posizione nel mazzo
         for v in range(27):
             ttk.Label(inv_row_f, text=f"{v:02d}",
                       font=("Segoe UI", 6), foreground="#999",
@@ -653,13 +653,10 @@ class ShuffleViewerFrame(ttk.Frame):
 
     def _redraw_inv_vector(self, deck, changed, deck_before=None,
                            deck_final=None, card_step=False):
-        """Aggiorna la griglia T⁻¹: cella v = posizione attuale della carta v.
+        """Aggiorna la griglia T⁻¹: cella pos = carta nella posizione pos.
 
-        In modalità carta-per-carta (card_step=True) una cella v è 'rivelata'
-        solo quando la carta v ha già raggiunto la sua posizione finale nel mazzo
-        intermedio corrente.  Usiamo deck_final (la permutazione completa dello
-        step) per sapere dove finirà ogni carta, poi verifichiamo se ci è già
-        arrivata nel deck intermedio.
+        In modalità carta-per-carta una cella è rivelata quando contiene già
+        la carta prevista da deck_final per quella posizione nello step.
         """
         _CLR_EMPTY   = "#F0F0F0"
         _CLR_DONE    = "#D6EDD6"   # verde chiaro — rivelata
@@ -667,24 +664,21 @@ class ShuffleViewerFrame(ttk.Frame):
 
         if deck_final is None:
             deck_final = deck
-        inv_final = np.argsort(deck_final)  # inv_final[v] = posizione finale di carta v
-
-        for v in range(27):
-            final_pos = int(inv_final[v])        # posizione dove v finirà
-            lbl = self._inv_labels[v]
+        for pos in range(27):
+            final_card = int(deck_final[pos])
+            lbl = self._inv_labels[pos]
 
             if card_step and deck_before is not None:
-                # rivelata se deck intermedio ha già v alla sua posizione finale
-                revealed = (int(deck[final_pos]) == v)
+                revealed = (int(deck[pos]) == final_card)
             else:
                 revealed = True
 
             if not revealed:
                 lbl.configure(text="·", bg=_CLR_EMPTY, fg="#aaa")
-            elif final_pos in changed:
-                lbl.configure(text=f"{final_pos:02d}", bg=_CLR_CURRENT, fg="white")
+            elif pos in changed:
+                lbl.configure(text=f"{final_card:02d}", bg=_CLR_CURRENT, fg="white")
             else:
-                lbl.configure(text=f"{final_pos:02d}", bg=_CLR_DONE, fg="#1a5c1a")
+                lbl.configure(text=f"{final_card:02d}", bg=_CLR_DONE, fg="#1a5c1a")
 
     def _update_log(self):
         self._log_text.configure(state="normal")
@@ -729,4 +723,3 @@ class ShuffleViewerFrame(ttk.Frame):
 # ─────────────────────────────────────────────────────────────────────────────
 # DIALOG  —  Decomposizioni di T⁻¹
 # ─────────────────────────────────────────────────────────────────────────────
-

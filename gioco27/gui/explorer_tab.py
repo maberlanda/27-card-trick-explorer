@@ -696,7 +696,9 @@ class ExplorerTabMixin:
                 f"Già in forma normale: {'SÌ' if nf.already_normal else 'NO'}",
                 f"Tipo: {nf.kind}",
             ]
-            if nf.msc_exponent == 0 and not nf.kron_factors_repr:
+            actual_perm = r.get("perm")
+            if (actual_perm is not None
+                    and list(actual_perm) == list(range(len(actual_perm)))):
                 notes.append("L'espressione è l'identità.")
             self._exp_set(self._exp_nf_notes, "\n".join(notes))
         # Passi parziali
