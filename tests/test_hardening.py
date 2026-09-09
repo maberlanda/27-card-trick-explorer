@@ -261,10 +261,14 @@ def test_cache_round_trip_json(tmp_path, monkeypatch):
     """
     from gioco27.core import cache
     monkeypatch.setattr(cache, "_CACHE_DIR", tmp_path)
-    perm = list(range(27))
     dati = [(("SCD_U", "SDC_U", "CSD_U"),
              ("CDS_U", "DSC_U", "DCS_U"),
              ("SCD_U", "SCD_U", "SCD_U"))]
+    from gioco27.core.algebra import Controller
+    expr = " o MSC o ".join("({} x {} x {})".format(*stage)
+                            for stage in reversed(dati[0])) + " o MSC"
+    perm = Controller().process(expr)["perm"]
+    assert perm is not None and perm != list(range(27))
     cache.save_decompositions(perm, dati)
     assert cache.cache_entries() == 1
     assert cache.load_decompositions(perm) == dati

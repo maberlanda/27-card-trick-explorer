@@ -20,8 +20,9 @@ import tempfile
 import os
 import html as _html
 
-from ..core.constants import PERM3, _MSC_PERM
+from ..core.constants import PERM3
 from ..core.analysis import cycle_decomposition, order_of
+from ..core.kronecker import decomposition_perm, decomposition_context
 
 # Palette per i cicli (riusa i colori del tab Cicli)
 _CYCLE_COLORS = ["#4E79A7", "#E15759", "#59A14F", "#B07AA1", "#F28E2B",
@@ -52,21 +53,14 @@ def _kron27(f3, f2, f1):
 
 def _protocol_perm(decomp):
     """Permutazione eseguita dal protocollo: A2 ∘ MSC ∘ A1 ∘ MSC ∘ A0 ∘ MSC."""
-    a1, a2, a3 = decomp
-    msc = list(_MSC_PERM)
-    p = _compose(_kron27(*a1), msc)
-    p = _compose(msc, p)
-    p = _compose(_kron27(*a2), p)
-    p = _compose(msc, p)
-    p = _compose(_kron27(*a3), p)
-    return p
+    return decomposition_perm(decomp)
 
 
 def _col_order(name: str) -> str:
     """Converte 'SCD_U' -> 'Sinistra → Centro → Destra'."""
-    _MAP = {"S": "Sinistra", "C": "Centro", "D": "Destra"}
-    letters = name.replace("_U", "")
-    return " → ".join(_MAP.get(ch, ch) for ch in letters)
+    labels = ("Sinistra", "Centro", "Destra")
+    perm = list(PERM3[name])
+    return " → ".join(labels[perm.index(destination)] for destination in range(3))
 
 
 def _perm_to_html_table(perm: list, label: str) -> str:
@@ -175,7 +169,8 @@ def _ai_phase_html(triple, stage_num: int) -> str:
         <p>2. Chiedi allo spettatore in quale colonna si trova la sua carta
            (Sinistra / Centro / Destra).</p>
         <p>3. Raccogli le colonne nell'ordine:
-           <strong>{_html.escape(ord_str)}</strong></p>
+           <strong>{_html.escape(ord_str)}</strong>, dall'alto verso il basso
+           del mazzo finale, senza invertire le carte dentro le colonne.</p>
         {finale}
       </div>
       <p class='lvl-title'>Cosa fa A{stage_num}, livello per livello:</p>
@@ -201,7 +196,8 @@ def generate_protocol_html(T_data: dict, options: dict = None) -> str:
     inv_perm = T_data.get("inverse_perm") or list(range(27))
     label    = T_data.get("label", "T")
     period   = T_data.get("period")
-    decomps  = T_data.get("decompositions") or []
+    context = decomposition_context(T_data.get("decompositions"), perm, inv_perm)
+    decomps = context["results"] if context else []
     can_sym  = T_data.get("canonical_sym")
     # Preferisci una decomposizione «a raccolta semplice» (f2=f1=identità in
     # tutte e tre le fasi): è quella eseguibile dal vivo senza riarrangiare
@@ -317,8 +313,9 @@ poi A0 (1ª raccolta), poi MSC, A1, MSC e infine A2 (ultima raccolta).</div>
         body += f"""
     <h2>2 · Legenda dei simboli</h2>
     <p class='lead'>I sei elementi di GEN3 sono le permutazioni di
-       {{Sinistra, Centro, Destra}}. Letti come <em>ordine di raccolta</em>:
-       la prima lettera è la colonna raccolta per prima (va in cima).</p>
+       {{Sinistra, Centro, Destra}}. Il nome indica le destinazioni delle
+       colonne; l'<em>ordine di raccolta</em> usa la permutazione inversa.
+       La prima colonna indicata va in cima, le successive sotto.</p>
     <table class='gen3'>
       <tr><th>Nome</th><th>Permutazione</th><th>Ordine di raccolta</th>
           <th>Effetto</th><th>Inverso</th><th>Ordine</th></tr>
@@ -358,12 +355,8 @@ poi A0 (1ª raccolta), poi MSC, A1, MSC e infine A2 (ultima raccolta).</div>
         for i, v in enumerate(p_proto):
             inv_p[v] = i
         final_deck = [inv_p[j] + 1 for j in range(27)]
-        if p_proto == perm:
-            quale = "T (la permutazione diretta)"
-        elif p_proto == inv_perm:
-            quale = "T⁻¹ (la permutazione inversa)"
-        else:
-            quale = "una permutazione equivalente registrata nei dati"
+        quale = ("T⁻¹ (la permutazione inversa)" if context["inverse"]
+                 else "T (la permutazione diretta)")
         hl = {j for j in range(27) if final_deck[j] == j + 1}
         body += f"""
     <h2>4 · Verifica pratica</h2>

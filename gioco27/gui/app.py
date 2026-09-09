@@ -938,7 +938,7 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
     def _open_protocol(self):
         """Apre il dialog export protocollo per l'ultima T calcolata."""
         r = getattr(self, "_explorer_last_result", None)
-        if not r:
+        if not r or not r.get("ok") or r.get("perm") is None:
             messagebox.showinfo(
                 "Nessuna T calcolata",
                 "Calcola prima una permutazione T nell'Explorer,\n"
@@ -946,6 +946,7 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
                 parent=self)
             return
         import numpy as _np
+        from ..core.kronecker import decomposition_context
         perm     = list(r.get("perm") or [])
         inv_perm = list(r.get("inverse_perm") or
                         (_np.argsort(perm).tolist() if perm else []))
@@ -955,7 +956,8 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
             "inverse_perm":  inv_perm,
             "label":         r.get("normalized_str", "T"),
             "period":        r.get("period"),
-            "decompositions": getattr(self, "_last_decompositions", None) or [],
+            "decompositions": decomposition_context(
+                getattr(self, "_last_decompositions", None), perm, inv_perm),
             "canonical_sym": cf.symbolic() if cf is not None else None,
         }
         ProtocolDialog(self, T_data)

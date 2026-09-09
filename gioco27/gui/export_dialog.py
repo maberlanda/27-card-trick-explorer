@@ -15,6 +15,7 @@ from tkinter import ttk, filedialog, messagebox
 import os
 
 from ..core.analysis import cycle_decomposition, order_of, cycle_type
+from ..core.kronecker import decomposition_context
 
 
 class ExportDialog(tk.Toplevel):
@@ -28,7 +29,10 @@ class ExportDialog(tk.Toplevel):
 
         self._perm    = list(perm)     if perm     else list(range(27))
         self._inv     = list(inv_perm) if inv_perm else list(range(27))
-        self._decomps = decompositions or []
+        self._decomposition_context = decomposition_context(
+            decompositions, self._perm, self._inv)
+        self._decomps = (self._decomposition_context["results"]
+                         if self._decomposition_context else [])
         self._lbl     = title_label
 
         self._build_ui()
@@ -211,8 +215,9 @@ class ExportDialog(tk.Toplevel):
         if not self._decomps:
             return ("% Nessuna decomposizione disponibile.\n"
                     "% Aprire prima 'Tutte le decomposizioni' nell'Explorer.")
+        exponent = "^{-1}" if self._decomposition_context["inverse"] else ""
         lines = [
-            f"% Decomposizioni $\\mathrm{{{lb}}}^{{-1}}$ — prime "
+            f"% Decomposizioni $\\mathrm{{{lb}}}{exponent}$ — prime "
             f"{min(len(self._decomps),200)}",
             "% Richiede: \\usepackage{booktabs, longtable}",
             "",
@@ -265,13 +270,14 @@ class ExportDialog(tk.Toplevel):
             suf = "  [fisso]" if len(c)==1 else ""
             lines.append(f"  {i:3d}.  ({s}){suf}")
         if self._decomps:
-            lines += ["", f"Decomposizioni Kronecker di {lb}^-1: {len(self._decomps)}",
+            target_label = lb + ("^-1" if self._decomposition_context["inverse"] else "")
+            lines += ["", f"Decomposizioni Kronecker di {target_label}: {len(self._decomps)}",
                        "(prime 10)", ""]
             for i,(a1,a2,a3) in enumerate(self._decomps[:10],1):
                 a1s="({} x {} x {})".format(*a1)
                 a2s="({} x {} x {})".format(*a2)
                 a3s="({} x {} x {})".format(*a3)
-                lines.append(f"  {i:3d}.  {lb}^-1 = {a3s} o MSC o "
+                lines.append(f"  {i:3d}.  {target_label} = {a3s} o MSC o "
                               f"{a2s} o MSC o {a1s} o MSC")
         return "\n".join(lines)
 

@@ -10,7 +10,7 @@ from tkinter import ttk, messagebox
 
 from ..core.algebra import AlgebraEngine, Controller, CanonicalForm
 from ..core.constants import PERM3
-from ..core.kronecker import try_kron_decompose
+from ..core.kronecker import try_kron_decompose, decomposition_context
 from .common import configure_matrix_tags, insert_colored
 from .decomposition import DecompositionDialog
 from .shuffle import ShuffleViewerFrame
@@ -45,6 +45,8 @@ class ExplorerTabMixin:
             bg="#FAFCFF", fg="#1a1a2e", padx=6, pady=4, relief="flat", wrap="word")
         self._explorer_entry.grid(row=0, column=0, sticky="ew", pady=(0, 4))
         self._explorer_entry.bind("<Control-Return>", lambda e: self._explorer_calc())
+        self._explorer_entry.bind("<<Modified>>", self._explorer_input_changed)
+        self._explorer_entry.edit_modified(False)
 
         btn_row = ttk.Frame(inp_frame)
         btn_row.grid(row=1, column=0, sticky="w")
@@ -471,6 +473,15 @@ class ExplorerTabMixin:
 
     # ── Explorer callbacks ────────────────────────────────────────────────────
 
+    def _invalidate_decompositions(self):
+        self._decomposition_revision = getattr(self, "_decomposition_revision", 0) + 1
+        self._last_decompositions = None
+
+    def _explorer_input_changed(self, _event=None):
+        if self._explorer_entry.edit_modified():
+            self._invalidate_decompositions()
+            self._explorer_entry.edit_modified(False)
+
     def _explorer_find_decompositions(self):
         """Apre il dialog con tutte le decomposizioni Kronecker di T e T⁻¹."""
         r = self._explorer_last_result
@@ -485,8 +496,16 @@ class ExplorerTabMixin:
         # Memorizza per il Protocollo
         self._last_T_perm   = perm
         self._last_inv_perm = inv_perm
-        DecompositionDialog(self, perm, inv_perm,
-                            on_results=lambda r: setattr(self, '_last_decompositions', r))
+        self._invalidate_decompositions()
+        revision = self._decomposition_revision
+
+        def accept(context):
+            if (revision != self._decomposition_revision
+                    or self._explorer_last_result is not r):
+                return
+            self._last_decompositions = decomposition_context(context, perm, inv_perm)
+
+        DecompositionDialog(self, perm, inv_perm, on_results=accept)
 
     def _flash_entry(self, widget=None):
         """Anima un flash giallo → bianco sull'entry dell'Explorer (500 ms)."""
@@ -525,8 +544,10 @@ class ExplorerTabMixin:
         fade_in()
 
     def _explorer_calc(self, _event=None):
+        self._invalidate_decompositions()
         text = self._explorer_entry.get("1.0", "end-1c").strip()
         if not text:
+            self._explorer_last_result = None
             self._explorer_status.set("⚠  Nessuna espressione inserita.")
             return
         result = self._explorer_ctrl.process(text)
@@ -568,6 +589,8 @@ class ExplorerTabMixin:
             title_label=r.get("normalized_str", "T"))
 
     def _explorer_clear_results(self, except_log=False):
+        self._invalidate_decompositions()
+        self._explorer_last_result = None
         scalar = [
             self._exp_norm, self._exp_steps_sum, self._exp_perm,
             self._exp_period, self._exp_sig, self._exp_inv,

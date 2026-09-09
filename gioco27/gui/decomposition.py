@@ -17,7 +17,8 @@ import threading
 from collections import defaultdict
 
 from ..core.kronecker import (find_all_kron_decompositions,
-                               find_all_kron_decompositions_parallel)
+                               find_all_kron_decompositions_parallel,
+                               validate_decompositions)
 from ..core.cache  import load_decompositions, save_decompositions
 from ..core.config import get_config
 
@@ -39,7 +40,7 @@ class DecompositionDialog(tk.Toplevel):
         """
         perm       : permutazione T (lista 27 int)
         inv_perm   : permutazione T^-1 (lista 27 int)
-        on_results : callback(results) chiamato quando la ricerca finisce
+        on_results : callback(context) con target, inverse e results; None al reset
         """
         super().__init__(parent)
         self._app        = parent
@@ -47,6 +48,8 @@ class DecompositionDialog(tk.Toplevel):
         self._perm     = list(perm)
         self._inv_perm = list(inv_perm)
         self._results  = []
+        self._result_context = None
+        self._search_id = 0
         self._group_mode = tk.BooleanVar(value=False)
         self._target_inv = tk.BooleanVar(value=True)   # True = T^-1, False = T
         self._node_expr  = {}
@@ -190,6 +193,7 @@ class DecompositionDialog(tk.Toplevel):
         return self._inv_perm if self._target_inv.get() else self._perm
 
     def _on_target_changed(self):
+        self._cancel_flat_job()
         self._results = []
         for item in self._tree.get_children():
             self._tree.delete(item)
@@ -202,14 +206,20 @@ class DecompositionDialog(tk.Toplevel):
         self._start_search()
 
     def _start_search(self):
-        target = self._current_target()
+        self._search_id += 1
+        search_id = self._search_id
+        target = tuple(self._current_target())
+        inverse = bool(self._target_inv.get())
+        self._results = []
+        self._result_context = None
+        if self._on_results is not None:
+            self._on_results(None)
+        progress_q = queue.Queue()
+        self._progress_q = progress_q
         # Prova cache
         cached = load_decompositions(target)
         if cached is not None:
-            self._results = cached
-            if self._on_results is not None:
-                try: self._on_results(cached)
-                except Exception: pass
+            self._accept_results(target, inverse, cached)
             n = len(cached)
             self._progress_bar["value"] = 216
             self._progress_lbl.configure(text=f"216 / 216  --  trovate: {n:,}  (cache)")
@@ -220,18 +230,25 @@ class DecompositionDialog(tk.Toplevel):
             self._redisplay()
             return
 
-        self._progress_q = queue.Queue()
         threading.Thread(target=self._search_thread,
-                         args=(target,), daemon=True).start()
-        self.after(60, self._poll_progress)
+                         args=(target, progress_q), daemon=True).start()
+        self.after(60, lambda: self._poll_progress(search_id, target, inverse, progress_q))
 
-    def _search_thread(self, target):
+    def _accept_results(self, target, inverse, results):
+        results = validate_decompositions(target, results)
+        self._result_context = {"target": tuple(target), "inverse": inverse,
+                                "results": results}
+        self._results = results
+        if self._on_results is not None:
+            self._on_results(self._result_context)
+
+    def _search_thread(self, target, progress_q):
         try:
             use_par = self._cfg.get("use_parallel", True)
             n_workers = self._cfg.effective_n_workers
 
             def _cb(done, found):
-                self._progress_q.put((done, found))
+                progress_q.put((done, found))
 
             if use_par and n_workers > 1:
                 results = find_all_kron_decompositions_parallel(
@@ -239,23 +256,23 @@ class DecompositionDialog(tk.Toplevel):
             else:
                 results = find_all_kron_decompositions(target, progress_cb=_cb)
 
+            results = validate_decompositions(target, results)
             save_decompositions(target, results)
-            self._results   = results
-            if self._on_results is not None:
-                try: self._on_results(results)
-                except Exception: pass
-            self._progress_q.put(None)
+            progress_q.put(("DONE", results))
         except Exception as exc:
-            self._progress_q.put(("ERR", str(exc)))
+            progress_q.put(("ERR", str(exc)))
 
-    def _poll_progress(self):
+    def _poll_progress(self, search_id, target, inverse, progress_q):
+        if search_id != self._search_id or not self.winfo_exists():
+            return
         last_done = last_found = 0
         done_flag = False
         err_msg   = None
         try:
             for _ in range(50):
-                item = self._progress_q.get_nowait()
-                if item is None:
+                item = progress_q.get_nowait()
+                if isinstance(item, tuple) and item[0] == "DONE":
+                    self._accept_results(target, inverse, item[1])
                     done_flag = True; break
                 if isinstance(item, tuple) and item[0] == "ERR":
                     err_msg = item[1]; break
@@ -272,18 +289,18 @@ class DecompositionDialog(tk.Toplevel):
                     text=f"{min(last_done,216):>3} / 216  --  trovate: {last_found:,}")
             if done_flag:
                 n   = len(self._results)
-                lbl = "T⁻¹" if self._target_inv.get() else "T"
+                lbl = "T⁻¹" if inverse else "T"
                 self._progress_bar["value"] = 216
                 self._progress_lbl.configure(text=f"216 / 216  --  trovate: {n:,}")
                 self._status_var.set(
                     f"Trovate {n:,} decomposizioni di {lbl}"
                     f"  (A0, A1, A2 in GEN3 x GEN3 x GEN3)")
                 self._export_mb.configure(state="normal")
-                self.after(0, lambda: self._redisplay())
+                self._redisplay()
                 return
         except tk.TclError:
             return
-        self.after(60, self._poll_progress)
+        self.after(60, lambda: self._poll_progress(search_id, target, inverse, progress_q))
 
     # ------------------------------------------------------ display ----------
 
@@ -440,9 +457,11 @@ class DecompositionDialog(tk.Toplevel):
     # ---- export -------------------------------------------------------------
 
     def _export_txt(self):
-        if not self._results:
+        context = self._result_context
+        if not context or not context["results"]:
             return
-        lbl = "T-inv" if self._target_inv.get() else "T"
+        results = context["results"]
+        lbl = "T-inv" if context["inverse"] else "T"
         path = filedialog.asksaveasfilename(
             parent=self, defaultextension=".txt",
             filetypes=[("Testo", "*.txt"), ("Tutti", "*.*")],
@@ -450,15 +469,15 @@ class DecompositionDialog(tk.Toplevel):
         if not path:
             return
         W = 28
-        target = self._current_target()
+        target = context["target"]
         lines = [
             f"{lbl} = [" + ", ".join(str(x) for x in target) + "]",
-            "Decomposizioni trovate: {:,}".format(len(self._results)),
+            "Decomposizioni trovate: {:,}".format(len(results)),
             "",
             "  {:>6}   {:<{w}}  {:<{w}}  A2".format("#", "A0", "A1", w=W),
             "-" * (14 + 3 * W + 6),
         ]
-        for i, (a1, a2, a3) in enumerate(self._results, 1):
+        for i, (a1, a2, a3) in enumerate(results, 1):
             lines.append("{:>6}.  {:<{w}}  {:<{w}}  {}".format(
                 i, _disp(a1), _disp(a2), _disp(a3), w=W))
         lines.append("")
@@ -467,17 +486,19 @@ class DecompositionDialog(tk.Toplevel):
                 f.write("\n".join(lines))
             messagebox.showinfo("Esportato",
                                 "Salvate {:,} righe in:\n{}".format(
-                                    len(self._results), path),
+                                    len(results), path),
                                 parent=self)
         except OSError as exc:
             messagebox.showerror("Errore", str(exc), parent=self)
 
     def _export_csv(self):
         """Esporta le decomposizioni in CSV con separatore ;."""
-        if not self._results:
+        context = self._result_context
+        if not context or not context["results"]:
             return
+        results = context["results"]
         import csv
-        lbl = "T-inv" if self._target_inv.get() else "T"
+        lbl = "T-inv" if context["inverse"] else "T"
         path = filedialog.asksaveasfilename(
             parent=self, defaultextension=".csv",
             filetypes=[("CSV", "*.csv"), ("Tutti", "*.*")],
@@ -489,30 +510,32 @@ class DecompositionDialog(tk.Toplevel):
                 w = csv.writer(f, delimiter=";", quotechar='"',
                                quoting=csv.QUOTE_ALL, lineterminator="\n")
                 w.writerow(["#", "A0", "A1", "A2"])
-                for i, (a1, a2, a3) in enumerate(self._results, 1):
+                for i, (a1, a2, a3) in enumerate(results, 1):
                     w.writerow([i, _disp(a1), _disp(a2), _disp(a3)])
             messagebox.showinfo("Esportato",
-                                f"Salvate {len(self._results):,} righe in:\n{path}",
+                                f"Salvate {len(results):,} righe in:\n{path}",
                                 parent=self)
         except OSError as exc:
             messagebox.showerror("Errore", str(exc), parent=self)
 
     def _export_html(self):
         """Esporta le decomposizioni in HTML."""
-        if not self._results:
+        context = self._result_context
+        if not context or not context["results"]:
             return
+        results = context["results"]
         import html as _h
-        lbl = "T⁻¹" if self._target_inv.get() else "T"
+        lbl = "T⁻¹" if context["inverse"] else "T"
         path = filedialog.asksaveasfilename(
             parent=self, defaultextension=".html",
             filetypes=[("HTML", "*.html"), ("Tutti", "*.*")],
             title=f"Salva decomposizioni {lbl} — HTML")
         if not path:
             return
-        target = self._current_target()
+        target = context["target"]
         target_str = "[" + ", ".join(str(x) for x in target) + "]"
         rows = ""
-        for i, (a1, a2, a3) in enumerate(self._results, 1):
+        for i, (a1, a2, a3) in enumerate(results, 1):
             rows += (f"<tr><td style='text-align:right'>{i}</td>"
                      f"<td><code>{_h.escape(_disp(a1))}</code></td>"
                      f"<td><code>{_h.escape(_disp(a2))}</code></td>"
@@ -527,7 +550,7 @@ code{{font-family:'Courier New',monospace;font-size:0.9em}}</style></head>
 <body>
 <h2>Decomposizioni — {_h.escape(lbl)}</h2>
 <p><code>{_h.escape(target_str)}</code></p>
-<p>Trovate: <strong>{len(self._results):,}</strong></p>
+<p>Trovate: <strong>{len(results):,}</strong></p>
 <table><tr><th>#</th><th>A0</th><th>A1</th><th>A2</th></tr>
 {rows}</table>
 <p style='color:#888;font-size:0.85em'>Generato da Gioco delle 27 Carte</p>

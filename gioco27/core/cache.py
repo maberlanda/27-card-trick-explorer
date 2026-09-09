@@ -33,6 +33,7 @@ import time
 from typing import Optional
 
 from .log import get_logger
+from .kronecker import validate_decompositions
 
 _log = get_logger(__name__)
 
@@ -94,7 +95,7 @@ def load_decompositions(perm) -> "Optional[list]":
             return None
         # JSON non ha tuple: ricostruiamo la struttura attesa dal chiamante
         # (lista di triple di triple di stringhe).
-        return [tuple(tuple(factor) for factor in triple) for triple in data]
+        return validate_decompositions(perm, data)
     except Exception:
         _log.exception("Errore in lettura cache %s", path)
         return None

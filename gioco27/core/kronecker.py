@@ -77,6 +77,71 @@ def _get_kron_table():
     return _KRON_ARR, _KRON_NAMES, _KRON_LOOKUP
 
 
+def decomposition_perm(decomposition):
+    """Valuta tre stadi GEN3: A2 o MSC o A1 o MSC o A0 o MSC."""
+    if not isinstance(decomposition, (list, tuple)) or len(decomposition) != 3:
+        raise ValueError("Una decomposizione richiede tre stadi")
+    stages = []
+    for stage in decomposition:
+        if (not isinstance(stage, (list, tuple)) or len(stage) != 3
+                or any(not isinstance(name, str) or name not in PERM3
+                       for name in stage)):
+            raise ValueError("Ogni stadio richiede tre nomi GEN3 validi")
+        stages.append(tuple(stage))
+    arr, names, _ = _get_kron_table()
+    msc = np.asarray(_MSC_PERM, dtype=np.int32)
+    perm = np.arange(27, dtype=np.int32)
+    for stage in stages:
+        perm = arr[names.index(stage)][msc[perm]]
+    return perm.tolist()
+
+
+def validate_decompositions(target, results):
+    """Valida struttura e bersaglio; restituisce triple immutabili di nomi."""
+    target = tuple(target)
+    if len(target) != 27 or sorted(target) != list(range(27)):
+        raise ValueError("Bersaglio non valido")
+    if not isinstance(results, (list, tuple)):
+        raise ValueError("Elenco decomposizioni non valido")
+    checked = []
+    for decomposition in results:
+        if tuple(decomposition_perm(decomposition)) != target:
+            raise ValueError("Decomposizione incompatibile con il bersaglio")
+        checked.append(tuple(tuple(stage) for stage in decomposition))
+    return checked
+
+
+def decomposition_context(data, perm, inverse_perm):
+    """Associa risultati verificati a T/T^-1; scarta dati incoerenti.
+
+    Accetta anche le vecchie liste, inferendone il bersaglio numericamente.
+    """
+    if not data:
+        return None
+    try:
+        if isinstance(data, dict):
+            target = tuple(data["target"])
+            results = data["results"]
+            inverse = data["inverse"]
+            if not isinstance(inverse, bool):
+                return None
+            if target != tuple(inverse_perm if inverse else perm):
+                return None
+        else:
+            results = data
+            target = tuple(decomposition_perm(results[0]))
+            if target == tuple(perm):
+                inverse = False
+            elif target == tuple(inverse_perm):
+                inverse = True
+            else:
+                return None
+        checked = validate_decompositions(target, results)
+        return {"target": target, "inverse": inverse, "results": checked}
+    except (ValueError, TypeError, KeyError, IndexError):
+        return None
+
+
 # -------------------------------------------------------- sequential search --
 
 def find_all_kron_decompositions(target_perm_27, progress_cb=None):
