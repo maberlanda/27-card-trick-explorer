@@ -42,6 +42,7 @@ from itertools import islice
 import math
 import os
 import sys
+import tempfile
 import time
 
 from .log import get_logger
@@ -483,16 +484,21 @@ def atomic_write(path, mode="wb", *, annullato=None, **kwargs):
     """
     _check_cancelled(annullato)
     path = os.fspath(path)
-    tmp = f"{path}.parziale"
-    f = open(tmp, mode, **kwargs)
+    fd, tmp = tempfile.mkstemp(prefix=".gioco27-", suffix=".parziale",
+                               dir=os.path.dirname(os.path.abspath(path)))
+    f = None
     try:
+        f = open(fd, mode, **kwargs)
         yield f
         f.close()
         _check_cancelled(annullato)
         os.replace(tmp, path)
     except BaseException:
         try:
-            f.close()
+            if f is None:
+                os.close(fd)
+            else:
+                f.close()
         except Exception:
             pass
         try:

@@ -1677,12 +1677,13 @@ def _prep_explorer_expr(t_sim):
 # ─────────────────────────────────────────────────────────────────────────────
 
 def scrivi_output(risultati, output_path):
+    from .parallel import atomic_write
     header = [
         "T_permutazione  [lista 0..26]",
         "T_simboliche_distinte  [separate da , ]",
         "n_sim_distinte  [molteplicita della permutazione]",
     ]
-    with open(output_path, "w", newline="", encoding="utf-8") as f:
+    with atomic_write(output_path, "w", newline="", encoding="utf-8") as f:
         w = csv.writer(f, delimiter=";", quotechar='"',
                        quoting=csv.QUOTE_ALL, lineterminator="\n")
         w.writerow(header)
@@ -1716,7 +1717,12 @@ def scrivi_excel(risultati, output_path):
     ws1.title = "Perm -> Simboliche"
     _hdr(ws1, ["T_permutazione", "T_simboliche_distinte", "n_sim_distinte"])
     for i, r in enumerate(risultati, 1):
-        ws1.append([r["perm_str"], " , ".join(r["simboliche"]), r["n_sim"]])
+        summary = " , ".join(r["simboliche"])
+        if len(summary) > 32767:
+            summary = ("Riepilogo oltre il limite di 32767 caratteri per cella. "
+                       f"Tutte le {len(r['simboliche'])} formule sono disponibili "
+                       "nel foglio 'Simbolica -> Perm', associate a questa permutazione.")
+        ws1.append([r["perm_str"], summary, r["n_sim"]])
         _fmt(ws1, i, 3)
     ws1.column_dimensions["A"].width = 40
     ws1.column_dimensions["B"].width = 120
@@ -1737,4 +1743,3 @@ def scrivi_excel(risultati, output_path):
     ws2.freeze_panes = "A2"
     ws2.auto_filter.ref = f"A1:C{len(righe_inv)+1}"
     wb.save(output_path)
-
