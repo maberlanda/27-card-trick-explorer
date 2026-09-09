@@ -82,7 +82,30 @@ def test_plan_workers_usa_i_core_disponibili():
     nw, _chunk = plan_workers(1728, 127, cost_per_item=COSTO_PAGINA_PDF)
     assert nw > 21, f"solo {nw} worker: il vecchio tetto morde ancora"
     nw_grande, _ = plan_workers(46656, 127, cost_per_item=COSTO_PAGINA_PDF)
-    assert nw_grande == 127, "su un export grande vanno usati tutti i core"
+    import sys
+    from concurrent.futures import process
+    limite = getattr(process, "_MAX_WINDOWS_WORKERS", 61) if sys.platform == "win32" else 127
+    assert nw_grande == min(127, limite), "vanno usati tutti i worker consentiti"
+
+
+@pytest.mark.parametrize("platform", ["win32", "linux", "darwin"])
+def test_worker_richiesti_rispettano_la_piattaforma(platform, monkeypatch):
+    import sys
+    monkeypatch.setattr(sys, "platform", platform)
+    test_plan_workers_usa_i_core_disponibili()
+
+
+def test_controllo_worker_rifiuta_il_vecchio_tetto(monkeypatch):
+    from gioco27.core import parallel
+    original = parallel.plan_workers
+
+    def capped(*args, **kwargs):
+        workers, chunk = original(*args, **kwargs)
+        return min(workers, 21), chunk
+
+    monkeypatch.setattr(parallel, "plan_workers", capped)
+    with pytest.raises(AssertionError, match="vecchio tetto"):
+        test_plan_workers_usa_i_core_disponibili()
 
 
 def test_plan_workers_da_lavoro_sensato_a_ogni_worker():

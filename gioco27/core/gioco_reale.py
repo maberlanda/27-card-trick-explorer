@@ -93,6 +93,8 @@ def esegui_partita(mescolamenti, rovesciamenti=(False, False, False)):
     """
     if len(mescolamenti) != 3:
         raise ValueError("servono esattamente 3 mescolamenti")
+    if len(rovesciamenti) != 3:
+        raise ValueError("servono esattamente 3 rovesciamenti")
     for s in mescolamenti:
         if s not in MESCOLAMENTO:
             raise ValueError(f"sigla sconosciuta: {s!r} (attese: {SIGLE})")

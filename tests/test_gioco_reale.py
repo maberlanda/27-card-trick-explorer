@@ -38,10 +38,26 @@ def test_statistiche_capitolo_100():
     assert st["periodi"] == {1: 1, 2: 63, 3: 26, 6: 126}
     assert st["autoinverse"] == 64
     assert len(st["tipi_ciclo"]) == 7
-    assert st["punti_fissi"] == {27: 1, 3: 27 + 54, 1: 26 + 72, 9: 9,
-                                 0: 0} or True  # dettaglio sotto
+    # Ogni cifra ternaria ha 3 punti fissi per l'identita' (1 scelta),
+    # 1 per una trasposizione (3 scelte), 0 per un 3-ciclo (2 scelte).
+    # Sulle tre cifre: 27 -> 1; 9 -> 3*3; 3 -> 3*3**2;
+    # 1 -> 3**3; zero -> 6**3 - 4**3. Atteso indipendente dalla tavola.
+    assert st["punti_fissi"] == {0: 152, 1: 27, 3: 27, 9: 9, 27: 1}
     # totale coerente
     assert sum(st["periodi"].values()) == 216
+
+
+def test_controllo_statistiche_rifiuta_distribuzione_errata(monkeypatch):
+    original = gr.statistiche_tavola
+
+    def wrong(*args, **kwargs):
+        result = original(*args, **kwargs)
+        result["punti_fissi"] = {999: 216}
+        return result
+
+    monkeypatch.setattr(gr, "statistiche_tavola", wrong)
+    with pytest.raises(AssertionError):
+        test_statistiche_capitolo_100()
 
 
 def test_ricostruzione_assi():

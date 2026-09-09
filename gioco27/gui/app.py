@@ -200,18 +200,8 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
     # ── Costruzione UI ────────────────────────────────────────────────────────
 
     def _quit_app(self):
-        """Libera memoria, ferma thread pendenti e chiude il programma."""
-        # Svuota strutture dati pesanti
-        if hasattr(self, "_analisi_risultati"):
-            self._analisi_risultati.clear()
-        if hasattr(self, "_analisi_righe_raw"):
-            self._analisi_righe_raw.clear()
-        if hasattr(self, "_explorer_last_result"):
-            self._explorer_last_result = None
-        # Chiudi la finestra e termina il processo
-        self.destroy()
-        import sys
-        sys.exit(0)
+        """Usa la stessa procedura della chiusura della finestra."""
+        self._on_close()
 
     def _build_ui(self):
         # ── Barra azioni ──────────────────────────────────────────────────────
