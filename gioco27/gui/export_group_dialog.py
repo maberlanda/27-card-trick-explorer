@@ -25,6 +25,7 @@ from collections import Counter
 
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
+from .i18n import tr
 
 
 # Classe S3 di ciascun generatore GEN3 (id / trasposizione / 3-ciclo) e
@@ -107,7 +108,8 @@ class _PreviewExportDialog(tk.Toplevel):
         self.columnconfigure(0, weight=1)
         self.rowconfigure(1, weight=1)
 
-        opt = ttk.LabelFrame(self, text=" Contenuto da esportare ", padding=(12, 6))
+        opt = ttk.LabelFrame(self, text=f" {tr('export.content')} ",
+                             padding=(12, 6))
         opt.grid(row=0, column=0, sticky="ew", padx=10, pady=(8, 4))
         for i, (key, label, _fn, _gen) in enumerate(self._items):
             var = tk.BooleanVar(value=True)
@@ -135,9 +137,10 @@ class _PreviewExportDialog(tk.Toplevel):
 
         bf = ttk.Frame(self, padding=(10, 4))
         bf.grid(row=2, column=0, sticky="ew")
-        ttk.Button(bf, text="💾  Esporta tutto in una cartella…",
+        ttk.Button(bf, text=f"💾  {tr('export.export_all')}",
                    command=self._export_all).pack(side="left", padx=(0, 8))
-        ttk.Button(bf, text="✕  Chiudi", command=self.destroy).pack(side="left")
+        ttk.Button(bf, text=f"✕  {tr('button.close')}",
+                   command=self.destroy).pack(side="left")
 
     def _content(self, key, gen):
         """Genera (e mette in cache) il contenuto completo per la chiave."""
@@ -164,7 +167,7 @@ class _PreviewExportDialog(tk.Toplevel):
 
     def _export_all(self):
         folder = filedialog.askdirectory(parent=self,
-                                         title="Scegli cartella per l'export")
+                                         title=tr("export.choose_folder"))
         if not folder:
             return
         done = []
@@ -177,16 +180,16 @@ class _PreviewExportDialog(tk.Toplevel):
                     f.write(self._content(key, gen))
                 done.append(path)
             if not done:
-                messagebox.showinfo("Nessun file",
-                                    "Nessun contenuto selezionato.", parent=self)
+                messagebox.showinfo(tr("export.no_files_title"),
+                                    tr("export.no_content_selected"), parent=self)
                 return
             messagebox.showinfo(
-                "Export completato",
-                f"Esportati {len(done)} file in:\n{folder}\n\n"
-                + "\n".join(os.path.basename(x) for x in done),
+                tr("export.completed_title"),
+                tr("export.completed", count=len(done), folder=folder,
+                   files="\n".join(os.path.basename(x) for x in done)),
                 parent=self)
         except OSError as exc:
-            messagebox.showerror("Errore export", str(exc), parent=self)
+            messagebox.showerror(tr("export.error_title"), str(exc), parent=self)
 
 
 # ── Dialog Cayley ────────────────────────────────────────────────────────────
@@ -201,14 +204,14 @@ class CayleyExportDialog(_PreviewExportDialog):
         # colori precalcolati per indice elemento
         self._cols_hex = [_hue_hex(v, n) for v in range(n)]
         items = [
-            ("svg_heat",  "SVG – Heatmap 216×216", "cayley_heatmap.svg",
+            ("svg_heat",  tr("export.cayley.heatmap"), "cayley_heatmap.svg",
              self._svg_heatmap),
-            ("tex_grid",  "LaTeX – Griglia TikZ",  "cayley_griglia.tex",
+            ("tex_grid",  tr("export.cayley.grid"),  "cayley_griglia.tex",
              self._latex_tikz),
-            ("tex_calc",  "LaTeX – Calcolo A∘B",   "cayley_calcolo.tex",
+            ("tex_calc",  tr("export.cayley.calculation"), "cayley_calcolo.tex",
              self._latex_calc),
         ]
-        super().__init__(parent, "Export LaTeX / SVG — Tavola di Cayley", items)
+        super().__init__(parent, tr("export.cayley_title"), items)
 
     # ---- SVG heatmap -------------------------------------------------------
     def _svg_heatmap(self):
@@ -392,14 +395,14 @@ class ConjugacyExportDialog(_PreviewExportDialog):
     def __init__(self, parent, gd):
         self._gd = gd
         items = [
-            ("tex_classes", "LaTeX – Tabella classi", "coniugio_classi.tex",
+            ("tex_classes", tr("export.conjugacy.classes"), "coniugio_classi.tex",
              self._latex_classes),
-            ("svg_grid",    "SVG – Griglia elementi", "coniugio_griglia.svg",
+            ("svg_grid",    tr("export.conjugacy.grid"), "coniugio_griglia.svg",
              self._svg_grid),
-            ("svg_hist",    "SVG – Istogramma",       "coniugio_istogramma.svg",
+            ("svg_hist",    tr("export.conjugacy.histogram"), "coniugio_istogramma.svg",
              self._svg_hist),
         ]
-        super().__init__(parent, "Export LaTeX / SVG — Classi di coniugio", items)
+        super().__init__(parent, tr("export.conjugacy_title"), items)
 
     # ---- LaTeX tabella classi ---------------------------------------------
     def _latex_classes(self):

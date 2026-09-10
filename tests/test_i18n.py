@@ -329,6 +329,67 @@ def test_fifth_block_shuffle_fallback_and_catalog_consistency(monkeypatch):
     assert i18n.tr("shuffle.pause") == "Pausa"
 
 
+def test_sixth_block_export_dialog_labels_are_localized():
+    from gioco27.gui.i18n import set_language, tr
+
+    assert tr("export.booklet_title") == "Esportazione per il libretto"
+    assert tr("export.content") == "Contenuto da esportare"
+    assert tr("export.export_all") == "Esporta tutto in una cartella…"
+    assert tr("export.tab.permutation") == "LaTeX – Permutazione"
+    set_language("en")
+    assert tr("export.booklet_title") == "Booklet export"
+    assert tr("export.content") == "Content to export"
+    assert tr("export.export_all") == "Export all to a folder…"
+    assert tr("export.tab.permutation") == "LaTeX – Permutation"
+
+
+def test_sixth_block_export_format_names_and_math_symbols_are_preserved():
+    from gioco27.gui.i18n import set_language, tr
+
+    set_language("en")
+    labels = (
+        tr("export.option.permutation"),
+        tr("export.option.cycles"),
+        tr("export.option.svg_arrows"),
+        tr("export.option.decompositions"),
+        tr("export.option.text_summary"),
+    )
+    assert labels[0].startswith("LaTeX") and "T" in labels[0]
+    assert labels[1].startswith("LaTeX")
+    assert labels[2].startswith("SVG")
+    assert labels[3].startswith("LaTeX")
+    assert labels[4].startswith("TXT")
+    assert "T⁻¹" in labels[0]
+
+
+def test_sixth_block_export_catalog_fallback(monkeypatch):
+    from gioco27.gui import i18n
+
+    monkeypatch.delitem(i18n.CATALOGS["en"], "export.completed_title")
+    i18n.set_language("en")
+    assert i18n.tr("export.completed_title") == "Export completato"
+
+
+def test_sixth_block_export_ui_uses_i18n_without_real_windows():
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[1]
+    for name in ("export_dialog.py", "export_group_dialog.py"):
+        source = (root / "gioco27" / "gui" / name).read_text(encoding="utf-8")
+        assert "from .i18n import tr" in source
+        assert "export.content" in source
+        assert "export.export_all" in source
+        assert "export.completed" in source
+
+
+def test_sixth_block_export_catalogs_have_matching_keys():
+    from gioco27.gui import i18n
+
+    italian = {key for key in i18n.CATALOGS["it"] if key.startswith("export.")}
+    english = {key for key in i18n.CATALOGS["en"] if key.startswith("export.")}
+    assert italian == english
+
+
 def _use_config_file(monkeypatch, tmp_path):
     from gioco27.core import config as config_module
 

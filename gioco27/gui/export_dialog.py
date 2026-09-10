@@ -16,6 +16,7 @@ import os
 
 from ..core.analysis import cycle_decomposition, order_of, cycle_type
 from ..core.kronecker import decomposition_context
+from .i18n import tr
 
 
 class ExportDialog(tk.Toplevel):
@@ -23,7 +24,7 @@ class ExportDialog(tk.Toplevel):
     def __init__(self, parent, perm=None, inv_perm=None,
                  decompositions=None, title_label="T"):
         super().__init__(parent)
-        self.title("Esportazione per il libretto")
+        self.title(tr("export.booklet_title"))
         self.geometry("860x640")
         self.resizable(True, True)
 
@@ -44,7 +45,8 @@ class ExportDialog(tk.Toplevel):
         self.columnconfigure(0, weight=1)
         self.rowconfigure(1, weight=1)
 
-        opt = ttk.LabelFrame(self, text=" Contenuto da esportare ", padding=(12, 6))
+        opt = ttk.LabelFrame(self, text=f" {tr('export.content')} ",
+                             padding=(12, 6))
         opt.grid(row=0, column=0, sticky="ew", padx=10, pady=(8, 4))
 
         self._opt_perm   = tk.BooleanVar(value=True)
@@ -54,11 +56,11 @@ class ExportDialog(tk.Toplevel):
         self._opt_txt    = tk.BooleanVar(value=True)
 
         items = [
-            (self._opt_perm,   "LaTeX — Tabella permutazione T e T⁻¹"),
-            (self._opt_cycles, "LaTeX — Cicli disgiunti e ordine"),
-            (self._opt_svg,    "SVG — Diagramma freccia"),
-            (self._opt_decomp, "LaTeX — Decomposizioni Kronecker"),
-            (self._opt_txt,    "TXT — Riepilogo testuale"),
+            (self._opt_perm,   tr("export.option.permutation")),
+            (self._opt_cycles, tr("export.option.cycles")),
+            (self._opt_svg,    tr("export.option.svg_arrows")),
+            (self._opt_decomp, tr("export.option.decompositions")),
+            (self._opt_txt,    tr("export.option.text_summary")),
         ]
         for i, (var, text) in enumerate(items):
             ttk.Checkbutton(opt, text=text, variable=var,
@@ -70,11 +72,11 @@ class ExportDialog(tk.Toplevel):
 
         self._tabs = {}
         for key, label in [
-            ("latex_perm",   "LaTeX – Permutazione"),
-            ("latex_cycles", "LaTeX – Cicli"),
-            ("svg",          "SVG – Frecce"),
-            ("latex_decomp", "LaTeX – Decomp."),
-            ("txt",          "Testo"),
+            ("latex_perm",   tr("export.tab.permutation")),
+            ("latex_cycles", tr("export.tab.cycles")),
+            ("svg",          tr("export.tab.svg_arrows")),
+            ("latex_decomp", tr("export.tab.decompositions")),
+            ("txt",          tr("export.tab.text")),
         ]:
             fr = ttk.Frame(nb)
             nb.add(fr, text=f"  {label}  ")
@@ -92,9 +94,9 @@ class ExportDialog(tk.Toplevel):
 
         bf = ttk.Frame(self, padding=(10, 4))
         bf.grid(row=2, column=0, sticky="ew")
-        ttk.Button(bf, text="💾  Esporta tutto in una cartella…",
+        ttk.Button(bf, text=f"💾  {tr('export.export_all')}",
                     command=self._export_all).pack(side="left", padx=(0, 8))
-        ttk.Button(bf, text="✕  Chiudi",
+        ttk.Button(bf, text=f"✕  {tr('button.close')}",
                     command=self.destroy).pack(side="left")
 
     # ─── Preview ─────────────────────────────────────────────────────────────
@@ -293,7 +295,7 @@ class ExportDialog(tk.Toplevel):
 
     def _export_all(self):
         folder = filedialog.askdirectory(parent=self,
-                                          title="Scegli cartella per l'export")
+                                          title=tr("export.choose_folder"))
         if not folder:
             return
         lb  = self._lbl.replace("^","").replace("{","").replace("}","")
@@ -321,9 +323,9 @@ class ExportDialog(tk.Toplevel):
                 open(f,"w",encoding="utf-8").write(self._txt_summary(p,iv,self._lbl))
                 done.append(f)
             messagebox.showinfo(
-                "Export completato",
-                f"Esportati {len(done)} file in:\n{folder}\n\n" +
-                "\n".join(os.path.basename(x) for x in done),
+                tr("export.completed_title"),
+                tr("export.completed", count=len(done), folder=folder,
+                   files="\n".join(os.path.basename(x) for x in done)),
                 parent=self)
         except OSError as e:
-            messagebox.showerror("Errore export", str(e), parent=self)
+            messagebox.showerror(tr("export.error_title"), str(e), parent=self)
