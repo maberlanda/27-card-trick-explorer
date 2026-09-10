@@ -254,7 +254,7 @@ def build_guide_content(ins, sep):
     ins("bullet", "  •  Struttura:  G = S₃³  (tre fattori locali indipendenti)\n")
     ins("bullet", "  •  G è non abeliano: l'ordine di composizione conta.\n")
     ins("bullet", "  •  Azione transitiva su tutte le 27 posizioni.\n")
-    ins("bullet", "  •  27 classi di coniugio (calcolabili dal tab Distribuzione).\n")
+    ins("bullet", "  •  27 classi di coniugio (pulsante Coniugio nella barra azioni).\n")
     ins("body",
         "Il gruppo esteso G_ext = ⟨S₃³, MSC⟩ si ottiene aggiungendo MSC a G. "
         "MSC non appartiene a G: il gruppo esteso va distinto dal gruppo del gioco.\n")
@@ -411,7 +411,7 @@ def build_guide_content(ins, sep):
         "Cinque voci divise in due gruppi:\n\n")
     ins("h3", "  Analisi — riepilogo molteplicità\n")
     ins("bullet", "  •  CSV (;)  —  tre colonne: T_permutazione ; T_simboliche_distinte ; n_sim_distinte\n")
-    ins("bullet", "  •  Excel    —  due fogli: «Perm→Simboliche» e «Analisi molteplicità»\n")
+    ins("bullet", "  •  Excel    —  due fogli: «Perm -> Simboliche» e «Simbolica -> Perm»\n")
     ins("bullet", "  •  HTML     —  tabella formattata con sfondo colorato, una riga per T, "
         "una <div> per ogni sequenza Stage → leggibilità ottimale\n\n")
     ins("h3", "  Dati grezzi — una riga per ogni combinazione\n")
@@ -424,7 +424,7 @@ def build_guide_content(ins, sep):
     ins("h2", "16.  Tab Explorer — analisi algebrica, decomposizioni e protocollo\n")
     ins("body",
         "Analizzatore algebrico simbolico. Accetta una T_simbolica e la scompone "
-        "in sei sotto-tab. Ha anche i pulsanti per le decomposizioni di T⁻¹ "
+        "in sette sotto-tab. Ha anche i pulsanti per le decomposizioni di T⁻¹ "
         "e per generare il protocollo per il mazziere.\n\n")
     ins("h3", "  Come caricare un'espressione\n")
     ins("bullet", "  •  Doppio clic su riga Analisi  →  carica la prima T_simbolica.\n")
@@ -433,14 +433,14 @@ def build_guide_content(ins, sep):
     ins("formula",
         "    Sintassi:  (CDS_U x SCD_U x SCD_U) o MSC o (DCS_U x SCD_U x SCD_U) o MSC o ...\n\n")
     ins("h3", "  I sette sotto-tab\n")
-    ins("bullet", "  🎴 Mescolamento     —  simulazione visiva passo per passo (vedi sezione 18).\n")
     ins("bullet", "  🔢 Numerico         —  permutazione T e T⁻¹, periodo, firma, passi di normalizzazione.\n")
     ins("bullet", "  ✏️ Traccia riscrittura  —  riscrittura passo per passo dell'espressione.\n")
     ins("bullet", "  🧮 Forma algebrica  —  forma normale: tipo, esponente MSC, fattori Kronecker.\n")
     ins("bullet", "  📋 Passi parziali   —  permutazione parziale e firma per ogni sotto-espressione.\n")
     ins("bullet", "  ⧆ Forma canonica   —  forma K∘MSCᵏ con K = P₀⊗P₁⊗P₂, k∈{0,1,2}; fattori GEN3; verifica. "
         "Per T non decomponibili in Kronecker puri viene tentata la decomposizione numerica.\n")
-    ins("bullet", "  📐 Matrice          —  griglie 27×27 di T e T⁻¹ (vedi sezione 17).\n\n")
+    ins("bullet", "  📐 Matrice          —  griglie 27×27 di T e T⁻¹ (vedi sezione 17).\n")
+    ins("bullet", "  🎴 Mescolamento     —  simulazione visiva passo per passo (vedi sezione 18).\n\n")
 
     ins("h3", "  Pulsante 🔍  Decomposizioni T⁻¹\n")
     ins("body",
@@ -639,7 +639,7 @@ def build_guide_content(ins, sep):
     # ── 21 ─────────────────────────────────────────────────────────────────
     ins("h2", "22.  Finestra Classi di Coniugio e Centro\n")
     ins("body",
-        "Accessibile dal tab Distribuzione. Calcola le 27 classi di coniugio del gruppo del gioco G = S₃³, "
+        "Accessibile dal pulsante 🔬 Coniugio nella barra azioni. Calcola le 27 classi di coniugio del gruppo del gioco G = S₃³, "
         "mostrando per ognuna:\n\n")
     ins("bullet", "  •  Un rappresentante canonico (in notazione T_simbolica)\n")
     ins("bullet", "  •  La dimensione della classe (numero di elementi coniugati)\n")
@@ -757,8 +757,8 @@ def build_guide_content(ins, sep):
 
     ins("h3", "  Analisi molteplicità — Excel\n")
     ins("body", "Due fogli:\n\n")
-    ins("bullet", "  •  «Perm → Simboliche»  —  una riga per permutazione T\n")
-    ins("bullet", "  •  «Analisi molteplicità»  —  idem, con celle a capo automatico per le sequenze\n\n")
+    ins("bullet", "  •  «Perm -> Simboliche»  —  una riga per permutazione T\n")
+    ins("bullet", "  •  «Simbolica -> Perm»  —  una riga per formula, con la permutazione corrispondente\n\n")
 
     ins("h3", "  Analisi molteplicità — HTML\n")
     ins("body",
@@ -819,10 +819,8 @@ def build_guide_content(ins, sep):
         "I calcoli pesanti e gli export sfruttano piu' core della CPU tramite "
         "processi paralleli. Non si usano i thread perche' in Python il GIL impedisce "
         "ai thread di accelerare il codice CPU-bound: i thread servono solo a tenere "
-        "reattiva l'interfaccia. Sono parallelizzati:\n\n")
+        "reattiva l'interfaccia. Sono parallelizzati gli export grandi:\n\n")
     ins("bullet", "  -  Export CSV e PDF (per export grandi)\n")
-    ins("bullet", "  -  Tab Distribuzione (statistica globale sul gruppo)\n")
-    ins("bullet", "  -  Ricerca delle decomposizioni Kronecker (Explorer)\n")
     ins("body",
         "\nL'attivazione del parallelismo e il numero di processi si regolano in "
         "Impostazioni. Il numero di worker e' adattivo e si basa sul LAVORO "
@@ -831,11 +829,13 @@ def build_guide_content(ins, sep):
         "sopra si usano tutti i core disponibili, dando a ciascun worker almeno "
         "un quinto di secondo di lavoro utile.\n\n")
     ins("note",
-        "Alcuni calcoli non sono piu' parallelizzati perche' sono diventati "
+        "Ricerca delle decomposizioni Kronecker e distribuzione sono normalmente sequenziali, "
+        "in un thread di background per mantenere reattiva la GUI. Sono diventati "
         "troppo rapidi: la ricerca delle decomposizioni Kronecker dura circa "
         "0,03 s e la distribuzione circa 0,09 s. Distribuirle su piu' processi, "
         "ognuno dei quali re-importa numpy, costerebbe da dieci a cento volte "
-        "il calcolo stesso.\n")
+        "il calcolo stesso. Solo la distribuzione può essere forzata in parallelo con "
+        "GIOCO27_FORZA_DISTRIB_PARALLELA e più di un worker.\n")
     ins("note",
         "I PDF prodotti in parallelo vengono deduplicati: ogni processo figlio "
         "incorpora la propria copia dei font, e senza deduplicazione un export "
@@ -889,8 +889,8 @@ def build_guide_content(ins, sep):
     ins("body",
         "\nA differenza del programma C (limitato alle 1728 sequenze del gioco reale), "
         "qui l'export rispetta i filtri correnti e copre qualsiasi sottoinsieme di "
-        "parametri. Vale lo stesso avviso sui numeri elevati: una pagina ricca per "
-        "combinazione, quindi conviene filtrare.\n\n")
+        "parametri. Vale lo stesso avviso sui numeri elevati: due combinazioni per "
+        "pagina, quindi conviene filtrare.\n\n")
     ins("h3", "Combinazioni fuori dalle 1728 del gioco\n")
     ins("body",
         "Quando P0 o P1 non sono l'identita', o J non e' uniforme, lo stadio non e' "

@@ -9,8 +9,13 @@
 >
 > Punto di partenza: **3.0.1** (82 test). Arrivo: **3.1.1** (218 test).
 
-Revisione di robustezza e prestazioni. **Nessun cambiamento di risultati**:
-CSV identico byte per byte, PDF visivamente identico, `--selftest` invariato.
+Queste note raccolgono tappe storiche: conteggi di test, misure e verifiche
+si riferiscono alle revisioni descritte, non allo stato corrente della suite.
+
+Revisione di robustezza e prestazioni. Il CSV mantiene il separatore `;` e
+la rappresentazione delle permutazioni; le intestazioni passano a
+`Stage0..2` e `A0..A2`, quindi i file non sono identici byte per byte alla
+versione precedente.
 
 ## 1. Correzioni di robustezza
 
@@ -33,7 +38,9 @@ Correzioni:
 
 * nuovo modulo `core/parallel.py`: la generazione resta un **flusso**
   (`chunked` + `imap_ordered` con finestra limitata di task in volo), quindi
-  la memoria non dipende più dal totale;
+  si evita di accodare tutti i blocchi in anticipo. Questo non rende costante
+  la memoria complessiva: le librerie PDF trattengono strutture proporzionali
+  alle pagine e il PDF dettagliato conserva i dati globali necessari;
 * limite di sicurezza `MAX_EXPORT_ITEMS = 20.000.000` con eccezione
   `ExportTooLarge` e messaggio che spiega come restringere i filtri;
 * il PDF dettagliato ha un limite più basso (`MAX_DETAIL_COMBOS = 200.000`)
@@ -102,7 +109,8 @@ Nuova `compute_T_perm()`: A_i memoizzato per parametri di stadio (al massimo
 6³·2³ = 1728 chiavi, quindi la cache è naturalmente limitata) e T ottenuto con
 cinque composizioni di liste. **95 µs → 3,4 µs.** `compute_T_full` resta
 disponibile e delega, costruendo la matrice una volta sola dalla permutazione
-finale. Il CSV prodotto è identico byte per byte.
+finale. L'ottimizzazione conserva le permutazioni e il formato dei valori CSV;
+le intestazioni sono quelle a base 0 introdotte nella 3.1.0.
 
 ### Griglie PDF come Form XObject
 
@@ -180,10 +188,10 @@ Suite verde anche con `python -O`. `--selftest` invariato: 6 controlli su 6.
   **Nessun errore di calcolo** (le permutazioni coincidono), solo una
   potenziale confusione di lettura. Non toccato perché cambierebbe le etichette
   in CSV e PDF già prodotti: da decidere insieme.
-* **Assenza di annullamento negli export.** Un export avviato va portato a
-  termine o si chiude la finestra. Aggiungere un flag di cancellazione
-  propagato ai worker è un intervento sull'interfaccia, non una correzione:
-  vale la pena farlo, ma come modifica esplicita.
+* **Assenza di annullamento negli export (situazione iniziale).** All'epoca
+  un export avviato andava portato a termine o si chiudeva la finestra.
+  Questa limitazione è stata superata dall'annullamento introdotto nella
+  3.1.1, descritto più avanti.
 
 ---
 
@@ -905,19 +913,23 @@ Un export grande poteva solo essere portato a termine o interrotto chiudendo la
 finestra. Ora accanto alla barra c'è **«✕ Annulla»**, attivo solo mentre un
 export è in corso.
 
-**Non lascia alcun file**: la destinazione resta com'era, anche se conteneva
-già qualcosa. La garanzia viene dalla scrittura atomica introdotta prima.
+La cancellazione è **cooperativa**. Se viene rilevata prima della
+pubblicazione, la destinazione resta com'era e il temporaneo viene rimosso.
 
-Punti di controllo:
+Punti di controllo attuali:
 
-* export sequenziali — a ogni pagina, o ogni 200 righe per il CSV;
-* export paralleli — mentre si aspettano i risultati, ogni 0,2 s.
+* durante la generazione di righe/pagine e la preparazione del PDF dettagliato;
+* durante l'attesa dei risultati dei worker;
+* prima della pubblicazione del file completo.
 
-Il dettaglio che rende utile il pulsante: con **un blocco per worker**,
-aspettare il completamento significherebbe minuti. `imap_ordered` chiude quindi
+Non è garantito un intervallo massimo di risposta: un'operazione della libreria
+PDF già iniziata deve raggiungere il successivo punto di controllo.
+
+Il dettaglio che rende utile il pulsante: aspettare il completamento di un
+blocco già avviato potrebbe richiedere molto tempo. `imap_ordered` chiude quindi
 il pool con `wait=False, cancel_futures=True`: i processi che stanno già
 macinando un blocco lo finiscono per conto loro, il risultato viene scartato e
-l'interfaccia torna subito disponibile.
+l'interfaccia torna disponibile quando la richiesta raggiunge un punto di controllo.
 
 `ExportAnnullato` non è trattata come un errore: nessun messaggio di guasto,
 solo la barra di stato che riporta quanti elementi erano stati calcolati.

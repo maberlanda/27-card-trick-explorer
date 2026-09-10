@@ -159,8 +159,6 @@ def _verifica_assenza_vecchio_numero_sottotab(guida):
         "la Guida conserva sei sotto-tab insieme ai sette effettivi"
 
 
-@pytest.mark.xfail(strict=True, raises=AssertionError,
-                   reason="D1–D5: guide.py conserva 'in sei sotto-tab'; documentazione fuori ambito R4")
 def test_explorer_non_conserva_il_numero_obsoleto(guida):
     _verifica_assenza_vecchio_numero_sottotab(guida)
 

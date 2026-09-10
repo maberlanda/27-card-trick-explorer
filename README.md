@@ -43,9 +43,18 @@ Produce `dist/Gioco27/Gioco27.exe`, avviabile senza Python installato.
 
 Con i filtri su «*» le combinazioni sono 1728³ = 5.159.780.352: gli export
 rifiutano subito i lavori oltre 20 milioni di elementi (200.000 per il PDF
-dettagliato, che deve tenere tutto in memoria per l'elenco delle trasposte),
-spiegando come restringere i filtri. Nessun export materializza le
-combinazioni in RAM: sono generate e consumate a flusso.
+dettagliato), spiegando come restringere i filtri. CSV e PDF standard/esteso
+generano le combinazioni a flusso; il parallelismo limita i blocchi in volo.
+Il PDF dettagliato mantiene invece combinazioni e annotazioni globali per
+l'ordinamento e l'elenco delle trasposte. Le strutture interne delle librerie
+PDF possono crescere con il numero di pagine: la memoria complessiva non è
+costante rispetto alla dimensione dell'export.
+
+La cancellazione è **cooperativa**, nei punti di controllo della generazione,
+dell'attesa dei risultati e prima della pubblicazione del file. Non garantisce
+un tempo massimo di risposta: un blocco già in esecuzione può terminare prima
+dell'arresto. Se la cancellazione è rilevata prima della pubblicazione, la
+destinazione precedente resta intatta e il temporaneo viene rimosso.
 
 ## Log e dati
 
