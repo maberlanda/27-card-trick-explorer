@@ -10,6 +10,20 @@ from tkinter import ttk
 from .tooltip import attach as _tip
 from .help_banner import HelpBanner
 from .glossary import GLOSSARY, ONBOARD_STEPS, ONBOARD_INTRO
+from .i18n import tr
+
+
+_ONBOARD_STEP_KEYS = (
+    ("onboarding.step1.title", "onboarding.step1.desc"),
+    ("onboarding.step2.title", "onboarding.step2.desc"),
+    ("onboarding.step3.title", "onboarding.step3.desc"),
+)
+
+_GLOSSARY_KEYS = (
+    "msc", "permutation", "stage", "collection", "shuffle", "stacking",
+    "orientation", "real_game", "total_transform", "conjugacy", "cayley",
+    "kronecker", "cycle", "order",
+)
 
 
 class OnboardingTabMixin:
@@ -42,18 +56,17 @@ class OnboardingTabMixin:
 
         body.columnconfigure(0, weight=1)
 
-        ttk.Label(body, text="🚀  Inizia qui",
+        ttk.Label(body, text=f"🚀  {tr('onboarding.title')}",
                   font=("Segoe UI", 16, "bold"),
                   foreground="#1F4E79").grid(row=0, column=0, sticky="w")
         ttk.Label(body,
-                  text="Una mappa rapida per orientarti, anche se non conosci "
-                       "la teoria.",
+                  text=tr("onboarding.subtitle"),
                   font="GiocoHelpItalic",
                   foreground="#555").grid(row=1, column=0, sticky="w",
                                           pady=(0, 10))
 
         HelpBanner(
-            body, ONBOARD_INTRO,
+            body, tr("onboarding.intro"),
             long=("Il programma studia il «gioco delle 27 carte»: come, "
                   "mescolando le carte in colonne, si ottengono permutazioni "
                   "con proprietà matematiche interessanti. Non serve conoscere "
@@ -66,7 +79,9 @@ class OnboardingTabMixin:
         steps.grid(row=3, column=0, sticky="ew")
         for i in range(3):
             steps.columnconfigure(i, weight=1, uniform="step")
-        for i, (icon, title, desc) in enumerate(ONBOARD_STEPS):
+        for i, (icon, _title, _desc) in enumerate(ONBOARD_STEPS):
+            title_key, desc_key = _ONBOARD_STEP_KEYS[i]
+            title, desc = tr(title_key), tr(desc_key)
             card = tk.Frame(steps, bg="white", bd=0,
                             highlightthickness=1, highlightbackground="#D6E0EC")
             card.grid(row=0, column=i, sticky="nsew",
@@ -80,32 +95,39 @@ class OnboardingTabMixin:
                      font="GiocoHelp", wraplength=210, justify="left"
                      ).pack(anchor="w", padx=12, pady=(2, 12))
 
-        qa = ttk.LabelFrame(body, text="  Azioni rapide  ", padding=10)
+        qa = ttk.LabelFrame(body, text=f"  {tr('onboarding.quick_actions')}  ", padding=10)
         qa.grid(row=4, column=0, sticky="ew", pady=(14, 0))
         b0 = ttk.Button(qa, text="🎩  Prova il Simulatore",
                         command=lambda: self._select_tab_by_text("Simulatore"))
+        b0.configure(text=f"🎩  {tr('onboarding.button.try_simulator')}")
         b0.pack(side="left", padx=(0, 8))
-        _tip(b0, "Esegui il trucco passo per passo, come col mazzo vero.")
+        _tip(b0, tr("tooltip.try_simulator"))
         b1 = ttk.Button(qa, text="🎴  Carica «Gioco Reale»",
                         command=getattr(self, "_preset_gioco_reale",
                                         lambda: None))
+        b1.configure(text=f"🎴  {tr('onboarding.button.load_real_game')}")
         b1.pack(side="left", padx=8)
-        _tip(b1, "Imposta i filtri sull'esempio standard di 1 728 sequenze.")
+        _tip(b1, tr("tooltip.load_real_game"))
         b2 = ttk.Button(qa, text="🔍  Vai all'Anteprima",
                         command=lambda: self._select_tab_by_text("Anteprima"))
+        b2.configure(text=f"🔍  {tr('onboarding.button.go_preview')}")
         b2.pack(side="left", padx=8)
-        _tip(b2, "Mostra cosa succede alle carte per una singola combinazione.")
+        _tip(b2, tr("tooltip.preview"))
         b3 = ttk.Button(qa, text="📖  Apri la Guida completa",
                         command=lambda: self._open_guide())
+        b3.configure(text=f"📖  {tr('onboarding.button.open_guide')}")
         b3.pack(side="left", padx=8)
-        _tip(b3, "La documentazione completa, con tutta la teoria passo passo.")
+        _tip(b3, tr("banner.open_guide"))
 
         gl = ttk.LabelFrame(
-            body, text="  Glossario — i termini in parole semplici "
-                       "(passa il mouse per i dettagli)  ", padding=(4, 6))
+            body, text=f"  {tr('onboarding.glossary.title')} — "
+                       f"{tr('onboarding.glossary.subtitle')}  ", padding=(4, 6))
         gl.grid(row=5, column=0, sticky="ew", pady=(16, 4))
         gl.columnconfigure(0, weight=1)
-        for r, (term, short, long) in enumerate(GLOSSARY):
+        for r, (source_term, _short, long) in enumerate(GLOSSARY):
+            glossary_key = _GLOSSARY_KEYS[r]
+            term = tr(f"glossary.term.{glossary_key}")
+            short = tr(f"glossary.short.{glossary_key}")
             rowf = tk.Frame(gl, bg="#FAFCFF")
             rowf.grid(row=r, column=0, sticky="ew", pady=1)
             rowf.columnconfigure(1, weight=1)

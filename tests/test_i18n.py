@@ -163,6 +163,69 @@ def test_mathematical_identifiers_remain_unchanged_in_localized_statuses():
     assert "SCD_U" not in status  # no identifier was translated or injected
 
 
+def test_third_block_short_tooltips_and_banner_labels_are_localized():
+    from gioco27.gui.i18n import set_language, tr
+
+    assert tr("tooltip.count") == \
+        "Conta le combinazioni che soddisfano i filtri correnti."
+    assert tr("banner.what_this_tab_does") == "Cosa fa questa scheda?"
+    set_language("en")
+    assert tr("tooltip.count") == \
+        "Count the combinations matching the current filters."
+    assert tr("banner.what_this_tab_does") == "What does this tab do?"
+    assert tr("banner.show_more") == "Show more ▾"
+
+
+def test_third_block_onboarding_labels_are_localized():
+    from gioco27.gui.i18n import set_language, tr
+
+    assert tr("onboarding.title") == "Inizia qui"
+    assert tr("onboarding.button.open_guide") == "Apri la Guida completa"
+    set_language("en")
+    assert tr("onboarding.title") == "Start here"
+    assert tr("onboarding.button.open_guide") == "Open the complete Guide"
+    assert tr("onboarding.step1.title") == "Try the Simulator"
+
+
+def test_third_block_glossary_short_labels_preserve_symbols():
+    from gioco27.gui.i18n import set_language, tr
+
+    keys = ("msc", "collection", "orientation", "total_transform")
+    for key in keys:
+        assert tr(f"glossary.term.{key}")
+        assert tr(f"glossary.short.{key}")
+    set_language("en")
+    assert tr("glossary.term.msc") == "MSC"
+    assert tr("glossary.term.collection") == "P (collection)"
+    assert "MSC" in tr("glossary.short.stage")
+    assert "T⁻¹" in tr("glossary.short.total_transform")
+
+
+def test_third_block_catalogs_have_the_same_new_keys():
+    from gioco27.gui import i18n
+
+    new_namespaces = ("banner.", "onboarding.", "tooltip.", "glossary.")
+    italian = set(i18n.CATALOGS["it"])
+    english = set(i18n.CATALOGS["en"])
+    new_keys = {key for key in italian | english
+                if key.startswith(new_namespaces)}
+    assert new_keys <= italian
+    assert new_keys <= english
+
+
+def test_third_block_wires_localized_labels_without_real_windows():
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[1]
+    banner_src = (root / "gioco27" / "gui" / "help_banner.py").read_text(
+        encoding="utf-8")
+    onboarding_src = (root / "gioco27" / "gui" / "onboarding_tab.py").read_text(
+        encoding="utf-8")
+    assert 'tr("banner.what_this_tab_does")' in banner_src
+    assert "tr('onboarding.title')" in onboarding_src
+    assert "tr('onboarding.glossary.title')" in onboarding_src
+
+
 def _use_config_file(monkeypatch, tmp_path):
     from gioco27.core import config as config_module
 

@@ -235,7 +235,7 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
                    command=self._count)
         _b.configure(text=f"🔢  {tr('button.count')}")
         _b.pack(side="left", padx=4)
-        _tooltip.attach(_b, "Conta quante combinazioni soddisfano i filtri correnti.")
+        _tooltip.attach(_b, tr("tooltip.count"))
         gen_mb = tk.Menubutton(inner, text="⬇  Genera…", relief="raised")
         gen_mb.configure(text=f"⬇  {tr('button.generate')}")
         gen_menu = tk.Menu(gen_mb, tearoff=0)
@@ -244,13 +244,13 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
         gen_menu.add_command(label="📊  CSV (;)", command=self._gen_csv)
         gen_mb["menu"] = gen_menu
         gen_mb.pack(side="left", padx=4)
-        _tooltip.attach(gen_mb, "Genera ed esporta i risultati: PDF, PDF dettagliato o CSV.")
+        _tooltip.attach(gen_mb, tr("tooltip.generate"))
         _b = ttk.Button(inner, text="↺  Reset tutto",
                    style="Action.TButton",
                    command=self._reset)
         _b.configure(text=f"↺  {tr('button.reset_all')}")
         _b.pack(side="left", padx=4)
-        _tooltip.attach(_b, "Azzera tutti i filtri P e J di tutti gli stadi.")
+        _tooltip.attach(_b, tr("tooltip.reset_all"))
 
         ttk.Separator(inner, orient="vertical").pack(
             side="left", fill="y", padx=10)
@@ -290,14 +290,14 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
                    command=self._on_close)
         _b.configure(text=f"⏻  {tr('button.exit')}")
         _b.pack(side="right", padx=(0, 4))
-        _tooltip.attach(_b, "Chiudi il programma (le impostazioni vengono salvate).")
+        _tooltip.attach(_b, tr("tooltip.exit"))
 
         # ── Strumenti avanzati (destra) ───────────────────────────────────────
         _b = ttk.Button(inner, text="⚙️  Impostazioni",
                    command=self._open_settings)
         _b.configure(text=f"⚙️  {tr('button.settings')}")
         _b.pack(side="right", padx=2)
-        _tooltip.attach(_b, "Numero di processi, opzioni di calcolo e preferenze.")
+        _tooltip.attach(_b, tr("tooltip.settings"))
         _b = ttk.Button(inner, text="✔  Verifica",
                    command=self._run_selftest)
         _b.configure(text=f"✔  {tr('button.verify')}")
@@ -309,7 +309,7 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
                    command=self._open_presentation)
         _b.configure(text=f"🖥️  {tr('button.presentation')}")
         _b.pack(side="right", padx=2)
-        _tooltip.attach(_b, "Apre la finestra di presentazione a schermo intero.")
+        _tooltip.attach(_b, tr("tooltip.presentation"))
         _b = ttk.Button(inner, text="📋  Protocollo",
                    command=self._open_protocol)
         _b.configure(text=f"📋  {tr('button.protocol')}")
@@ -349,7 +349,7 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
                    command=self._preset_gioco_reale)
         _b.configure(text=f"🎴  {tr('button.real_game')}")
         _b.pack(side="left", padx=4)
-        _tooltip.attach(_b, "Imposta i filtri sull'esempio standard di 1 728 sequenze.")
+        _tooltip.attach(_b, tr("tooltip.real_game"))
 
         _b = ttk.Button(pinner,
                    text="⚡  J Uniformi per tutti gli stadi",
@@ -357,7 +357,7 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
                    command=self._preset_j_uniform)
         _b.configure(text=f"⚡  {tr('button.uniform_j')}")
         _b.pack(side="left", padx=4)
-        _tooltip.attach(_b, "Imposta la stessa orientazione J su tutti e tre gli stadi.")
+        _tooltip.attach(_b, tr("tooltip.uniform_j"))
 
         _b = ttk.Button(pinner,
                    text="↺  Reset filtri",
@@ -365,7 +365,7 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
                    command=self._reset)
         _b.configure(text=f"↺  {tr('button.quick_reset')}")
         _b.pack(side="left", padx=4)
-        _tooltip.attach(_b, "Azzera tutti i filtri P e J.")
+        _tooltip.attach(_b, tr("tooltip.quick_reset"))
 
         # ── Progress bar + Annulla ────────────────────────────────────────────
         prog_row = ttk.Frame(self)
@@ -380,9 +380,7 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
                                        command=self._annulla_export)
         self._btn_annulla.configure(text=f"✕  {tr('button.cancel_export')}")
         self._btn_annulla.pack(side="left", padx=(8, 0))
-        _tooltip.attach(self._btn_annulla,
-                        "Interrompe l'export in corso. Il file di destinazione "
-                        "non viene creato ne' modificato.")
+        _tooltip.attach(self._btn_annulla, tr("tooltip.cancel_export"))
 
         # ── Notebook ─────────────────────────────────────────────────────────
         # Legenda colori sempre visibile, in fondo alla finestra

@@ -13,6 +13,8 @@ Esempio:
 """
 import tkinter as tk
 
+from .i18n import tr
+
 
 class HelpBanner(tk.Frame):
     BG = "#EAF2FB"
@@ -34,21 +36,21 @@ class HelpBanner(tk.Frame):
 
         tk.Label(row, text="ⓘ", bg=self.BG, fg=self.FG,
                  font="GiocoHelpBold").pack(side="left", padx=(0, 6))
-        tk.Label(row, text="Cosa fa questa scheda?", bg=self.BG, fg=self.FG,
+        tk.Label(row, text=tr("banner.what_this_tab_does"), bg=self.BG, fg=self.FG,
                  font="GiocoHelpBold").pack(side="left")
         tk.Label(row, text="  " + short, bg=self.BG, fg=self.FG2,
                  font="GiocoHelp", wraplength=560, justify="left"
                  ).pack(side="left")
 
         if on_open_guide is not None:
-            link = tk.Label(row, text="ⓘ Apri Guida", bg=self.BG, fg=self.FG,
+            link = tk.Label(row, text=f"ⓘ {tr('banner.open_guide')}", bg=self.BG, fg=self.FG,
                             font="GiocoHelpLink", cursor="hand2")
             link.pack(side="right")
             link.bind("<Button-1>",
                       lambda e: self._on_open(self._section))
 
         if long:
-            self._toggle = tk.Label(row, text="Mostra di più ▾",
+            self._toggle = tk.Label(row, text=tr("banner.show_more"),
                                     bg=self.BG, fg=self.FG,
                                     font="GiocoHelpLink",
                                     cursor="hand2")
@@ -62,7 +64,7 @@ class HelpBanner(tk.Frame):
         self._open = not self._open
         if self._open:
             self._longlbl.pack(fill="x", padx=34, pady=(0, 8))
-            self._toggle.config(text="Mostra meno ▴")
+            self._toggle.config(text=tr("banner.show_less"))
         else:
             self._longlbl.pack_forget()
-            self._toggle.config(text="Mostra di più ▾")
+            self._toggle.config(text=tr("banner.show_more"))
