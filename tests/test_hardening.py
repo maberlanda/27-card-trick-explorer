@@ -210,11 +210,34 @@ def test_iter_combinations_ordine_come_i_cicli_annidati():
 
 # ─────────────────── T su vettori == T su matrici (7x piu' veloce) ─────────
 
+def _T_applicata_ai_27_elementi(params):
+    """Oracolo per cifre ternarie: J, messa in colonne, P, per ogni stadio.
+
+    I nomi descrivono le immagini di S,C,D. Nessuna chiamata al motore,
+    alle sue tabelle, alla riduzione A_i o ai suoi prodotti di Kronecker.
+    """
+    result = []
+    for card in range(27):
+        digits = [card % 3, (card // 3) % 3, card // 9]
+        for stage in params:
+            for k, name in enumerate(stage[3:]):
+                assert name in ("I_3", "R_U")
+                if name == "R_U":
+                    digits[k] = 2 - digits[k]
+            # (i2,i1,i0) -> (i0,i2,i1), cifre memorizzate dalla meno significativa.
+            digits = [digits[1], digits[2], digits[0]]
+            for k, name in enumerate(stage[:3]):
+                digits[k] = "SCD".index(name[digits[k]])
+        result.append(digits[0] + 3 * digits[1] + 9 * digits[2])
+    return result
+
+
 def test_compute_T_perm_coincide_con_la_matrice():
     """
     compute_T_perm evita di costruire tre prodotti di Kronecker e cinque
     prodotti di matrici 27x27 per combinazione. Il risultato deve essere
-    identico a quello ottenuto dalla matrice.
+    identico all'applicazione indipendente ai 27 elementi. Il confronto
+    con compute_T_full verifica anche il contratto del wrapper, non e' un oracolo.
     """
     from gioco27.core.permutations import (compute_T_full, compute_T_perm,
                                            mat_to_perm27, perm27_to_mat)
@@ -222,14 +245,27 @@ def test_compute_T_perm_coincide_con_la_matrice():
         itertools.product(P_OPTS, P_OPTS, P_OPTS, J_OPTS, J_OPTS, J_OPTS),
         0, 1728, 53))
     assert len(combos) > 20
-    for a in combos:
-        for b in combos[:4]:
-            params = [a, b, a]
+    nontrivial = 0
+    for index, a in enumerate(combos):
+        for j, b in enumerate(combos[:4]):
+            params = [a, b, combos[(index + j + 7) % len(combos)]]
+            expected = _T_applicata_ai_27_elementi(params)
             lab, T_label, T_perm = compute_T_perm(params)
+            assert T_perm == expected
+            nontrivial += expected != list(range(27))
             lab2, T_label2, T_perm2, M = compute_T_full(params)
             assert (lab, T_label, T_perm) == (lab2, T_label2, T_perm2)
             assert mat_to_perm27(M) == T_perm
             assert (perm27_to_mat(T_perm) == M).all()
+    assert nontrivial > 20
+
+
+def test_oracolo_T_rileva_errore_condiviso_dai_due_percorsi(monkeypatch):
+    from gioco27.core import permutations
+    monkeypatch.setattr(permutations, "compute_T_perm", lambda params:
+                        (["errato"] * 3, "errato", list(range(27))))
+    with pytest.raises(AssertionError):
+        test_compute_T_perm_coincide_con_la_matrice()
 
 
 def test_perm27_to_mat_e_una_matrice_di_permutazione():
@@ -467,36 +503,87 @@ def test_deduplica_non_solleva_mai(tmp_path):
         "un file non deduplicabile non va toccato"
 
 
-def test_pdf_parallelo_non_duplica_i_font(tmp_path):
-    """
-    Ogni processo figlio incorpora la propria copia dei font: unendo N blocchi
-    si ottenevano N copie identiche dello stesso programma font, e il file
-    pesava il 50% in più del sequenziale.
-    """
-    pytest.importorskip("reportlab")
-    pytest.importorskip("pypdf")
-    pikepdf = pytest.importorskip("pikepdf")
-    from gioco27.core.combinations import generate_pdf_ex_parallel
-
-    filtri = [{'p0': 'SCD_U', 'p1': 'SCD_U', 'p2': ANY,
-               'j0': 'I_3', 'j1': 'I_3', 'j2': 'I_3'} for _ in range(3)]
-    out = tmp_path / "par.pdf"
-    generate_pdf_ex_parallel(str(out), filtri, n_workers=2)
-    assert out.exists()
-
-    pdf = pikepdf.open(str(out))
-    programmi = set()
-    for pagina in pdf.pages:
-        for font in pagina.get("/Resources", {}).get("/Font", {}).values():
+def _programmi_font_pdf(path):
+    import io
+    from pypdf import PdfReader
+    reader = PdfReader(io.BytesIO(path.read_bytes()))
+    programmi = {}
+    for pagina in reader.pages:
+        for ref in pagina.get("/Resources", {}).get("/Font", {}).values():
+            font = ref.get_object()
             df = font.get("/DescendantFonts")
-            desc = df[0].get("/FontDescriptor") if df else font.get("/FontDescriptor")
+            desc = df[0].get_object().get("/FontDescriptor") if df else font.get("/FontDescriptor")
             if desc is None:
                 continue
+            desc = desc.get_object()
             for chiave in ("/FontFile", "/FontFile2", "/FontFile3"):
                 if chiave in desc:
-                    programmi.add(desc[chiave].objgen)
-    assert len(programmi) <= 2, \
-        f"{len(programmi)} copie di font incorporati: deduplicazione non applicata"
+                    stream = desc[chiave]
+                    ref = stream.indirect_reference
+                    programmi[(ref.idnum, ref.generation)] = stream.get_data()
+    return programmi
+
+
+def _verifica_font_deduplicati(programmi):
+    assert programmi, "nessun programma font incorporato: verifica vacua"
+    assert len(programmi) == len(set(programmi.values())), "programmi font duplicati"
+
+
+@pytest.fixture
+def pdf_con_font_duplicati(tmp_path):
+    """Tre PDF indipendenti incorporano lo stesso TrueType prima dell'unione."""
+    import io
+    from pathlib import Path
+    reportlab = pytest.importorskip("reportlab")
+    pypdf = pytest.importorskip("pypdf")
+    from reportlab.pdfbase import pdfmetrics
+    from reportlab.pdfbase.ttfonts import TTFont
+    from reportlab.pdfgen.canvas import Canvas
+    font_path = Path(reportlab.__file__).parent / "fonts" / "Vera.ttf"
+    if not font_path.is_file():
+        pytest.skip("font TrueType Vera.ttf non incluso in questa installazione ReportLab")
+    pdfmetrics.registerFont(TTFont("R4Vera", str(font_path)))
+    writer, readers = pypdf.PdfWriter(), []
+    for _ in range(3):
+        buffer = io.BytesIO()
+        canvas = Canvas(buffer)
+        canvas.setFont("R4Vera", 12)
+        canvas.drawString(20, 20, "Font incorporato per R4")
+        canvas.save()
+        reader = pypdf.PdfReader(io.BytesIO(buffer.getvalue()))
+        readers.append(reader)  # identita' distinte mantenute durante la clonazione
+        writer.add_page(reader.pages[0])
+    path = tmp_path / "font_duplicati.pdf"
+    with path.open("wb") as out:
+        writer.write(out)
+    writer.close()
+    return path
+
+
+def test_fixture_font_esercita_programmi_reali_duplicati(pdf_con_font_duplicati):
+    programmi = _programmi_font_pdf(pdf_con_font_duplicati)
+    assert len(programmi) == 3
+    assert all(programmi.values())
+    assert len(set(programmi.values())) == 1
+    with pytest.raises(AssertionError, match="programmi font duplicati"):
+        _verifica_font_deduplicati(programmi)
+
+
+def test_controllo_font_non_accetta_insieme_vuoto():
+    with pytest.raises(AssertionError, match="verifica vacua"):
+        _verifica_font_deduplicati({})
+
+
+def test_pdf_unito_non_duplica_i_font(pdf_con_font_duplicati):
+    pytest.importorskip("pikepdf", reason="deduplicazione font richiede pikepdf opzionale")
+    from gioco27.core.pdfmerge import deduplica
+    path = pdf_con_font_duplicati
+    prima = _programmi_font_pdf(path)
+    assert len(prima) == 3 and len(set(prima.values())) == 1
+    deduplica(str(path))
+    dopo = _programmi_font_pdf(path)
+    _verifica_font_deduplicati(dopo)
+    assert set(dopo.values()) == set(prima.values()), "contenuto del font perso o alterato"
 
 
 # ══════════════════ il limite di 61 worker di Windows ═════════════════════

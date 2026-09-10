@@ -132,6 +132,14 @@ def test_versione_minima_di_python_coerente_con_pyproject(guida):
     attesa = m.group(1)
     assert f"Python {attesa} o superiore" in guida, \
         f"la Guida non dichiara Python {attesa} (valore di pyproject.toml)"
+    assert not re.search(r"Python\s+3\.8\s+o superiore", guida), \
+        "la Guida conserva anche il vecchio requisito Python 3.8"
+
+
+def test_requisito_python_rifiuta_formulazioni_contraddittorie(guida):
+    with pytest.raises(AssertionError, match="vecchio requisito"):
+        test_versione_minima_di_python_coerente_con_pyproject(
+            guida + "\nPython 3.8 o superiore")
 
 
 def test_numero_di_sottotab_explorer(guida):
@@ -144,6 +152,24 @@ def test_numero_di_sottotab_explorer(guida):
         f"l'Explorer ha {n} sotto-tab: la Guida deve dire «I {parole[n]} sotto-tab»"
     assert f"i {parole[n]} sotto-tab" in guida, \
         f"anche il flusso di lavoro deve citare {parole[n]} sotto-tab"
+
+
+def _verifica_assenza_vecchio_numero_sottotab(guida):
+    assert not re.search(r"\bsei\s+sotto-tab\b", guida, re.IGNORECASE), \
+        "la Guida conserva sei sotto-tab insieme ai sette effettivi"
+
+
+@pytest.mark.xfail(strict=True, raises=AssertionError,
+                   reason="D1–D5: guide.py conserva 'in sei sotto-tab'; documentazione fuori ambito R4")
+def test_explorer_non_conserva_il_numero_obsoleto(guida):
+    _verifica_assenza_vecchio_numero_sottotab(guida)
+
+
+def test_controllo_sottotab_rifiuta_formulazioni_contraddittorie():
+    corretto = "I sette sotto-tab. Naviga i sette sotto-tab."
+    _verifica_assenza_vecchio_numero_sottotab(corretto)
+    with pytest.raises(AssertionError, match="sei sotto-tab"):
+        _verifica_assenza_vecchio_numero_sottotab(corretto + " Organizzato in sei sotto-tab.")
 
 
 def _etichette_tab(path):
@@ -164,6 +190,13 @@ def test_nomi_dei_sottotab_explorer_citati_nella_guida(guida_norm):
     mancanti = [e for e in _etichette_tab(ROOT / "gioco27" / "gui" / "explorer_tab.py")
                 if _norm(e) not in guida_norm]
     assert not mancanti, f"sotto-tab non documentati con l'etichetta reale: {mancanti}"
+    assert _norm("📝 Traccia") not in guida_norm, \
+        "la Guida conserva anche l'etichetta obsoleta della Traccia"
+
+
+def test_nomi_sottotab_rifiutano_anche_etichetta_obsoleta(guida_norm):
+    with pytest.raises(AssertionError, match="etichetta obsoleta"):
+        test_nomi_dei_sottotab_explorer_citati_nella_guida(guida_norm + " 📝 Traccia")
 
 
 def test_sottotab_di_cicli_e_distribuzione_documentati(guida_norm):
