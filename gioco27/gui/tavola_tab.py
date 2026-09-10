@@ -16,6 +16,7 @@ from tkinter import ttk, messagebox, filedialog
 import csv
 
 from ..core import gioco_reale as gr
+from .i18n import tr
 
 
 class TavolaFrame(ttk.Frame):
@@ -31,6 +32,17 @@ class TavolaFrame(ttk.Frame):
         ("par",  "Parità",       60),
         ("auto", "Auto-inversa", 96),
     )
+    _COL_KEYS = {
+        "num": "table.col.number",
+        "mesc": "table.col.shuffles",
+        "imp": "table.col.stackings",
+        "assi": "table.col.aces",
+        "per": "table.col.period",
+        "fix": "table.col.fixed_points",
+        "tipo": "table.col.cycle_type",
+        "par": "table.col.parity",
+        "auto": "table.col.self_inverse",
+    }
 
     def __init__(self, parent, **kw):
         super().__init__(parent, **kw)
@@ -44,31 +56,33 @@ class TavolaFrame(ttk.Frame):
         top = ttk.Frame(self, padding=(8, 6))
         top.pack(fill="x")
 
-        ttk.Label(top, text="Filtro:").pack(side="left")
+        ttk.Label(top, text=tr("table.filter")).pack(side="left")
         self._filtro_var = tk.StringVar()
         ent = ttk.Entry(top, textvariable=self._filtro_var, width=24)
         ent.pack(side="left", padx=(4, 12))
         self._filtro_var.trace_add("write", lambda *a: self._popola())
         ttk.Label(top, foreground="#666",
-                  text="(cerca in tutte le colonne: es. CDS, 6, auto…)"
-                  ).pack(side="left")
+                  text=tr("table.search_hint")).pack(side="left")
 
-        ttk.Button(top, text="⬇  Esporta CSV",
+        ttk.Button(top, text=f"⬇  {tr('table.export_csv')}",
                    command=self._esporta_csv).pack(side="right", padx=4)
 
         # ── ricostruzione dagli assi ──
-        rec = ttk.LabelFrame(self, text="  Ricostruzione dagli Assi  "
-                             "(posizioni finali 0–26, dal dorso)  ",
-                             padding=(8, 6))
+        rec = ttk.LabelFrame(
+            self,
+            text=f"  {tr('table.reconstruct_axes')}  "
+                 f"{tr('table.positions_note')}  ",
+            padding=(8, 6))
         rec.pack(fill="x", padx=8, pady=(0, 4))
         self._asso_vars = []
-        for lbl in ("A♠ (da 0):", "A♣ (da 13):", "A♥ (da 26):"):
+        for key in ("table.ace_spades", "table.ace_clubs", "table.ace_hearts"):
+            lbl = tr(key)
             ttk.Label(rec, text=lbl).pack(side="left", padx=(8, 2))
             v = tk.StringVar()
             ttk.Spinbox(rec, from_=0, to=26, width=4,
                         textvariable=v).pack(side="left")
             self._asso_vars.append(v)
-        ttk.Button(rec, text="🔎  Trova disposizione",
+        ttk.Button(rec, text=f"🔎  {tr('table.find_arrangement')}",
                    command=self._ricostruisci).pack(side="left", padx=12)
         self._rec_lbl = ttk.Label(rec, text="", foreground="#00427e")
         self._rec_lbl.pack(side="left", padx=6)
@@ -80,7 +94,7 @@ class TavolaFrame(ttk.Frame):
         tv = ttk.Treeview(wrap, columns=cols, show="headings",
                           selectmode="browse")
         for c, testo, w in self._COLS:
-            tv.heading(c, text=testo)
+            tv.heading(c, text=tr(self._COL_KEYS[c]))
             tv.column(c, width=w, anchor="center", stretch=(c in ("mesc", "imp", "tipo")))
         vs = ttk.Scrollbar(wrap, orient="vertical", command=tv.yview)
         tv.configure(yscrollcommand=vs.set)
@@ -106,9 +120,9 @@ class TavolaFrame(ttk.Frame):
             "{:2d} {:2d} {:2d}".format(*r["assi"]),
             r["periodo"],
             r["punti_fissi"],
-            "·".join(str(l) for l in r["tipo_ciclo"] if l > 1) or "identità",
-            "pari" if r["parita"] > 0 else "dispari",
-            "sì" if r["autoinversa"] else "",
+            "·".join(str(l) for l in r["tipo_ciclo"] if l > 1) or tr("table.identity"),
+            tr("table.even") if r["parita"] > 0 else tr("table.odd"),
+            tr("table.yes") if r["autoinversa"] else "",
         )
 
     def _popola(self, evidenzia=None):
@@ -128,9 +142,7 @@ class TavolaFrame(ttk.Frame):
             tv.insert("", "end", iid=str(r["numero"]), values=vals,
                       tags=tuple(tags))
             n_vis += 1
-        self._status.configure(
-            text=f"{n_vis} / 216 disposizioni mostrate.   "
-                 "Doppio clic su una riga per T e T⁻¹ complete.")
+        self._status.configure(text=tr("table.status_shown", visible=n_vis))
 
     # ── azioni ────────────────────────────────────────────────────────────────
 
@@ -138,15 +150,18 @@ class TavolaFrame(ttk.Frame):
         try:
             pos = [int(v.get()) for v in self._asso_vars]
         except ValueError:
-            messagebox.showwarning("Assi", "Inserisci tre numeri interi 0–26.")
+            messagebox.showwarning(tr("table.reconstruct_axes"),
+                                    tr("table.warning_axes"))
             return
         try:
             mesc, num = gr.tabellone_da_assi(*pos)
         except ValueError as e:
-            self._rec_lbl.configure(text="✗ nessuna disposizione", foreground="#aa0000")
+            self._rec_lbl.configure(
+                text=f"✗ {tr('table.no_arrangement_status')}",
+                foreground="#aa0000")
             messagebox.showinfo(
-                "Ricostruzione dagli Assi",
-                f"Nessuna disposizione semplice produce questi Assi.\n\n{e}")
+                tr("table.reconstruct_title"),
+                tr("table.no_arrangement", detail=e))
             return
         self._rec_lbl.configure(
             text=f"→ #{num}:  {' '.join(mesc)}", foreground="#006400")
@@ -164,7 +179,7 @@ class TavolaFrame(ttk.Frame):
             return
         r = self._righe[int(sel[0])]
         win = tk.Toplevel(self)
-        win.title(f"Disposizione #{r['numero']}")
+        win.title(tr("table.detail_title", number=r["numero"]))
         txt = tk.Text(win, width=88, height=24, font=("Consolas", 10),
                       wrap="none", padx=10, pady=8)
         txt.pack(fill="both", expand=True)
@@ -216,6 +231,8 @@ class TavolaFrame(ttk.Frame):
                                 r["parita"], int(r["autoinversa"])] +
                                list(r["T"]))
         except OSError as e:
-            messagebox.showerror("Esportazione", f"Impossibile scrivere il file:\n{e}")
+            messagebox.showerror(tr("table.export_title"),
+                                 tr("table.export_error", detail=e))
             return
-        messagebox.showinfo("Esportazione", f"Tavola esportata in:\n{path}")
+        messagebox.showinfo(tr("table.export_title"),
+                            tr("table.export_success", path=path))

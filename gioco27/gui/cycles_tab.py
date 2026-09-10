@@ -11,6 +11,7 @@ import tkinter as tk
 from tkinter import ttk
 
 from ..core.analysis import cycle_decomposition, order_of, cycle_type, orbit_of
+from .i18n import tr
 
 # Palette colori per i cicli (fino a 27 colori distinti)
 _CYCLE_PALETTE = [
@@ -45,17 +46,18 @@ class CyclesFrame(ttk.Frame):
         hdr = ttk.Frame(self, padding=(10, 8, 10, 4))
         hdr.grid(row=0, column=0, sticky="ew")
         ttk.Label(hdr,
-                  text="Analisi ciclica della permutazione T",
+                  text=tr("cycles.title"),
                   font=("Segoe UI", 12, "bold"),
                   foreground="#1a3a5c").pack(side="left")
         self._hint = ttk.Label(hdr,
-                               text="(Calcola una T nell'Explorer o nel tab Anteprima)",
+                               text=tr("cycles.hint"),
                                font=("Segoe UI", 9, "italic"),
                                foreground="#888")
         self._hint.pack(side="left", padx=10)
 
         # ── Pannello riepilogo ─────────────────────────────────────────────
-        info_fr = ttk.LabelFrame(self, text=" Riepilogo ", padding=(10, 6))
+        info_fr = ttk.LabelFrame(self, text=f" {tr('cycles.summary')} ",
+                                 padding=(10, 6))
         info_fr.grid(row=1, column=0, sticky="ew", padx=10, pady=(0, 6))
         for i in range(6):
             info_fr.columnconfigure(i, weight=1)
@@ -64,19 +66,19 @@ class CyclesFrame(ttk.Frame):
             info_fr, text=text,
             font=("Segoe UI", 10, "bold" if bold else "normal"))
 
-        lbl("Ordine di T:", 0, bold=True).grid(row=0, column=0, sticky="w")
+        lbl(tr("cycles.order"), 0, bold=True).grid(row=0, column=0, sticky="w")
         self._order_var = tk.StringVar(value="—")
         ttk.Label(info_fr, textvariable=self._order_var,
                   font=("Courier New", 12, "bold"),
                   foreground="#1a5c1a").grid(row=0, column=1, sticky="w", padx=(4, 20))
 
-        lbl("N° cicli:", 2, bold=True).grid(row=0, column=2, sticky="w")
+        lbl(tr("cycles.count"), 2, bold=True).grid(row=0, column=2, sticky="w")
         self._ncycles_var = tk.StringVar(value="—")
         ttk.Label(info_fr, textvariable=self._ncycles_var,
                   font=("Courier New", 12, "bold"),
                   foreground="#1a3a5c").grid(row=0, column=3, sticky="w", padx=(4, 20))
 
-        lbl("Tipo:", 4, bold=True).grid(row=0, column=4, sticky="w")
+        lbl(tr("cycles.type"), 4, bold=True).grid(row=0, column=4, sticky="w")
         self._type_var = tk.StringVar(value="—")
         ttk.Label(info_fr, textvariable=self._type_var,
                   font=("Courier New", 10),
@@ -88,8 +90,10 @@ class CyclesFrame(ttk.Frame):
 
         self._cycles_tab  = ttk.Frame(nb)
         self._orbits_tab  = ttk.Frame(nb)
-        nb.add(self._cycles_tab,  text="  Cicli disgiunti  ")
-        nb.add(self._orbits_tab,  text="  Orbite carte  ")
+        nb.add(self._cycles_tab,
+               text=f"  {tr('cycles.tab.disjoint')}  ")
+        nb.add(self._orbits_tab,
+               text=f"  {tr('cycles.tab.orbits')}  ")
 
         self._build_cycles_tab()
         self._build_orbits_tab()
@@ -100,7 +104,7 @@ class CyclesFrame(ttk.Frame):
         fr.rowconfigure(1, weight=1)
 
         ttk.Label(fr,
-                  text="Ogni riga è un ciclo. I colori raggruppano cicli della stessa lunghezza.",
+                  text=tr("cycles.row_hint"),
                   font=("Segoe UI", 9, "italic"),
                   foreground="#666").grid(row=0, column=0, sticky="w", padx=8, pady=(6, 2))
 
@@ -131,9 +135,7 @@ class CyclesFrame(ttk.Frame):
         txt.delete("1.0", "end")
         txt.insert(
             "end",
-            "  Nessuna permutazione T caricata.\n"
-            "  Calcolane una nell'Explorer o nel tab Anteprima per vederne "
-            "i cicli.",
+            tr("cycles.empty_state"),
             "placeholder")
         txt.configure(state="disabled")
 
@@ -144,7 +146,8 @@ class CyclesFrame(ttk.Frame):
 
         ctrl = ttk.Frame(fr, padding=(8, 4))
         ctrl.grid(row=0, column=0, sticky="ew")
-        ttk.Label(ctrl, text="Carta:", font=("Segoe UI", 10)).pack(side="left")
+        ttk.Label(ctrl, text=tr("cycles.card"),
+                  font=("Segoe UI", 10)).pack(side="left")
         self._card_var = tk.IntVar(value=0)
         self._card_spin = ttk.Spinbox(ctrl, from_=0, to=26,
                                       textvariable=self._card_var,
@@ -152,7 +155,7 @@ class CyclesFrame(ttk.Frame):
         self._card_spin.pack(side="left", padx=4)
         self._card_spin.bind("<Return>", lambda e: self._refresh_orbit())
         ttk.Label(ctrl,
-                  text="mostra l'orbita completa sotto T ripetuto",
+                  text=tr("cycles.orbit_hint"),
                   font=("Segoe UI", 9, "italic"),
                   foreground="#666").pack(side="left", padx=8)
 
@@ -192,7 +195,7 @@ class CyclesFrame(ttk.Frame):
             w.configure(state="disabled")
         self._cycles_placeholder()
         self._hint.configure(
-            text="Calcola una T (Explorer o Anteprima) per vedere i cicli.")
+            text=tr("cycles.reset_hint"))
 
     # ─── Refresh ─────────────────────────────────────────────────────────────
 
@@ -231,7 +234,8 @@ class CyclesFrame(ttk.Frame):
         txt.tag_configure("fixed", foreground="#aaa", font=("Courier New", 10, "italic"))
 
         txt.insert("end",
-                   f"  {'#':>3}  {'len':>3}  ciclo\n"
+                   f"  {'#':>3}  {tr('cycles.length'):>3}  "
+                   f"{tr('cycles.cycle')}\n"
                    f"  {'─'*3}  {'─'*3}  {'─'*60}\n",
                    "label")
 
@@ -240,7 +244,11 @@ class CyclesFrame(ttk.Frame):
             tag = f"cyc_{l}"
             cyc_str = " → ".join(f"C{c:02d}" for c in cyc)
             if l == 1:
-                txt.insert("end", f"  {idx:>3}  {l:>3}  ({cyc_str})  [punto fisso]\n", "fixed")
+                txt.insert(
+                    "end",
+                    f"  {idx:>3}  {l:>3}  ({cyc_str})  "
+                    f"[{tr('cycles.fixed_point')}]\n",
+                    "fixed")
             else:
                 txt.insert("end", f"  {idx:>3}  {l:>3}  ({cyc_str} →)\n", tag)
 
@@ -267,21 +275,30 @@ class CyclesFrame(ttk.Frame):
         txt.tag_configure("card", font=("Courier New", 10, "bold"), foreground="#1a5c1a")
         txt.tag_configure("arr",  font=("Courier New", 10), foreground="#aaa")
 
-        txt.insert("end",
-                   f"  Carta C{card:02d}  —  orbita di lunghezza {ord_}"
-                   f"  (T^{ord_} riporta la carta in posizione {card})\n\n",
-                   "hdr")
+        txt.insert(
+            "end",
+            tr("cycles.orbit_summary", card=card, length=ord_, order=ord_)
+            + "\n\n",
+            "hdr")
 
         # Tabella: applicazione k → posizione
-        txt.insert("end", f"  {'k':>4}   {'T^k(C'+str(card)+')':>10}   posizione\n", "pos")
+        txt.insert(
+            "end",
+            tr("cycles.orbit_header", k_label="k",
+               expression=f"T^k(C{card})", position=tr("cycles.position"))
+            + "\n",
+            "pos")
         txt.insert("end", f"  {'─'*40}\n", "pos")
         for k, pos in enumerate(orbit):
             txt.insert("end", f"  {k:>4}   ", "pos")
             txt.insert("end", f"C{pos:02d}", "card")
-            txt.insert("end", f"         in posizione {pos:02d}\n", "pos")
+            txt.insert("end", f"         {tr('cycles.position')} {pos:02d}\n", "pos")
         # Chiusura ciclo
         txt.insert("end", f"  {ord_:>4}   ", "pos")
         txt.insert("end", f"C{card:02d}", "card")
-        txt.insert("end", f"         = C{card:02d}  (ritorno)\n", "arr")
+        txt.insert(
+            "end",
+            f"         = C{card:02d}  ({tr('cycles.return')})\n",
+            "arr")
 
         txt.configure(state="disabled")

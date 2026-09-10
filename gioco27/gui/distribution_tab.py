@@ -13,6 +13,7 @@ import threading, queue
 
 
 from .common import EtaEstimator
+from .i18n import tr
 
 
 class DistributionFrame(ttk.Frame):
@@ -34,14 +35,14 @@ class DistributionFrame(ttk.Frame):
         hdr = ttk.Frame(self, padding=(10, 8, 10, 2))
         hdr.grid(row=0, column=0, sticky="ew")
         ttk.Label(hdr,
-                  text="Distribuzione delle decomposizioni su tutti i T raggiungibili",
+                  text=tr("distribution.title"),
                   font=("Segoe UI", 12, "bold"),
                   foreground="#1a3a5c").pack(side="left")
 
         # Controlli
         ctrl = ttk.Frame(self, padding=(10, 4, 10, 4))
         ctrl.grid(row=1, column=0, sticky="ew")
-        self._btn = ttk.Button(ctrl, text="▶  Calcola distribuzione",
+        self._btn = ttk.Button(ctrl, text=f"▶  {tr('distribution.calculate')}",
                                command=self._start_compute)
         self._btn.pack(side="left")
         self._prog_bar = ttk.Progressbar(ctrl, orient="horizontal",
@@ -58,8 +59,8 @@ class DistributionFrame(ttk.Frame):
 
         self._histo_tab = ttk.Frame(nb)
         self._table_tab = ttk.Frame(nb)
-        nb.add(self._histo_tab, text="  Istogramma  ")
-        nb.add(self._table_tab, text="  Tabella dati  ")
+        nb.add(self._histo_tab, text=f"  {tr('distribution.tab.histogram')}  ")
+        nb.add(self._table_tab, text=f"  {tr('distribution.tab.data_table')}  ")
 
         self._build_histo_tab()
         self._build_table_tab()
@@ -79,9 +80,7 @@ class DistributionFrame(ttk.Frame):
         hsb.grid(row=1, column=0, sticky="ew")
         self._canvas.bind("<Configure>", self._on_canvas_resize)
 
-        self._placeholder(self._canvas,
-                          "Clicca '▶ Calcola distribuzione' per avviare il calcolo.\n"
-                          "Tempo atteso: ~30 secondi.")
+        self._placeholder(self._canvas, tr("distribution.placeholder_chart"))
 
     def _build_table_tab(self):
         fr = self._table_tab
@@ -98,9 +97,7 @@ class DistributionFrame(ttk.Frame):
         vsb.grid(row=0, column=1, sticky="ns")
         hsb.grid(row=1, column=0, sticky="ew")
 
-        self._placeholder_txt(
-            "Calcolo non ancora avviato.\n"
-            "Premi '▶ Calcola distribuzione'.")
+        self._placeholder_txt(tr("distribution.placeholder_table"))
 
     # ─── Calcolo in background ────────────────────────────────────────────────
 
@@ -108,7 +105,8 @@ class DistributionFrame(ttk.Frame):
         if self._computing:
             return
         self._computing = True
-        self._btn.configure(state="disabled", text="⏳  Calcolo in corso…")
+        self._btn.configure(state="disabled",
+                            text=f"⏳  {tr('status.running')}…")
         self._prog_bar["value"] = 0
         self._prog_lbl.configure(text="")
         self._q = queue.Queue()
@@ -135,19 +133,23 @@ class DistributionFrame(ttk.Frame):
                 _, i, n = item
                 self._prog_bar["value"] = i + 1
                 self._prog_lbl.configure(
-                    text=f"{i+1:>3}/{n}  iterazione esterna"
-                         f"{self._eta.text(i + 1, n)}")
+                    text=tr("distribution.progress_iteration",
+                            current=i + 1, total=n)
+                         + self._eta.text(i + 1, n))
             elif item[0] == "DONE":
                 self._result    = item[1]
                 self._computing = False
-                self._btn.configure(state="normal", text="▶  Ricalcola")
+                self._btn.configure(
+                    state="normal", text=f"▶  {tr('distribution.recalculate')}")
                 self._prog_bar["value"] = 216
-                self._prog_lbl.configure(text="✓  completato")
+                self._prog_lbl.configure(
+                    text=f"✓  {tr('distribution.completed')}")
                 self._show_results()
                 return
             elif item[0] == "ERR":
                 self._computing = False
-                self._btn.configure(state="normal", text="▶  Riprova")
+                self._btn.configure(
+                    state="normal", text=f"▶  {tr('distribution.retry')}")
                 self._prog_lbl.configure(text=f"✗  {item[1][:50]}")
                 return
         except Exception:
@@ -169,7 +171,7 @@ class DistributionFrame(ttk.Frame):
         canvas.delete("all")
 
         if not histo:
-            self._placeholder(canvas, "Nessun dato.")
+            self._placeholder(canvas, tr("distribution.no_data"))
             return
 
         w  = max(canvas.winfo_width(),  600)
@@ -213,13 +215,13 @@ class DistributionFrame(ttk.Frame):
 
         # Titoli assi
         canvas.create_text(lm + (w - lm - rm)/2, h - 10,
-                            text="numero di decomposizioni Kronecker",
+                            text=tr("distribution.axis_decompositions"),
                             font=("Segoe UI", 9), fill="#444")
         canvas.create_text(12, tm + (h - tm - bm)/2,
-                            text="# T raggiungibili", angle=90,
+                            text=tr("distribution.axis_reachable_t"), angle=90,
                             font=("Segoe UI", 9), fill="#444")
         canvas.create_text(lm + (w - lm - rm)/2, 10,
-                            text=f"Distribuzione su {total_T:,} permutazioni T distinte",
+                            text=tr("distribution.chart_title", total=total_T),
                             font=("Segoe UI", 10, "bold"), fill="#1a3a5c")
 
         canvas.configure(scrollregion=canvas.bbox("all"))
@@ -239,12 +241,18 @@ class DistributionFrame(ttk.Frame):
         txt.tag_configure("note",font=("Segoe UI",   9,  "italic"),  foreground="#666")
 
         txt.insert("end",
-                   f"  Totale T raggiungibili : {total_T:>10,}\n"
-                   f"  Totale decomposizioni  : {total_d:>10,}\n"
-                   f"  Media per T            : {total_d/total_T:>10.1f}\n\n",
+                   tr("distribution.total_reachable") +
+                   f" : {total_T:>10,}\n" +
+                   tr("distribution.total_decompositions") +
+                   f" : {total_d:>10,}\n" +
+                   tr("distribution.average_per_t") +
+                   f" : {total_d/total_T:>10.1f}\n\n",
                    "sum")
         txt.insert("end",
-                   f"  {'k-decomp':>10}  {'# T':>10}  {'% T':>8}  {'cum%':>8}\n"
+                   f"  {tr('distribution.header_k'):>10}  "
+                   f"{tr('distribution.header_t'):>10}  "
+                   f"{tr('distribution.header_percent_t'):>8}  "
+                   f"{tr('distribution.header_cumulative'):>8}\n"
                    f"  {'─'*10}  {'─'*10}  {'─'*8}  {'─'*8}\n",
                    "hdr")
 

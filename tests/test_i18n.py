@@ -226,6 +226,109 @@ def test_third_block_wires_localized_labels_without_real_windows():
     assert "tr('onboarding.glossary.title')" in onboarding_src
 
 
+def test_fourth_block_tab_labels_are_localized_without_real_windows():
+    from gioco27.gui.i18n import set_language, tr
+
+    assert tr("distribution.title") == \
+        "Distribuzione delle decomposizioni su tutti i T raggiungibili"
+    assert tr("cycles.title") == "Analisi ciclica della permutazione T"
+    assert tr("table.filter") == "Filtro:"
+    set_language("en")
+    assert tr("distribution.title") == \
+        "Decomposition distribution across all reachable T"
+    assert tr("cycles.title") == "Cyclic analysis of permutation T"
+    assert tr("table.filter") == "Filter:"
+
+
+def test_fourth_block_dynamic_text_preserves_math_and_permutation_symbols():
+    from gioco27.gui.i18n import set_language, tr
+
+    set_language("en")
+    orbit = tr("cycles.orbit_summary", card=2, length=3, order=3)
+    chart = tr("distribution.chart_title", total=216)
+    table = tr("table.status_shown", visible=12)
+    assert "C02" in orbit and "T^3" in orbit
+    assert "216" in chart and "T" in chart
+    assert "T" in table and "T⁻¹" in table
+
+
+def test_fourth_block_tavola_values_keep_codes_and_localize_simple_values():
+    from gioco27.gui.tavola_tab import TavolaFrame
+    from gioco27.gui.i18n import set_language
+
+    row = {
+        "numero": 1,
+        "mescolamenti": ["CDS", "SDC", "DCS"],
+        "impilamenti": ["CDS", "SDC", "DCS"],
+        "assi": (0, 13, 26),
+        "periodo": 6,
+        "punti_fissi": 3,
+        "tipo_ciclo": (1, 2),
+        "parita": 1,
+        "autoinversa": True,
+    }
+    italian = TavolaFrame._valori(row)
+    set_language("en")
+    english = TavolaFrame._valori(row)
+    assert italian[1:4] == english[1:4]
+    assert italian[4:6] == english[4:6]
+    assert italian[6:] != english[6:]
+    assert english[6:] == ("2", "even", "yes")
+
+
+def test_fourth_block_english_falls_back_to_italian(monkeypatch):
+    from gioco27.gui import i18n
+
+    monkeypatch.delitem(i18n.CATALOGS["en"], "cycles.reset_hint")
+    i18n.set_language("en")
+    assert i18n.tr("cycles.reset_hint") == \
+        "Calcola una T (Explorer o Anteprima) per vedere i cicli."
+
+
+def test_fifth_block_shuffle_controls_are_localized():
+    from gioco27.gui.i18n import set_language, tr
+
+    assert tr("shuffle.formula_active") == "Formula attiva:"
+    assert tr("shuffle.load_explorer") == "Carica da Explorer"
+    assert tr("shuffle.card_by_card") == "Carta per carta"
+    set_language("en")
+    assert tr("shuffle.formula_active") == "Active formula:"
+    assert tr("shuffle.load_explorer") == "Load from Explorer"
+    assert tr("shuffle.card_by_card") == "Card by card"
+    assert tr("shuffle.next_step") == "Next step"
+
+
+def test_fifth_block_shuffle_status_and_codes_preserve_math():
+    from gioco27.gui.shuffle import ShuffleViewerFrame
+    from gioco27.gui.i18n import set_language, tr
+
+    set_language("en")
+    loaded = tr("shuffle.formula_loaded", kron=1, msc=1, total=3)
+    assert "Kronecker" in loaded and "MSC" in loaded
+    assert "right to left" in loaded
+
+    viewer = object.__new__(ShuffleViewerFrame)
+    tokens = viewer._validate_and_parse(
+        "(SCD_U x SCD_U x DCS_U) o MSC")
+    assert tokens[0][2] == "(SCD_U x SCD_U x DCS_U)"
+    assert tokens[1][2] == "MSC"
+    viewer._build_steps(tokens)
+    assert "MSC" in viewer._steps[1]["label"]
+    assert "SCD_U" in viewer._steps[-1]["label"]
+    assert "DCS_U" in viewer._steps[-1]["label"]
+    assert "T⁻¹" in tr("shuffle.inverse_info")
+
+
+def test_fifth_block_shuffle_fallback_and_catalog_consistency(monkeypatch):
+    from gioco27.gui import i18n
+
+    assert {key for key in i18n.CATALOGS["it"] if key.startswith("shuffle.")} == \
+        {key for key in i18n.CATALOGS["en"] if key.startswith("shuffle.")}
+    monkeypatch.delitem(i18n.CATALOGS["en"], "shuffle.pause")
+    i18n.set_language("en")
+    assert i18n.tr("shuffle.pause") == "Pausa"
+
+
 def _use_config_file(monkeypatch, tmp_path):
     from gioco27.core import config as config_module
 

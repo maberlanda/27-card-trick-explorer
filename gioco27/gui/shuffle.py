@@ -4,6 +4,7 @@ from tkinter import ttk
 import numpy as np
 
 from ..core.constants import PERM3, _MSC_PERM
+from .i18n import tr
 
 class ShuffleViewerFrame(ttk.Frame):
     """
@@ -38,21 +39,21 @@ class ShuffleViewerFrame(ttk.Frame):
         top = ttk.Frame(self)
         top.grid(row=0, column=0, sticky="ew", pady=(0, 4))
         top.columnconfigure(1, weight=1)
-        ttk.Label(top, text="Formula attiva:",
+        ttk.Label(top, text=tr("shuffle.formula_active"),
                   font=("Segoe UI", 10, "bold"),
                   foreground="#1a3a5c").grid(row=0, column=0, padx=(0, 6))
         self._formula_lbl = ttk.Label(
-            top, text="— nessuna formula caricata —",
+            top, text=tr("shuffle.no_formula"),
             font=("Courier New", 9), foreground="#888",
             wraplength=760, justify="left", anchor="w")
         self._formula_lbl.grid(row=0, column=1, sticky="ew")
-        ttk.Button(top, text="\u2b06  Carica da Explorer",
+        ttk.Button(top, text=f"\u2b06  {tr('shuffle.load_explorer')}",
                    command=self.load_formula).grid(row=0, column=2, padx=(8, 0))
 
         # Riga 1: step counter + label operazione
         info = ttk.Frame(self)
         info.grid(row=1, column=0, sticky="ew", pady=(0, 3))
-        self._step_lbl = ttk.Label(info, text="Step \u2014 / \u2014",
+        self._step_lbl = ttk.Label(info, text=tr("shuffle.step", current="—", total="—"),
                                     font=("Segoe UI", 10, "bold"),
                                     foreground="#555", width=16)
         self._step_lbl.pack(side="left", padx=(0, 10))
@@ -70,9 +71,10 @@ class ShuffleViewerFrame(ttk.Frame):
 
 
         # Griglia 9 righe x 3 colonne
-        gf = ttk.LabelFrame(mid, text=" Griglia 3 \u00d7 9 ", padding=4)
+        gf = ttk.LabelFrame(mid, text=f" {tr('shuffle.grid')} ", padding=4)
         gf.grid(row=0, column=0, sticky="ns", padx=(0, 8))
-        for c, lbl_txt in enumerate(["Col 0", "Col 1", "Col 2"]):
+        for c in range(3):
+            lbl_txt = tr("shuffle.column", number=c)
             ttk.Label(gf, text=lbl_txt, font=("Segoe UI", 8, "bold"),
                       foreground="#555", width=6,
                       anchor="center").grid(row=0, column=c, pady=(0, 2))
@@ -91,7 +93,7 @@ class ShuffleViewerFrame(ttk.Frame):
             self._cell_labels.append(row_lbls)
 
         # Pannello destro: vettore + log
-        vf = ttk.LabelFrame(mid, text=" Stato mazzo ", padding=4)
+        vf = ttk.LabelFrame(mid, text=f" {tr('shuffle.deck_state')} ", padding=4)
         vf.grid(row=0, column=1, sticky="nsew")
         vf.rowconfigure(2, weight=1)
         vf.columnconfigure(0, weight=1)
@@ -111,7 +113,7 @@ class ShuffleViewerFrame(ttk.Frame):
         self._vec_text.tag_configure(
             "blank", foreground="#cccccc", font=("Courier New", 9))
 
-        ttk.Label(vf, text="Storico passi:",
+        ttk.Label(vf, text=tr("shuffle.step_history"),
                   font=("Segoe UI", 9, "bold"),
                   foreground="#555").grid(row=1, column=0,
                                           sticky="w", pady=(0, 2))
@@ -144,7 +146,7 @@ class ShuffleViewerFrame(ttk.Frame):
 
         # Riga 3: vettore inverso T⁻¹ (1 riga × 27 celle)
         inv_row_f = ttk.LabelFrame(
-            self, text=" T⁻¹  —  indice = posizione nel mazzo,  contenuto = valore carta ",
+            self, text=f" {tr('shuffle.inverse_info')} ",
             padding=(4, 2))
         inv_row_f.grid(row=3, column=0, sticky="ew", pady=(4, 2))
         self._inv_labels = []
@@ -165,18 +167,18 @@ class ShuffleViewerFrame(ttk.Frame):
         # Riga 4: controlli
         ctrl = ttk.Frame(self)
         ctrl.grid(row=4, column=0, sticky="ew", pady=(6, 2))
-        ttk.Button(ctrl, text="\u23ee  Reset",
+        ttk.Button(ctrl, text=f"\u23ee  {tr('shuffle.reset')}",
                    command=self.reset).pack(side="left", padx=2)
-        ttk.Button(ctrl, text="\u23ed  Step",
+        ttk.Button(ctrl, text=f"\u23ed  {tr('shuffle.step_button')}",
                    command=self.step_once).pack(side="left", padx=2)
-        self._play_btn = ttk.Button(ctrl, text="\u25b6  Play",
+        self._play_btn = ttk.Button(ctrl, text=f"\u25b6  {tr('shuffle.play')}",
                                      command=self._toggle_play)
         self._play_btn.pack(side="left", padx=2)
-        ttk.Button(ctrl, text="\U0001f501  Replay",
+        ttk.Button(ctrl, text=f"\U0001f501  {tr('shuffle.replay')}",
                    command=self._replay).pack(side="left", padx=2)
         ttk.Separator(ctrl, orient="vertical").pack(
             side="left", fill="y", padx=10)
-        ttk.Label(ctrl, text="Velocit\u00e0:").pack(side="left")
+        ttk.Label(ctrl, text=tr("shuffle.speed")).pack(side="left")
         self._speed_var = tk.IntVar(value=self._speed_ms)
         self._speed_var.trace_add("write", self._on_speed_trace)
         ttk.Scale(ctrl, from_=100, to=3000,
@@ -190,7 +192,7 @@ class ShuffleViewerFrame(ttk.Frame):
         ttk.Separator(ctrl, orient="vertical").pack(
             side="left", fill="y", padx=10)
         self._card_mode = tk.BooleanVar(value=False)
-        ttk.Checkbutton(ctrl, text="Carta per carta",
+        ttk.Checkbutton(ctrl, text=tr("shuffle.card_by_card"),
                         variable=self._card_mode,
                         command=self._on_card_mode_change
                         ).pack(side="left", padx=2)
@@ -199,24 +201,24 @@ class ShuffleViewerFrame(ttk.Frame):
         ctrl2 = ttk.Frame(self)
         ctrl2.grid(row=5, column=0, sticky="ew", pady=(0, 2))
 
-        ttk.Button(ctrl2, text="⏮ Inizio",
+        ttk.Button(ctrl2, text=f"⏮ {tr('shuffle.start')}",
                    command=self._goto_start
                    ).pack(side="left", padx=2)
-        ttk.Button(ctrl2, text="⏪ Inizio step",
+        ttk.Button(ctrl2, text=f"⏪ {tr('shuffle.start_step')}",
                    command=self._goto_start_of_step
                    ).pack(side="left", padx=2)
-        ttk.Button(ctrl2, text="◄ Indietro",
+        ttk.Button(ctrl2, text=f"◄ {tr('shuffle.back')}",
                    command=self._step_back
                    ).pack(side="left", padx=2)
         ttk.Separator(ctrl2, orient="vertical").pack(
             side="left", fill="y", padx=8)
-        ttk.Button(ctrl2, text="Fine step ⏩",
+        ttk.Button(ctrl2, text=f"{tr('shuffle.end_step')} ⏩",
                    command=self._goto_end_of_step
                    ).pack(side="left", padx=2)
-        ttk.Button(ctrl2, text="Pross. step ⏭",
+        ttk.Button(ctrl2, text=f"{tr('shuffle.next_step')} ⏭",
                    command=self._goto_start_of_next_step
                    ).pack(side="left", padx=2)
-        ttk.Button(ctrl2, text="Fine ⏭",
+        ttk.Button(ctrl2, text=f"{tr('shuffle.end')} ⏭",
                    command=self._goto_end
                    ).pack(side="left", padx=2)
 
@@ -231,8 +233,7 @@ class ShuffleViewerFrame(ttk.Frame):
         raw = self._app._explorer_entry.get("1.0", "end").strip()
         if not raw:
             self._set_error(
-                "Nessuna formula nell'Explorer. "
-                "Inserisci una formula e premi 'Carica da Explorer'.")
+                tr("shuffle.no_formula_explorer"))
             return
         try:
             tokens = self._validate_and_parse(raw)
@@ -246,10 +247,8 @@ class ShuffleViewerFrame(ttk.Frame):
         n_kron = sum(1 for t in tokens if t[0] == "KRON")
         self._formula_lbl.configure(
             text=raw.replace("\n", " ")[:160], foreground="#333")
-        self._set_msg(
-            f"Formula caricata: {n_kron} blocco/i Kronecker + {n_msc} MSC. "
-            f"Totale passi: {1 + len(tokens)} (gli operatori si applicano "
-            f"da destra a sinistra).")
+        self._set_msg(tr("shuffle.formula_loaded", kron=n_kron, msc=n_msc,
+                         total=1 + len(tokens)))
         self._kron_blocks = tokens
         if self._card_mode.get():
             self._build_steps_card_by_card(tokens)
@@ -308,7 +307,7 @@ class ShuffleViewerFrame(ttk.Frame):
         # 2. split per ' o '
         parts = [p.strip() for p in re.split(r"\s+o\s+", e) if p.strip()]
         if not parts:
-            raise ValueError("Formula vuota.")
+            raise ValueError(tr("shuffle.formula_empty"))
 
         # 3. classifica
         alias = {"R_U": "DCS_U", "I_3": "SCD_U"}
@@ -321,16 +320,14 @@ class ShuffleViewerFrame(ttk.Frame):
             m = ph_re.match(part)
             if not m:
                 raise ValueError(
-                    f"Token non riconosciuto: \u00ab{part}\u00bb\n"
-                    "Attesi blocchi (a x b x c), MSC e l'operatore 'o'.")
+                    tr("shuffle.unrecognized_token", token=part))
             orig = blocks[int(m.group(1))]
             norm = tuple(alias.get(p, p) for p in orig)
             for p in norm:
                 if p not in self.GEN3:
                     raise ValueError(
-                        f"Generatore sconosciuto: '{p}'.\n"
-                        "Ammessi: " + ", ".join(sorted(self.GEN3))
-                        + ", R_U, I_3")
+                        tr("shuffle.unknown_generator", generator=p,
+                           allowed=", ".join(sorted(self.GEN3))))
             label = f"({orig[0]} x {orig[1]} x {orig[2]})"
             tokens.append(("KRON", norm, label))
 
@@ -345,15 +342,16 @@ class ShuffleViewerFrame(ttk.Frame):
         steps   = [dict(type="INIT",
                         deck_before=deck.copy(), deck=deck.copy(),
                         changed=set(), changed_order=[],
-                        label="Stato iniziale", ki=0, n=n)]
+                        label=tr("shuffle.initial_state"), ki=0, n=n)]
         for ki, (typ, val, label) in enumerate(reversed(tokens), 1):
             if typ == "MSC":
                 nd  = deck[msc_inv]
-                lbl = f"MSC  (op. {ki}/{n})"
+                lbl = tr("shuffle.operation_msc", current=ki, total=n)
             else:
                 p3, p2, p1 = val
                 nd  = deck[np.argsort(self._make_kron27(p3, p2, p1))]
-                lbl = f"K = {label}  (op. {ki}/{n})"
+                lbl = tr("shuffle.operation_kron", label=label,
+                         current=ki, total=n)
             changed = {i for i in range(27) if nd[i] != deck[i]}
             steps.append(dict(type=typ,
                               deck_before=deck.copy(), deck=nd.copy(),
@@ -375,16 +373,17 @@ class ShuffleViewerFrame(ttk.Frame):
         steps   = [dict(type="INIT",
                         deck_before=deck.copy(), deck=deck.copy(),
                         changed=set(), changed_order=[],
-                        label="Stato iniziale", ki=0, n=n,
+                        label=tr("shuffle.initial_state"), ki=0, n=n,
                         card_step=False)]
         for ki, (typ, val, label) in enumerate(reversed(tokens), 1):
             if typ == "MSC":
                 nd  = deck[msc_inv]
-                lbl = f"MSC  (op. {ki}/{n})"
+                lbl = tr("shuffle.operation_msc", current=ki, total=n)
             else:
                 p3, p2, p1 = val
                 nd  = deck[np.argsort(self._make_kron27(p3, p2, p1))]
-                lbl = f"K = {label}  (op. {ki}/{n})"
+                lbl = tr("shuffle.operation_kron", label=label,
+                         current=ki, total=n)
             changed = [i for i in range(27) if nd[i] != deck[i]]
             total_c = len(changed)
             db      = deck.copy()
@@ -392,7 +391,7 @@ class ShuffleViewerFrame(ttk.Frame):
                 steps.append(dict(type=typ,
                                   deck_before=db, deck=nd.copy(),
                                   changed=set(), changed_order=[],
-                                  label=lbl + "  (nessuna carta si muove)",
+                                  label=tr("shuffle.no_card_movement", label=lbl),
                                   ki=ki, n=n, card_step=False))
             else:
                 for sub, pos in enumerate(changed):
@@ -406,8 +405,9 @@ class ShuffleViewerFrame(ttk.Frame):
                                       deck_final=nd,
                                       changed={pos},
                                       changed_order=[pos],
-                                      label=(lbl if is_last
-                                             else lbl + f"  [{sub+1}/{total_c}]"),
+                                      label=(lbl if is_last else tr(
+                                          "shuffle.substep", label=lbl,
+                                          current=sub + 1, total=total_c)),
                                       ki=ki, n=n,
                                       card_step=not is_last))
             deck = nd
@@ -522,7 +522,7 @@ class ShuffleViewerFrame(ttk.Frame):
         self._kron_blocks = None
         self._build_steps([])          # solo lo stato iniziale (mazzo ordinato)
         self._formula_lbl.configure(text="", foreground="#333")
-        self._set_msg("Nessuna formula caricata.")
+        self._set_msg(tr("shuffle.no_formula_loaded"))
         self._cur = 0
         self._refresh()
 
@@ -548,17 +548,15 @@ class ShuffleViewerFrame(ttk.Frame):
 
     def play(self):
         if not self._steps:
-            self._set_error(
-                "Nessuna formula caricata. "
-                "Premi 'Carica da Explorer' prima.")
+            self._set_error(tr("shuffle.play_requires_formula"))
             return
         self._playing = True
-        self._play_btn.configure(text="⏸  Pausa")
+        self._play_btn.configure(text=f"⏸  {tr('shuffle.pause')}")
         self._tick()
 
     def pause(self):
         self._playing = False
-        self._play_btn.configure(text="▶  Play")
+        self._play_btn.configure(text=f"▶  {tr('shuffle.play')}")
         if self._play_id is not None:
             self.after_cancel(self._play_id)
             self._play_id = None
@@ -586,23 +584,23 @@ class ShuffleViewerFrame(ttk.Frame):
         if not s.get("card_step") and (
                 len(deck) != 27 or len(set(deck.tolist())) != 27):
             self.pause()
-            self._set_error("Stato mazzo non valido!")
+            self._set_error(tr("shuffle.invalid_deck"))
             return
 
         self._step_lbl.configure(
-            text=f"Step {self._cur} / {total - 1}")
+            text=tr("shuffle.step", current=self._cur, total=total - 1))
 
         if s["type"] == "INIT":
             self._op_lbl.configure(
-                text="Stato iniziale  (mazzo ordinato  C00 … C26)",
+                text=tr("shuffle.ordered_deck"),
                 foreground="#555")
         elif s["type"] == "MSC":
             self._op_lbl.configure(
-                text=f"Operazione corrente:  {s['label']}",
+                text=s["label"],
                 foreground=self._CLR_MSC_HDR)
         else:
             self._op_lbl.configure(
-                text=f"Operazione corrente:  {s['label']}",
+                text=s["label"],
                 foreground=self._CLR_KRON_HDR)
 
         self._redraw_grid(deck, chg)
@@ -638,7 +636,8 @@ class ShuffleViewerFrame(ttk.Frame):
         self._vec_text.delete("1.0", "end")
         for start in range(0, 27, 9):
             self._vec_text.insert(
-                "end", f"pos {start:02d}-{start+8:02d}:  ", "pos")
+                "end", tr("shuffle.position_range", start=start,
+                           end=start + 8), "pos")
             for i in range(start, start + 9):
                 if card_step and deck_before is not None and int(deck[i]) == int(deck_before[i]):
                     # carta non ancora spostata: mostra vuoto
@@ -688,16 +687,17 @@ class ShuffleViewerFrame(ttk.Frame):
             pre   = f"  {i:>3}  "
             if s["type"] == "INIT":
                 self._log_text.insert(
-                    "end", f"{pre}Stato iniziale\n", ("init",) + extra)
+                    "end", f"{pre}{tr('shuffle.log_initial')}\n",
+                    ("init",) + extra)
             elif s["type"] == "MSC":
                 self._log_text.insert(
                     "end",
-                    f"{pre}MSC  ({len(s['changed'])} carte spostate)\n",
+                    f"{pre}{tr('shuffle.log_msc', count=len(s['changed']))}\n",
                     ("msc",) + extra)
             else:
                 self._log_text.insert(
                     "end",
-                    f"{pre}{s['label']}  ({len(s['changed'])} carte)\n",
+                    f"{pre}{tr('shuffle.log_kron', label=s['label'], count=len(s['changed']))}\n",
                     ("kron",) + extra)
         self._log_text.see(f"{self._cur + 1}.0")
         self._log_text.configure(state="disabled")
@@ -716,7 +716,7 @@ class ShuffleViewerFrame(ttk.Frame):
         final = self._steps[-1]["deck"]
         vec   = "  ".join(f"C{int(x):02d}" for x in final)
         self._msg_lbl.configure(
-            text=f"\u2713  Simulazione completata.  Vettore finale:  {vec}",
+            text=f"\u2713  {tr('shuffle.completed', vector=vec)}",
             foreground=self._CLR_DONE)
 
 
