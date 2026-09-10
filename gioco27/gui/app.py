@@ -36,11 +36,25 @@ from .analysis_tab import AnalysisTabMixin
 from .explorer_tab import ExplorerTabMixin
 from .onboarding_tab import OnboardingTabMixin
 from . import tooltip as _tooltip
+from .i18n import set_language, tr
 from .help_banner import HelpBanner
 from .glossary import TAB_HELP
 from . import uifont
 
 _log = get_logger(__name__)
+
+
+def _window_title(version):
+    """Return the localized title for the main application window."""
+
+    return tr("app.title", version=version)
+
+
+def _shell_tab_text(key, icon="", **values):
+    """Return a localized main-notebook label while preserving its icon."""
+
+    icon_prefix = f"{icon}  " if icon else ""
+    return f"  {icon_prefix}{tr(key, **values)}  "
 
 
 class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
@@ -54,13 +68,16 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
     def __init__(self):
         super().__init__()
         from .. import __version__ as _APP_VER
-        self.title(f"Gioco delle 27 carte  v{_APP_VER}  —  Analisi combinazioni")
         self.configure(bg=self.C_BG)
         self.resizable(True, True)
         self.minsize(1200, 750)
 
         # ── Config persistente ─────────────────────────────────────────────
         self._cfg = get_config()
+        # Seleziona la lingua prima di costruire i widget.  La conversione
+        # delle stringhe esistenti a tr() avverrà in blocchi successivi.
+        set_language(self._cfg.get("language", "it"))
+        self.title(_window_title(_APP_VER))
         self._livello = self._cfg.get("livello", "principiante")
         # Migrazione una-tantum: alla prima apertura della nuova UI guidata
         # si parte sempre in modalità Principiante (anche su config esistenti).
@@ -216,12 +233,14 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
         _b = ttk.Button(inner, text="🔢  Conta",
                    style="Action.TButton",
                    command=self._count)
+        _b.configure(text=f"🔢  {tr('button.count')}")
         _b.pack(side="left", padx=4)
         _tooltip.attach(_b, "Conta quante combinazioni soddisfano i filtri correnti.")
         gen_mb = tk.Menubutton(inner, text="⬇  Genera…", relief="raised")
+        gen_mb.configure(text=f"⬇  {tr('button.generate')}")
         gen_menu = tk.Menu(gen_mb, tearoff=0)
         gen_menu.add_command(label="📄  PDF",    command=self._gen_pdf)
-        gen_menu.add_command(label="📄  PDF dettagliato (stile C: carte+matrici)", command=self._gen_pdf_detail)
+        gen_menu.add_command(label=f"📄  {tr('menu.pdf_detailed')}", command=self._gen_pdf_detail)
         gen_menu.add_command(label="📊  CSV (;)", command=self._gen_csv)
         gen_mb["menu"] = gen_menu
         gen_mb.pack(side="left", padx=4)
@@ -229,6 +248,7 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
         _b = ttk.Button(inner, text="↺  Reset tutto",
                    style="Action.TButton",
                    command=self._reset)
+        _b.configure(text=f"↺  {tr('button.reset_all')}")
         _b.pack(side="left", padx=4)
         _tooltip.attach(_b, "Azzera tutti i filtri P e J di tutti gli stadi.")
 
@@ -239,6 +259,7 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
         self._beginner_chk = ttk.Checkbutton(
             inner, text="🎓  Modalità principiante",
             variable=self._beginner_var, command=self._toggle_livello)
+        self._beginner_chk.configure(text=f"🎓  {tr('button.beginner_mode')}")
         self._beginner_chk.pack(side="left", padx=4)
         _tooltip.attach(self._beginner_chk,
             "In modalità principiante restano visibili solo le schede "
@@ -251,7 +272,7 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
         # Contatore live (aggiornato al cambio di qualsiasi filtro)
         count_frame = ttk.Frame(inner, style="Action.TFrame")
         count_frame.pack(side="left", padx=4)
-        ttk.Label(count_frame, text="Combinazioni:",
+        ttk.Label(count_frame, text=tr("label.combinations"),
                   style="Status.TLabel").pack(side="left")
         self.count_var = tk.StringVar(value="—")
         ttk.Label(count_frame, textvariable=self.count_var,
@@ -267,26 +288,31 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
         _b = ttk.Button(inner, text="⏻  Esci",
                    style="Quit.TButton",
                    command=self._on_close)
+        _b.configure(text=f"⏻  {tr('button.exit')}")
         _b.pack(side="right", padx=(0, 4))
         _tooltip.attach(_b, "Chiudi il programma (le impostazioni vengono salvate).")
 
         # ── Strumenti avanzati (destra) ───────────────────────────────────────
         _b = ttk.Button(inner, text="⚙️  Impostazioni",
                    command=self._open_settings)
+        _b.configure(text=f"⚙️  {tr('button.settings')}")
         _b.pack(side="right", padx=2)
         _tooltip.attach(_b, "Numero di processi, opzioni di calcolo e preferenze.")
         _b = ttk.Button(inner, text="✔  Verifica",
                    command=self._run_selftest)
+        _b.configure(text=f"✔  {tr('button.verify')}")
         _b.pack(side="right", padx=2)
         _tooltip.attach(_b, "Verifica di integrità: simulazione fisica vs modello "
                         "matriciale (1728 combinazioni), ancore del libro, "
                         "statistiche del capitolo 100.")
         _b = ttk.Button(inner, text="🖥️  Presentazione",
                    command=self._open_presentation)
+        _b.configure(text=f"🖥️  {tr('button.presentation')}")
         _b.pack(side="right", padx=2)
         _tooltip.attach(_b, "Apre la finestra di presentazione a schermo intero.")
         _b = ttk.Button(inner, text="📋  Protocollo",
                    command=self._open_protocol)
+        _b.configure(text=f"📋  {tr('button.protocol')}")
         _b.pack(side="right", padx=2)
         _tooltip.attach(_b, "Genera un protocollo passo-passo dell'ultima T calcolata.")
         ttk.Separator(inner, orient="vertical").pack(
@@ -297,6 +323,7 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
         _tooltip.attach(_b, "Tavola di Cayley: prodotti A∘B tra le mosse del gruppo.")
         _b = ttk.Button(inner, text="🔬  Coniugio",
                    command=self._open_conjugacy)
+        _b.configure(text=f"🔬  {tr('button.conjugacy')}")
         _b.pack(side="right", padx=2)
         _tooltip.attach(_b, "Classi di coniugio e centro del gruppo G = GEN3³.")
         ttk.Separator(inner, orient="vertical").pack(
@@ -311,7 +338,7 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
         pinner = ttk.Frame(preset_bar, padding=(10, 6))
         pinner.pack(fill="x")
 
-        ttk.Label(pinner, text="Preset rapidi:",
+        ttk.Label(pinner, text=tr("label.quick_presets"),
                   font=("Segoe UI", 10, "bold"),
                   foreground="#7b4000",
                   background=self.C_PRESET_BG).pack(side="left", padx=(0, 8))
@@ -320,6 +347,7 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
                    text="🎴  Gioco Reale  (1 728 combinazioni)",
                    style="GiocoReale.TButton",
                    command=self._preset_gioco_reale)
+        _b.configure(text=f"🎴  {tr('button.real_game')}")
         _b.pack(side="left", padx=4)
         _tooltip.attach(_b, "Imposta i filtri sull'esempio standard di 1 728 sequenze.")
 
@@ -327,6 +355,7 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
                    text="⚡  J Uniformi per tutti gli stadi",
                    style="Preset.TButton",
                    command=self._preset_j_uniform)
+        _b.configure(text=f"⚡  {tr('button.uniform_j')}")
         _b.pack(side="left", padx=4)
         _tooltip.attach(_b, "Imposta la stessa orientazione J su tutti e tre gli stadi.")
 
@@ -334,6 +363,7 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
                    text="↺  Reset filtri",
                    style="Preset.TButton",
                    command=self._reset)
+        _b.configure(text=f"↺  {tr('button.quick_reset')}")
         _b.pack(side="left", padx=4)
         _tooltip.attach(_b, "Azzera tutti i filtri P e J.")
 
@@ -348,6 +378,7 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
         self._btn_annulla = ttk.Button(prog_row, text="✕  Annulla",
                                        state="disabled",
                                        command=self._annulla_export)
+        self._btn_annulla.configure(text=f"✕  {tr('button.cancel_export')}")
         self._btn_annulla.pack(side="left", padx=(8, 0))
         _tooltip.attach(self._btn_annulla,
                         "Interrompe l'export in corso. Il file di destinazione "
@@ -362,7 +393,8 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
         self._nb = nb
 
         # Scheda introduttiva, in testa a tutto
-        nb.add(self._build_onboarding_tab(nb), text="  🚀  Inizia qui  ")
+        nb.add(self._build_onboarding_tab(nb),
+               text=_shell_tab_text("tab.start", "🚀"))
 
         # Stadi (ciascuno con il suo banner d'aiuto)
         self.filter_frames = []
@@ -374,26 +406,30 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
             ff.pack(fill="both", expand=True)
             self.filter_frames.append(ff)
             self._stadi_wraps.append(wrap)
-            nb.add(wrap, text=f"  Stadio {i}  ")
+            nb.add(wrap, text=_shell_tab_text("tab.stage", number=i))
 
         # Percorso lineare del principiante: gioco → tavola → esplorazione
         nb.add(self._wrap_tab(self._build_simulator_tab, "simulatore", "19"),
-               text="  🎩  Simulatore  ")
+               text=_shell_tab_text("tab.simulator", "🎩"))
         nb.add(self._wrap_tab(self._build_tavola_tab, "tavola", "11"),
-               text="  📚  Tavola 216  ")
+               text=_shell_tab_text("tab.table", "📚"))
         nb.add(self._wrap_tab(self._build_anteprima_tab, "anteprima", "14"),
-               text="  🔍  Anteprima  ")
+               text=_shell_tab_text("tab.preview", "🔍"))
         nb.add(self._wrap_tab(self._build_analisi_tab, "analisi", "15"),
-               text="  📊  Analisi  ")
+               text=_shell_tab_text("tab.analysis", "📊"))
         self._tab_explorer = self._wrap_tab(self._build_explorer_tab,
                                             "explorer", "16")
-        nb.add(self._tab_explorer, text="  🔬  Explorer  ")
-        nb.add(self._build_guide_tab(nb), text="  📖  Guida  ")
+        nb.add(self._tab_explorer,
+               text=_shell_tab_text("tab.explorer", "🔬"))
+        nb.add(self._build_guide_tab(nb),
+               text=_shell_tab_text("tab.guide", "📖"))
         self._tab_cycles = self._wrap_tab(self._build_cycles_tab, "cicli", "20")
-        nb.add(self._tab_cycles, text="  🔄  Cicli  ")
+        nb.add(self._tab_cycles,
+               text=_shell_tab_text("tab.cycles", "🔄"))
         self._tab_distrib = self._wrap_tab(self._build_distrib_tab,
                                            "distribuzione", "21")
-        nb.add(self._tab_distrib, text="  📊  Distribuzione  ")
+        nb.add(self._tab_distrib,
+               text=_shell_tab_text("tab.distribution", "📊"))
 
         # Schede avanzate: nascoste in modalità principiante
         self._advanced_tabs = [self._tab_explorer, self._tab_cycles,
@@ -406,7 +442,7 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
         """Striscia in fondo con i 6 colori dei generatori GEN3 (sempre visibile)."""
         from ..core.constants import PERM3_COLORS
         bar = tk.Frame(self, bg=self.C_ACTION_BG)
-        tk.Label(bar, text="Legenda colori GEN3:", bg=self.C_ACTION_BG,
+        tk.Label(bar, text=tr("label.color_legend"), bg=self.C_ACTION_BG,
                  fg="#2c3e50", font=("Segoe UI", 9, "bold")).pack(
                      side="left", padx=(12, 8), pady=3)
         for name, col in PERM3_COLORS.items():
@@ -420,7 +456,7 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
                 chip, f"{name}: una delle 6 mosse base su 3 elementi. "
                       "Questo colore evidenzia il nome nelle formule dell'Explorer.")
         tk.Label(bar,
-                 text="(i nomi compaiono con questi colori nelle formule dell'Explorer)",
+                 text=tr("label.legend_note"),
                  bg=self.C_ACTION_BG, fg="#8a96a3",
                  font=("Segoe UI", 8, "italic")).pack(side="left", padx=10)
         return bar
@@ -475,8 +511,16 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
         nb = getattr(self, "_nb", None)
         if nb is None:
             return
+        # L'onboarding usa ancora i nomi italiani come alias interni; il
+        # titolo visualizzato della scheda può invece essere inglese.
+        aliases = {
+            "Simulatore": "tab.simulator",
+            "Anteprima": "tab.preview",
+            "Guida": "tab.guide",
+        }
+        needle = tr(aliases[substr]) if substr in aliases else substr
         for tab in nb.tabs():
-            if substr.lower() in nb.tab(tab, "text").lower():
+            if needle.lower() in nb.tab(tab, "text").lower():
                 try:
                     nb.select(tab)
                 except tk.TclError:
@@ -523,15 +567,14 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
             ff.set_preset_gioco_reale()
         self._update_count()
         self.status_var.set(
-            "Preset Gioco Reale: P2 = raccolta libera, P0=P1=identità, J uniformi — 1 728 combinazioni")
+            tr("status.real_game_preset"))
 
     def _preset_j_uniform(self):
         """Attiva J uniformi per tutti e tre gli stadi."""
         for ff in self.filter_frames:
             ff.set_j_uniform(True)
         self._update_count()
-        self.status_var.set(
-            "J Uniformi attivi per tutti gli stadi — J0=J1=J2 per ogni stadio")
+        self.status_var.set(tr("status.uniform_j_preset"))
 
     # ── Aggiornamento contatore live ──────────────────────────────────────────
 
@@ -554,8 +597,7 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
         filters = self._get_filters()
         n = count_combinations_ex(filters)
         self.count_var.set(f"{n:,}")
-        self.status_var.set(
-            f"{n:,} combinazioni  →  {n:,} pagine PDF / {n:,} righe CSV")
+        self.status_var.set(tr("status.count_summary", count=f"{n:,}"))
 
     def _reset(self):
         """«Reset tutto»: azzera i filtri E ogni form in ogni tab."""
@@ -594,9 +636,9 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
 
         if falliti:
             self.status_var.set(
-                "Reset completato (problemi su: " + ", ".join(falliti) + ").")
+                tr("status.reset_with_problems", tabs=", ".join(falliti)))
         else:
-            self.status_var.set("Reset completo: filtri e tutti i tab azzerati.")
+            self.status_var.set(tr("status.reset_complete"))
 
     def _run_generation(self, *, gen_func, kind, unit, unit_plural, step,
                         dialog_kw, confirm_threshold=None, confirm_msg=None,
@@ -894,7 +936,7 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
     # ── Presentazione fullscreen ──────────────────────────────────────────────
     def _run_selftest(self):
         """Esegue la verifica di integrità (core/gioco_reale.selftest) in un thread."""
-        self.status_var.set("Verifica di integrità in corso…")
+        self.status_var.set(tr("status.integrity_running"))
 
         def worker():
             try:
@@ -905,11 +947,12 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
             except AssertionError as e:
                 testo, ok = f"INCOERENZA RILEVATA:\n{e}", False
             def mostra():
-                self.status_var.set("Verifica completata."
-                                    if ok else "Verifica FALLITA!")
+                self.status_var.set(
+                    tr("status.integrity_completed" if ok
+                       else "status.integrity_failed"))
                 (messagebox.showinfo if ok else messagebox.showerror)(
-                    "Verifica di integrità",
-                    ("Tutte le verifiche superate:\n\n" if ok else "") + testo,
+                    tr("dialog.integrity.title"),
+                    (tr("status.integrity_all_passed") if ok else "") + testo,
                     parent=self)
             self._ui(mostra)
 
@@ -955,11 +998,22 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
         ProtocolDialog(self, T_data)
 
     # ── Impostazioni ──────────────────────────────────────────────────────────
+    def _save_language_preference(self, language, parent):
+        """Persist a language choice; the current widget tree is unchanged."""
+
+        if language not in ("it", "en"):
+            return False
+        self._cfg["language"] = language
+        self._cfg.save()
+        messagebox.showinfo(tr("dialog.settings.title"),
+                            tr("status.language_restart"), parent=parent)
+        return True
+
     def _open_settings(self):
         """Dialog impostazioni: worker paralleli e cache."""
         import multiprocessing
         dlg = tk.Toplevel(self)
-        dlg.title("⚙️  Impostazioni")
+        dlg.title(tr("dialog.settings.title"))
         dlg.resizable(False, False)
         dlg.grab_set()
 
@@ -975,19 +1029,20 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
         fr.pack(fill="both", expand=True)
 
         # Worker paralleli
-        ttk.Label(fr, text="Worker paralleli (decomposizioni):",
+        ttk.Label(fr, text=tr("settings.workers"),
                   font=("Segoe UI", 10)).grid(row=0, column=0, sticky="w", pady=4)
         n_cpu = multiprocessing.cpu_count()
         cur_w  = self._cfg.get("n_workers") or max(1, n_cpu - 1)
         w_var  = tk.IntVar(value=cur_w)
         ttk.Spinbox(fr, from_=1, to=n_cpu, textvariable=w_var,
                     width=5).grid(row=0, column=1, padx=10, sticky="w")
-        ttk.Label(fr, text=f"(CPU logiche: {n_cpu}, default: {n_cpu - 1})",
+        ttk.Label(fr, text=tr("settings.logical_cpus_default",
+                              count=n_cpu, default=n_cpu - 1),
                   foreground="#666", font=("Segoe UI", 9)).grid(
                       row=0, column=2, sticky="w")
 
         # Usa parallelo
-        ttk.Label(fr, text="Usa ricerca parallela:",
+        ttk.Label(fr, text=tr("settings.parallel_search"),
                   font=("Segoe UI", 10)).grid(row=1, column=0, sticky="w", pady=4)
         par_var = tk.BooleanVar(value=bool(self._cfg.get("use_parallel", True)))
         ttk.Checkbutton(fr, variable=par_var).grid(
@@ -1005,9 +1060,10 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
 
         ttk.Separator(fr, orient="horizontal").grid(
             row=2, column=0, columnspan=3, sticky="ew", pady=8)
-        ttk.Label(fr, text="Cache decomposizioni:",
+        ttk.Label(fr, text=tr("settings.cache"),
                   font=("Segoe UI", 10)).grid(row=3, column=0, sticky="w")
-        ttk.Label(fr, text=cache_info,
+        ttk.Label(fr, text=(tr("settings.cache_info", entries=ent, size=mb)
+                           if clear_cache is not None else cache_info),
                   foreground="#444", font=("Segoe UI", 9)).grid(
                       row=3, column=1, columnspan=2, sticky="w", padx=10)
 
@@ -1015,19 +1071,22 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
             if clear_cache is not None:
                 try:
                     clear_cache()
-                    messagebox.showinfo("Cache", "Cache cancellata.", parent=dlg)
+                    messagebox.showinfo(tr("dialog.cache.title"),
+                                        tr("status.cache_cleared"), parent=dlg)
                 except Exception as e:
                     messagebox.showerror("Errore", str(e), parent=dlg)
 
-        ttk.Button(fr, text="🗑️  Cancella cache",
+        ttk.Button(fr, text=f"🗑️  {tr('settings.clear_cache')}",
                    command=do_clear_cache).grid(
                        row=4, column=0, columnspan=2, sticky="w", pady=4)
 
         # Dimensione testo aiuti (scalabile, utile su monitor 4K)
-        ttk.Label(fr, text="Dimensione testo aiuti:",
+        ttk.Label(fr, text=tr("settings.help_font_size"),
                   font=("Segoe UI", 10)).grid(row=5, column=0, sticky="w", pady=4)
-        _scale_opts = [("Normale (100%)", 1.0), ("Grande (130%)", 1.3),
-                       ("Molto grande (160%)", 1.6), ("Enorme (200%)", 2.0)]
+        _scale_opts = [(tr("settings.scale.normal"), 1.0),
+                       (tr("settings.scale.large"), 1.3),
+                       (tr("settings.scale.very_large"), 1.6),
+                       (tr("settings.scale.huge"), 2.0)]
         _scale_map = dict(_scale_opts)
         cur_scale = float(self._cfg.get("help_font_scale", 1.0))
         _cur_lbl = min(_scale_opts, key=lambda o: abs(o[1] - cur_scale))[0]
@@ -1037,8 +1096,35 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
                      state="readonly", width=20).grid(
                          row=5, column=1, columnspan=2, sticky="w", padx=10)
 
+        # La lingua viene salvata subito; la GUI corrente resta invariata e
+        # la nuova lingua viene applicata al successivo avvio.
+        ttk.Label(fr, text=tr("settings.language"),
+                  font=("Segoe UI", 10)).grid(
+                      row=6, column=0, sticky="w", pady=4)
+        language_labels = {
+            "it": tr("settings.italian"),
+            "en": tr("settings.english"),
+        }
+        language_codes = {label: code for code, label in language_labels.items()}
+        language_var = tk.StringVar(
+            value=language_labels.get(self._cfg.get("language", "it"),
+                                      language_labels["it"]))
+        language_combo = ttk.Combobox(
+            fr, textvariable=language_var, values=list(language_labels.values()),
+            state="readonly", width=20)
+        language_combo.grid(row=6, column=1, columnspan=2,
+                            sticky="w", padx=10)
+
+        def on_language_change(_event=None):
+            code = language_codes.get(language_var.get())
+            if code is None or code == self._cfg.get("language", "it"):
+                return
+            self._save_language_preference(code, dlg)
+
+        language_combo.bind("<<ComboboxSelected>>", on_language_change)
+
         ttk.Separator(fr, orient="horizontal").grid(
-            row=6, column=0, columnspan=3, sticky="ew", pady=8)
+            row=7, column=0, columnspan=3, sticky="ew", pady=8)
 
         def do_save():
             self._cfg["n_workers"]    = int(w_var.get())
@@ -1050,10 +1136,10 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
             dlg.destroy()
 
         btn_row = ttk.Frame(fr)
-        btn_row.grid(row=7, column=0, columnspan=3, sticky="e")
-        ttk.Button(btn_row, text="Annulla",
+        btn_row.grid(row=8, column=0, columnspan=3, sticky="e")
+        ttk.Button(btn_row, text=tr("button.cancel"),
                    command=dlg.destroy).pack(side="left", padx=4)
-        ttk.Button(btn_row, text="✔  Salva",
+        ttk.Button(btn_row, text=f"✔  {tr('button.save')}",
                    command=do_save).pack(side="left")
 
     # ── Chiusura applicazione ─────────────────────────────────────────────────

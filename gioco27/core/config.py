@@ -25,6 +25,7 @@ _DEFAULTS: dict = {
     "decomp_mode":      "T_inv", # "T_inv" | "T"
     "sim_show_errors":  True,
     "livello":          "principiante",   # "principiante" | "esperto"
+    "language":         "it",             # "it" | "en"
     "ui_intro_done":    False,             # migrazione una-tantum UI guidata
     "help_font_scale":  1.0,               # scala testo aiuti/note (1.0 = 100%)
 }
@@ -53,6 +54,7 @@ _VALIDATORS = {
     "decomp_mode":     lambda v: v in ("T_inv", "T"),
     "sim_show_errors": lambda v: isinstance(v, bool),
     "livello":         lambda v: v in ("principiante", "esperto"),
+    "language":        lambda v: v in ("it", "en"),
     "ui_intro_done":   lambda v: isinstance(v, bool),
     "help_font_scale": _is_finite_scale,
 }
