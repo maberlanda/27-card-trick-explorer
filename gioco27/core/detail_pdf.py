@@ -809,15 +809,12 @@ def _prepare(filters, annullato=None):
 def _generate_sequential(path, all_params, labels, transposes, progress_cb=None,
                          annullato=None):
     _check_cancelled(annullato)
-    import io as _io
-    buf = _io.BytesIO()
-    c, painter = _new_detail_canvas(buf)
-    n = render_detail_pages(c, all_params, 1, progress_cb,
-                            labels=labels, transposes=transposes,
-                            painter=painter, annullato=annullato)
-    c.save()
     with atomic_write(path, annullato=annullato) as f:
-        f.write(buf.getvalue())
+        c, painter = _new_detail_canvas(f)
+        n = render_detail_pages(c, all_params, 1, progress_cb,
+                                labels=labels, transposes=transposes,
+                                painter=painter, annullato=annullato)
+        c.save()
     return n
 
 

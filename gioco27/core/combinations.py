@@ -275,15 +275,12 @@ def generate_pdf(path, filters, progress_cb=None, annullato=None):
     """Genera il PDF in modo sequenziale (un'unica Canvas)."""
     _check_cancelled(annullato)
     check_export_size(count_combinations(filters))
-    import io as _io
     from .parallel import atomic_write
-    buf = _io.BytesIO()
-    c, painter = _new_canvas(buf, ex=False)
-    n = _render_combinations(c, iter_combinations(filters), 1, progress_cb,
-                             painter=painter, annullato=annullato)
-    c.save()
     with atomic_write(path, annullato=annullato) as f:
-        f.write(buf.getvalue())
+        c, painter = _new_canvas(f, ex=False)
+        n = _render_combinations(c, iter_combinations(filters), 1, progress_cb,
+                                 painter=painter, annullato=annullato)
+        c.save()
     return n
 
 
@@ -624,16 +621,13 @@ def generate_pdf_ex(path, filters, progress_cb=None, annullato=None):
     """Genera il PDF esteso in modo sequenziale (un'unica Canvas)."""
     _check_cancelled(annullato)
     check_export_size(count_combinations_ex(filters))
-    import io as _io
     from .parallel import atomic_write
-    buf = _io.BytesIO()
-    c, painter = _new_canvas(buf, ex=True)
-    n = _render_combinations_ex(c, iter_combinations_ex(filters), 1,
-                                progress_cb, painter=painter,
-                                annullato=annullato)
-    c.save()
     with atomic_write(path, annullato=annullato) as f:
-        f.write(buf.getvalue())
+        c, painter = _new_canvas(f, ex=True)
+        n = _render_combinations_ex(c, iter_combinations_ex(filters), 1,
+                                    progress_cb, painter=painter,
+                                    annullato=annullato)
+        c.save()
     return n
 
 
