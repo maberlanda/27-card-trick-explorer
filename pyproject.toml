@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "gioco27"
-version = "3.1.1"
+version = "3.1.2"
 description = "Gioco delle 27 carte — analisi combinatoria e algebrica del trucco delle 27 carte"
 readme = "README.md"
 requires-python = ">=3.9"
