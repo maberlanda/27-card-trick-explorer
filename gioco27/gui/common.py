@@ -26,6 +26,8 @@ def run_in_thread(widget, job, error_title="Errore", on_error=None):
     con widget.after(0, ...): Tk non e' thread-safe.
     """
     def runner():
+        if getattr(widget, "_closing", False):
+            return
         try:
             job()
         except Exception as e:
@@ -34,7 +36,7 @@ def run_in_thread(widget, job, error_title="Errore", on_error=None):
                 messagebox.showerror(error_title, str(e))
                 if on_error is not None:
                     on_error(e)
-            widget.after(0, report)
+            ui_call(widget, report)
     t = threading.Thread(target=runner, daemon=True)
     t.start()
     return t
@@ -49,10 +51,23 @@ def ui_call(widget, fn):
     chiude un dialogo mentre il calcolo e' ancora in corso, e non deve
     produrre un traceback.
     """
+    if getattr(widget, "_closing", False):
+        return
+
+    def invoke():
+        if getattr(widget, "_closing", False):
+            return
+        try:
+            exists = widget.winfo_exists()
+        except tk.TclError:
+            return
+        if exists:
+            fn()
+
     try:
         if widget.winfo_exists():
-            widget.after(0, fn)
-    except tk.TclError:
+            widget.after(0, invoke)
+    except (tk.TclError, RuntimeError):
         pass
 
 

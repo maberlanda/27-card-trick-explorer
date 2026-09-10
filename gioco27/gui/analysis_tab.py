@@ -202,6 +202,8 @@ class AnalysisTabMixin:
             _eta = EtaEstimator()
             righe = []
             for i, params in enumerate(iter_combinations_ex(filters), 1):
+                if getattr(self, "_closing", False):
+                    return
                 rd = make_csv_row(i, params)
                 righe.append({
                     "Stage0": rd[1], "Stage1": rd[2], "Stage2": rd[3],
@@ -209,16 +211,20 @@ class AnalysisTabMixin:
                     "T_simbolica": rd[7], "T_permutazione": rd[8],
                 })
                 if i % 200 == 0:
-                    self.after(0, lambda v=i: (
+                    self._ui(lambda v=i: (
                         self.progress.__setitem__("value", v),
                         self._analisi_status.set(
                             f"Generazione… {v:,}/{n:,}{_eta.text(v, n)}")))
+            if getattr(self, "_closing", False):
+                return
             self._analisi_righe_raw = righe
-            self.after(0, lambda: self._analisi_status.set(
+            self._ui(lambda: self._analisi_status.set(
                 f"Analisi di {len(righe):,} righe…"))
             risultati = analizza_righe(righe)
+            if getattr(self, "_closing", False):
+                return
             self._analisi_risultati = risultati
-            self.after(0, lambda: self._analisi_populate(risultati, n))
+            self._ui(lambda: self._analisi_populate(risultati, n))
 
         run_in_thread(self, job, error_title="Errore analisi",
                       on_error=lambda e: self._analisi_status.set("Errore."))
@@ -235,9 +241,11 @@ class AnalysisTabMixin:
 
         def job():
             risultati = analizza_csv(path)
+            if getattr(self, "_closing", False):
+                return
             n = sum(r["n_sim"] for r in risultati)
             self._analisi_risultati = risultati
-            self.after(0, lambda: self._analisi_populate(risultati, n))
+            self._ui(lambda: self._analisi_populate(risultati, n))
 
         run_in_thread(self, job, error_title="Errore lettura CSV",
                       on_error=lambda e: self._analisi_status.set("Errore."))
@@ -268,17 +276,23 @@ class AnalysisTabMixin:
 
         def job():
             risultati = analizza_csv(inp)
+            if getattr(self, "_closing", False):
+                return
             scrivi_output(risultati, out_csv)
+            if getattr(self, "_closing", False):
+                return
             scrivi_excel(risultati, out_xlsx)
+            if getattr(self, "_closing", False):
+                return
             n_perm = len(risultati)
             n_tot  = sum(r["n_sim"] for r in risultati)
             self._analisi_risultati = risultati
-            self.after(0, lambda: self._analisi_populate(risultati, n_tot))
+            self._ui(lambda: self._analisi_populate(risultati, n_tot))
             msg = (f"Permutazioni distinte: {n_perm:,}\n"
                    f"Sequenze totali: {n_tot:,}\n\n"
                    f"CSV   → {_os.path.basename(out_csv)}\n"
                    f"Excel → {_os.path.basename(out_xlsx)}")
-            self.after(0, lambda m=msg: messagebox.showinfo(
+            self._ui(lambda m=msg: messagebox.showinfo(
                 "Analisi completata", m))
 
         run_in_thread(self, job, error_title="Errore",

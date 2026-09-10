@@ -27,12 +27,12 @@ senza tetto.
 """
 import hashlib
 import json
-import os
 import pathlib
 import time
 from typing import Optional
 
 from .log import get_logger
+from .parallel import atomic_write
 from .kronecker import validate_decompositions
 
 _log = get_logger(__name__)
@@ -111,10 +111,17 @@ def save_decompositions(perm, results: list) -> None:
                                for triple in results]}
         # Scrittura atomica: un crash a metà non lascia un JSON troncato che
         # verrebbe poi letto come cache corrotta.
-        tmp = path.with_suffix(".json.tmp")
-        with open(tmp, "w", encoding="utf-8") as f:
-            json.dump(payload, f, separators=(",", ":"))
-        os.replace(tmp, path)
+        for attempt in range(3):
+            try:
+                with atomic_write(path, "w", encoding="utf-8") as f:
+                    json.dump(payload, f, separators=(",", ":"))
+                break
+            except PermissionError:
+                # Su Windows un'altra istanza può trattenere brevemente
+                # il file durante la lettura o il controllo della cache.
+                if attempt == 2:
+                    raise
+                time.sleep(0.01 * (attempt + 1))
         prune()
     except Exception:
         _log.exception("Errore in scrittura cache per perm %s",

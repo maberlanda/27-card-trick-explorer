@@ -19,7 +19,7 @@ from ..core.config import get_config
 from ..core.parallel import (MAX_EXPORT_ITEMS, ExportAnnullato,
                              ExportTooLarge)
 from ..core.log import get_logger
-from .common import EtaEstimator, run_in_thread
+from .common import EtaEstimator, run_in_thread, ui_call
 from .filter_frame import FilterFrame
 from .cycles_tab import CyclesFrame
 from .distribution_tab import DistributionFrame
@@ -80,6 +80,7 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
         # Un solo export massivo alla volta: due export concorrenti si
         # rubavano la progress bar e saturavano la CPU con 2xN processi.
         self._export_busy      = False
+        self._closing          = False
         # Impostato dal pulsante «Annulla»; letto dal thread di lavoro tramite
         # la callback `annullato` passata alle funzioni di export.
         self._export_stop      = threading.Event()
@@ -609,6 +610,8 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
         dettagliato ha un limite piu' basso perche' deve tenere in RAM tutte
         le combinazioni per calcolare le trasposte).
         """
+        if getattr(self, "_closing", False):
+            return
         if self._export_busy:
             messagebox.showinfo(
                 "Export in corso",
@@ -636,7 +639,7 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
                 return
 
         path = filedialog.asksaveasfilename(**dialog_kw)
-        if not path:
+        if not path or getattr(self, "_closing", False):
             return
 
         _cfg = get_config()
@@ -700,6 +703,8 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
 
     def _fine_export(self):
         """Ripristina lo stato dei controlli a export concluso o annullato."""
+        if getattr(self, "_closing", False):
+            return
         self._export_busy = False
         self._export_stop.clear()
         try:
@@ -716,10 +721,7 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
         thread di lavoro: senza questa guardia, chiudere la finestra durante un
         export produceva un traceback invece di una chiusura pulita.
         """
-        try:
-            self.after(0, fn)
-        except tk.TclError:
-            pass
+        ui_call(self, fn)
 
     def _gen_pdf(self):
         self._run_generation(
@@ -909,7 +911,7 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
                     "Verifica di integrità",
                     ("Tutte le verifiche superate:\n\n" if ok else "") + testo,
                     parent=self)
-            self.after(0, mostra)
+            self._ui(mostra)
 
         import threading
         threading.Thread(target=worker, daemon=True).start()
@@ -1057,6 +1059,12 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
     # ── Chiusura applicazione ─────────────────────────────────────────────────
     def _on_close(self):
         """Salva config, libera memoria e chiude."""
+        if getattr(self, "_closing", False):
+            return
+        self._closing = True
+        stop = getattr(self, "_export_stop", None)
+        if stop is not None and not stop.is_set():
+            stop.set()
         try:
             self._cfg["window_geometry"] = self.geometry()
             self._cfg.save()

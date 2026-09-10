@@ -3,11 +3,11 @@ Configurazione persistente salvata in ~/.gioco27/config.json.
 Usare get_config() per ottenere l'istanza singleton.
 """
 import json
-import os
 import pathlib
 import re
 
 from .log import get_logger
+from .parallel import atomic_write
 
 #: "LARGHEZZAxALTEZZA" con eventuale offset "+X+Y" (formato geometry di Tk)
 _GEOMETRY_RE = re.compile(r"^\d{3,5}x\d{3,5}([+-]\d+[+-]\d+)?$")
@@ -95,10 +95,8 @@ class Config:
             _CONFIG_DIR.mkdir(parents=True, exist_ok=True)
             # Scrittura atomica: file temporaneo + replace, così un crash a
             # metà scrittura non lascia mai un config.json troncato/corrotto.
-            tmp = _CONFIG_FILE.with_suffix(".json.tmp")
-            with open(tmp, "w", encoding="utf-8") as f:
+            with atomic_write(_CONFIG_FILE, "w", encoding="utf-8") as f:
                 json.dump(self._data, f, indent=2, ensure_ascii=False)
-            os.replace(tmp, _CONFIG_FILE)
         except Exception:
             _log.exception("Errore in salvataggio config %s", _CONFIG_FILE)
 
