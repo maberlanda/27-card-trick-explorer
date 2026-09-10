@@ -118,7 +118,7 @@ def build_guide_content(ins, sep):
         "Pᵢ descrive l'ordine in cui il mazziere raccoglie le 3 colonne. "
         "Le colonne sono S (Sinistra=0), C (Centro=1), D (Destra=2). "
         "Ci sono 3! = 6 ordini di raccolta. "
-        "Ogni P è un prodotto di Kronecker P3ᵢ ⊗ P2ᵢ ⊗ P1ᵢ, "
+        "Ogni P è un prodotto di Kronecker P2ᵢ ⊗ P1ᵢ ⊗ P0ᵢ, "
         "dove ciascun fattore è una delle 6 permutazioni su {0,1,2}:\n\n")
     rows_P = [
         ("SCD_U", "[0,1,2]", "Identità — S→S, C→C, D→D  (nessun riordino)",    "ord. 1"),
@@ -156,7 +156,7 @@ def build_guide_content(ins, sep):
         ins("bullet", f"  —  {desc}   ")
         ins("note", f"[{alg}]\n")
     ins("body",
-        "\nAnche Jᵢ = J3ᵢ ⊗ J2ᵢ ⊗ J1ᵢ è un prodotto di Kronecker, "
+        "\nAnche Jᵢ = J2ᵢ ⊗ J1ᵢ ⊗ J0ᵢ è un prodotto di Kronecker, "
         "con J0, J1, J2 ∈ {I_3, R_U}. Senza vincoli: 2³ = 8 combinazioni J per stadio. "
         "Il vincolo «J uniformi» forza J0 = J1 = J2:\n\n")
     ins("hilight",
@@ -188,7 +188,7 @@ def build_guide_content(ins, sep):
 
     ins("h2", "6.  Il modello matematico  —  Stageᵢ = Pᵢ ∘ MSC ∘ Jᵢ\n")
     ins("body",
-        "Ogni stadio i (1, 2, 3) applica in sequenza, da destra a sinistra:\n\n")
+        "Ogni stadio i (0, 1, 2) applica in sequenza, da destra a sinistra:\n\n")
     ins("formula",
         "    Stageᵢ  =  Pᵢ  ∘  MSC  ∘  Jᵢ\n\n")
     ins("bullet", "  1.  Jᵢ   — eventuale capovolgimento del mazzo\n")
@@ -213,7 +213,7 @@ def build_guide_content(ins, sep):
         "MSC «ruota ciclicamente» i fattori del prodotto di Kronecker: "
         "(A₂, A₁, A₀) → (A₀, A₂, A₁). "
         "Questo è la diretta conseguenza della rotazione σ degli indici. "
-        "Attenzione: la rotazione corretta è (3,2,1) → (1,3,2), non (3,2,1) → (1,2,3):\n\n")
+        "Attenzione: la rotazione corretta è (2,1,0) → (0,2,1), non (2,1,0) → (0,1,2):\n\n")
     ins("warn",
         "    Formula errata (non usare):\n"
         "    MSC ∘ (A₂ ⊗ A₁ ⊗ A₀)  ≠  (A₀ ⊗ A₁ ⊗ A₂) ∘ MSC    ← SBAGLIATA\n\n")
@@ -224,11 +224,11 @@ def build_guide_content(ins, sep):
     ins("body",
         "Applicando la relazione di commutazione alla parte Jᵢ, ogni stadio diventa:\n\n")
     ins("formula",
-        "    Stageᵢ  =  [(P3ᵢ∘J1ᵢ) ⊗ (P2ᵢ∘J3ᵢ) ⊗ (P1ᵢ∘J2ᵢ)]  ∘  MSC\n"
+        "    Stageᵢ  =  [(P2ᵢ∘J0ᵢ) ⊗ (P1ᵢ∘J2ᵢ) ⊗ (P0ᵢ∘J1ᵢ)]  ∘  MSC\n"
         "             =  Aᵢ  ∘  MSC\n\n")
     ins("body", "I componenti di Aᵢ (attenzione agli indici incrociati!):\n\n")
     ins("formula",
-        "    Aᵢ  =  (P3ᵢ ∘ J1ᵢ)  ⊗  (P2ᵢ ∘ J3ᵢ)  ⊗  (P1ᵢ ∘ J2ᵢ)\n\n")
+        "    Aᵢ  =  (P2ᵢ ∘ J0ᵢ)  ⊗  (P1ᵢ ∘ J2ᵢ)  ⊗  (P0ᵢ ∘ J1ᵢ)\n\n")
     ins("warn",
         "    Indici incrociati — leggere con attenzione:\n"
         "    Il fattore di grado 2 (P2) si compone con J0  [J0 → posizione 2]\n"
@@ -248,13 +248,16 @@ def build_guide_content(ins, sep):
     # ── 9 ──────────────────────────────────────────────────────────────────
     ins("h2", "9.  Trasformazione globale T e struttura del gruppo\n")
     ins("body",
-        "L'insieme di tutte le T al variare dei parametri genera un gruppo G "
+        "L'insieme di tutte le T a tre stadi al variare dei parametri è il gruppo del gioco G = S₃³ "
         "di permutazioni su 27 elementi. Proprietà principali:\n\n")
-    ins("bullet", "  •  Ordine:  |G| = 648\n")
-    ins("bullet", "  •  Struttura:  G ≅ S₃³ ⋊ ℤ₃  (prodotto semidiretto)\n")
+    ins("bullet", "  •  Ordine:  |G| = 216\n")
+    ins("bullet", "  •  Struttura:  G = S₃³  (tre fattori locali indipendenti)\n")
     ins("bullet", "  •  G è non abeliano: l'ordine di composizione conta.\n")
     ins("bullet", "  •  Azione transitiva su tutte le 27 posizioni.\n")
-    ins("bullet", "  •  17 classi di coniugio (calcolabili dal tab Distribuzione).\n")
+    ins("bullet", "  •  27 classi di coniugio (calcolabili dal tab Distribuzione).\n")
+    ins("body",
+        "Il gruppo esteso G_ext = ⟨S₃³, MSC⟩ si ottiene aggiungendo MSC a G. "
+        "MSC non appartiene a G: il gruppo esteso va distinto dal gruppo del gioco.\n")
     ins("body",
         "\nPermutazioni diverse prodotte da sequenze di parametri diverse "
         "possono coincidere (molteplicità > 1): il tab Analisi quantifica questo fenomeno.\n")
@@ -442,12 +445,13 @@ def build_guide_content(ins, sep):
     ins("h3", "  Pulsante 🔍  Decomposizioni T⁻¹\n")
     ins("body",
         "Compare dopo ogni calcolo riuscito. Trova tutte le triple (A₀,A₁,A₂) "
-        "con Aᵢ ∈ GEN3 tali che  A₂∘MSC∘A₁∘MSC∘A₀∘MSC = T⁻¹.\n\n"
-        "Algoritmo: fissa (A₀,A₁), calcola A₂ deterministicamente e verifica se ∈ GEN3. "
+        "con Aᵢ ∈ GEN3⊗GEN3⊗GEN3 tali che  A₂∘MSC∘A₁∘MSC∘A₀∘MSC = T⁻¹.\n\n"
+        "Algoritmo: fissa (A₀,A₁), calcola A₂ deterministicamente e verifica se ∈ GEN3⊗GEN3⊗GEN3. "
         "216² = 46 656 iterazioni numpy, < 0.2 s con cache.\n\n"
-        "Risultato strutturale: per ogni T ∈ G = ⟨S₃³, MSC⟩ esistono sempre "
-        "46 656 decomposizioni, pari a 373 248 combinazioni (P,J) totali "
-        "(8 preimmagini Stage per ogni Aᵢ).\n\n")
+        "Risultato strutturale: per ogni T ∈ G = S₃³ esistono "
+        "46 656 decomposizioni, pari a 46 656 × 8³ = 23 887 872 combinazioni (P,J) totali "
+        "(8 preimmagini Stage per ogni Aᵢ, quindi 8³ per ogni terna). "
+        "La promessa non si estende a tutto G_ext: per MSC si ottengono 0 decomposizioni a tre stadi.\n\n")
     ins("bullet", "  •  La finestra elenca le decomposizioni; Esporta… salva in TXT, CSV(;) o HTML.\n")
     ins("bullet", "  •  Una barra di avanzamento mostra la progressione (X/216) e il contatore live.\n")
     ins("bullet", "  •  Clic su una riga sottolineata  →  la formula viene inviata all'Explorer "
@@ -635,7 +639,7 @@ def build_guide_content(ins, sep):
     # ── 21 ─────────────────────────────────────────────────────────────────
     ins("h2", "22.  Finestra Classi di Coniugio e Centro\n")
     ins("body",
-        "Accessibile dal tab Distribuzione. Calcola le 17 classi di coniugio di G, "
+        "Accessibile dal tab Distribuzione. Calcola le 27 classi di coniugio del gruppo del gioco G = S₃³, "
         "mostrando per ognuna:\n\n")
     ins("bullet", "  •  Un rappresentante canonico (in notazione T_simbolica)\n")
     ins("bullet", "  •  La dimensione della classe (numero di elementi coniugati)\n")
@@ -688,7 +692,7 @@ def build_guide_content(ins, sep):
         ("4", "Clicca un link → (testo blu) per aprire quella T_simbolica nell'Explorer"),
         ("5", "Nell'Explorer premi «▶ Calcola» poi naviga i sette sotto-tab"),
         ("6", "Sotto-tab Matrice: osserva le griglie 27×27 di T e T⁻¹"),
-        ("7", "Premi «🔍 Decomposizioni T⁻¹» → 46 656 decomposizioni in < 0.2 s"),
+        ("7", "Premi «🔍 Decomposizioni T⁻¹» → 46 656 decomposizioni per T ∈ S₃³ in < 0.2 s"),
         ("8", "Premi «📋 Protocollo» → pagina HTML con istruzioni per il mazziere"),
         ("9", "Apri il sotto-tab 🎴 Mescolamento → Carica da Explorer → ▶ Play"),
     ]:
@@ -787,7 +791,7 @@ def build_guide_content(ins, sep):
     for scenario, n, approx, consiglio in [
         ("Nessun filtro",              "5 159 780 352", "~5 miliardi",  "RIFIUTATO: oltre il limite"),
         ("J uniformi tutti gli stadi", "   80 621 568", "~80 milioni",  "RIFIUTATO: oltre il limite"),
-        ("Un livello P fissato",       "   19 683 000", "~20 milioni",  "al limite: ore di CSV"),
+        ("Un livello P fissato nei tre stadi", "23 887 872", "~24 milioni", "RIFIUTATO: oltre il limite"),
         ("Gioco Reale (preset)",       "        1 728", "1 728",        "uso normale, rapido"),
         ("Singolo stadio filtrato",    "1 – 1 728",     "variabile",    "ideale per esplorazione"),
     ]:
@@ -892,7 +896,7 @@ def build_guide_content(ins, sep):
         "Quando P0 o P1 non sono l'identita', o J non e' uniforme, lo stadio non e' "
         "piu' una raccolta eseguibile con un gesto solo: e' un prodotto di Kronecker. "
         "Il PDF lo segnala invece di far finta di niente:\n\n")
-    ins("bullet", "  -  l'etichetta di stadio diventa P3xP2xP1 (es. SCD\u00d7CSD\u00d7SDC) al posto "
+    ins("bullet", "  -  l'etichetta di stadio diventa P2xP1xP0 (es. SCD\u00d7CSD\u00d7SDC) al posto "
                   "della sigla di tre lettere, e va su una riga propria sotto il titolo del mazzo, "
                   "ridimensionata per stare nella colonna;\n")
     ins("bullet", "  -  gli INDICI M[k] NON vengono stampati: nel programma C M[k] e' un indice "

@@ -126,23 +126,23 @@ def _ai_phase_html(triple, stage_num: int) -> str:
 
     livelli = []
     livelli.append(
-        f"<li><strong>f₃ = {_html.escape(f3)}</strong> — agisce sui "
+        f"<li><strong>f₂ = {_html.escape(f3)}</strong> — agisce sui "
         f"<em>3 pacchetti da 9</em> (le colonne raccolte): "
         f"ordine di raccolta <strong>{_html.escape(ord_str)}</strong>.</li>")
     if f2 == "SCD_U":
-        livelli.append("<li><strong>f₂ = SCD_U</strong> — identità: le 3 "
+        livelli.append("<li><strong>f₁ = SCD_U</strong> — identità: le 3 "
                        "terzine dentro ogni pacchetto restano in ordine.</li>")
     else:
         livelli.append(
-            f"<li><strong>f₂ = {_html.escape(f2)}</strong> — permuta le "
+            f"<li><strong>f₁ = {_html.escape(f2)}</strong> — permuta le "
             f"<em>3 terzine</em> dentro ogni pacchetto da 9 "
             f"({_html.escape(_GEN3_INFO[f2][1])}).</li>")
     if f1 == "SCD_U":
-        livelli.append("<li><strong>f₁ = SCD_U</strong> — identità: le 3 "
+        livelli.append("<li><strong>f₀ = SCD_U</strong> — identità: le 3 "
                        "carte dentro ogni terzina restano in ordine.</li>")
     else:
         livelli.append(
-            f"<li><strong>f₁ = {_html.escape(f1)}</strong> — permuta le "
+            f"<li><strong>f₀ = {_html.escape(f1)}</strong> — permuta le "
             f"<em>3 carte</em> dentro ogni terzina "
             f"({_html.escape(_GEN3_INFO[f1][1])}).</li>")
 
@@ -152,7 +152,7 @@ def _ai_phase_html(triple, stage_num: int) -> str:
         "raccogliere le colonne nell'ordine indicato, senza altri "
         "riarrangiamenti.</p>" if semplice else
         "<p class='warn'>⚠ Fase NON a raccolta semplice: oltre all'ordine "
-        "delle colonne servono i riarrangiamenti interni indicati da f₂/f₁ "
+        "delle colonne servono i riarrangiamenti interni indicati da f₁/f₀ "
         "(più difficile da eseguire dal vivo).</p>")
 
     finale = ("<p>4. <strong>Fine del trucco</strong>: il mazzo è ora "
@@ -161,7 +161,7 @@ def _ai_phase_html(triple, stage_num: int) -> str:
     return f"""
     <div class='step s{stage_num}'>
       <p><span class='badge b{stage_num}'>FASE {stage_num}</span>
-         <strong>A{stage_num} = ({_html.escape(f3)} ⊗ {_html.escape(f2)} ⊗ {_html.escape(f1)})</strong></p>
+         <strong>A{stage_num - 1} = ({_html.escape(f3)} ⊗ {_html.escape(f2)} ⊗ {_html.escape(f1)})</strong></p>
       <div class='istr'>
         <p>1. Distribuisci le 27 carte una alla volta, <em>da sinistra a
            destra</em>, in 3 colonne da 9 (questo è MSC: la carta in
@@ -173,7 +173,7 @@ def _ai_phase_html(triple, stage_num: int) -> str:
            del mazzo finale, senza invertire le carte dentro le colonne.</p>
         {finale}
       </div>
-      <p class='lvl-title'>Cosa fa A{stage_num}, livello per livello:</p>
+      <p class='lvl-title'>Cosa fa A{stage_num - 1}, livello per livello:</p>
       <ul class='lvl'>{''.join(livelli)}</ul>
       {nota_semplice}
     </div>"""
@@ -439,7 +439,7 @@ poi A0 (1ª raccolta), poi MSC, A1, MSC e infine A2 (ultima raccolta).</div>
     <p class='lead'>Numeriamo le posizioni 0–26 e scriviamole in base 3:
        pos = 9·i₂ + 3·i₁ + i₀.</p>
     <div class='formula'>MSC:   (i₂, i₁, i₀)  →  (i₀, i₂, i₁)      rotazione delle cifre
-A_i:   (i₂, i₁, i₀)  →  (f₃(i₂), f₂(i₁), f₁(i₀))   cifre permutate
+A_i:   (i₂, i₁, i₀)  →  (f₂(i₂), f₁(i₁), f₀(i₀))   cifre permutate
                                                     indipendentemente</div>
     <p class='lead'>La colonna in cui cade una carta alla distribuzione k
        rivela la k-esima cifra ternaria della sua posizione. In tre
