@@ -3,6 +3,14 @@
 Analisi combinatoria e algebrica del trucco delle 27 carte (gruppo GEN3³,
 mescolamento MSC, decomposizioni di Kronecker).
 
+## Articolo associato
+
+La struttura matematica esplorata dal programma è sviluppata nell'articolo:
+
+**27-Card Tensor Structure**
+
+https://github.com/maberlanda/27-card-tensor-structure
+
 ## Avvio
 
     python gioco27.py        # oppure: python -m gioco27
