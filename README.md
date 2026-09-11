@@ -68,3 +68,9 @@ destinazione precedente resta intatta e il temporaneo viene rimosso.
 
 Configurazione, cache e log sono in `~/.gioco27/`
 (`config.json`, `cache/`, `gioco27.log`).
+
+## Licenza
+
+Copyright © 2026 Maurizio Berlanda.
+
+Il software è distribuito sotto GNU General Public License v3.0.
