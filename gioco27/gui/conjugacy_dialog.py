@@ -69,14 +69,8 @@ class ConjugacyDialog(tk.Toplevel):
                   foreground="#1a3a5c").pack(side="left")
 
         ttk.Label(self,
-                  text=("Due elementi x, y sono CONIUGATI se esiste g con "
-                        "g∘x∘g⁻¹ = y: fanno «la stessa cosa» a meno di una "
-                        "rinominazione delle posizioni. In G = S₃×S₃×S₃ la "
-                        "classe di un elemento (f₃,f₂,f₁) è la terna delle "
-                        "classi dei fattori in S₃ {id, trasposizioni, 3-cicli}: "
-                        "per questo le classi sono esattamente 3³ = 27 e la "
-                        "dimensione di ciascuna è il prodotto delle dimensioni "
-                        "(1, 3 o 2) dei fattori."),
+                  text=tr("conjugacy.help.intro",
+                          classes=tr("conjugacy.help.classes")),
                   font=("Segoe UI", 9), foreground="#444",
                   wraplength=1050, justify="left",
                   padding=(10, 2, 10, 4)).pack(fill="x")

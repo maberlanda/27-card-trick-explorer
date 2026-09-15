@@ -39,12 +39,7 @@ class CayleyDialog(tk.Toplevel):
                   foreground="#1a3a5c").pack(side="left")
 
         ttk.Label(self,
-                  text=("A ∘ B significa: esegui PRIMA la raccolta B, POI la "
-                        "raccolta A (composizione da destra a sinistra). "
-                        "Ogni elemento è una terna (f₃ x f₂ x f₁) che agisce su "
-                        "pacchetti, terzine e carte. Il calcolatore mostra anche "
-                        "il commutatore, le potenze e il sottogruppo generato: "
-                        "strumenti per capire quanto «si intrecciano» due raccolte."),
+                  text=tr("cayley.help.intro"),
                   font=("Segoe UI", 9), foreground="#444",
                   wraplength=860, justify="left",
                   padding=(10, 2, 10, 4)).pack(fill="x")

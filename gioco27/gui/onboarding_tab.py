@@ -67,11 +67,7 @@ class OnboardingTabMixin:
 
         HelpBanner(
             body, tr("onboarding.intro"),
-            long=("Il programma studia il «gioco delle 27 carte»: come, "
-                  "mescolando le carte in colonne, si ottengono permutazioni "
-                  "con proprietà matematiche interessanti. Non serve conoscere "
-                  "la teoria per usarlo: segui i tre passi qui sotto e usa il "
-                  "glossario per ogni termine che non ti è chiaro."),
+            long=tr("onboarding.help.long"),
             on_open_guide=getattr(self, "_open_guide", None),
         ).grid(row=2, column=0, sticky="ew", pady=(0, 14))
 
@@ -124,7 +120,7 @@ class OnboardingTabMixin:
                        f"{tr('onboarding.glossary.subtitle')}  ", padding=(4, 6))
         gl.grid(row=5, column=0, sticky="ew", pady=(16, 4))
         gl.columnconfigure(0, weight=1)
-        for r, (source_term, _short, long) in enumerate(GLOSSARY):
+        for r, (source_term, _short, long_key) in enumerate(GLOSSARY):
             glossary_key = _GLOSSARY_KEYS[r]
             term = tr(f"glossary.term.{glossary_key}")
             short = tr(f"glossary.short.{glossary_key}")
@@ -138,6 +134,7 @@ class OnboardingTabMixin:
                          font="GiocoHelp", wraplength=540,
                          justify="left", anchor="w")
             d.grid(row=0, column=1, sticky="w", pady=3)
+            long = tr(long_key)
             _tip(t, long)
             _tip(d, long)
 

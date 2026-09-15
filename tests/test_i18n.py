@@ -1049,9 +1049,9 @@ def test_eleventh_block_catalogs_and_sources_cover_scoped_ui():
     assert len([key for key in i18n.CATALOGS["it"]
                 if key.startswith("presentation.")]) == 23
     assert len([key for key in i18n.CATALOGS["it"]
-                if key.startswith("cayley.")]) == 33
+                if key.startswith("cayley.")]) == 34
     assert len([key for key in i18n.CATALOGS["it"]
-                if key.startswith("conjugacy.")]) == 31
+                if key.startswith("conjugacy.")]) == 33
 
 
 def test_eleventh_block_language_does_not_change_group_results():
@@ -1065,6 +1065,109 @@ def test_eleventh_block_language_does_not_change_group_results():
     assert (before[0] == after[0]).all()
     assert (before[1] == after[1]).all()
     assert before[2] == after[2]
+
+
+def test_twelfth_block_long_texts_are_available_in_both_languages():
+    from gioco27.gui.i18n import set_language, tr
+
+    italian = tr("cayley.help.intro")
+    assert "A ∘ B significa" in italian
+    assert "f₃ x f₂ x f₁" in italian
+    assert "Due elementi x, y sono CONIUGATI" in tr(
+        "conjugacy.help.intro", classes=tr("conjugacy.help.classes"))
+    assert "Stadioᵢ = Pᵢ ∘ MSC ∘ Jᵢ" in tr("glossary.long.stage")
+    assert "P₃ ⊗ P₂ ⊗ P₁" in tr("filter.intro")
+
+    set_language("en")
+    assert "A ∘ B means" in tr("cayley.help.intro")
+    assert "(f₃,f₂,f₁)" in tr(
+        "conjugacy.help.intro", classes=tr("conjugacy.help.classes"))
+    assert "Stageᵢ = Pᵢ ∘ MSC ∘ Jᵢ" in tr("glossary.long.stage")
+    assert "P₃ ⊗ P₂ ⊗ P₁" in tr("filter.intro")
+    assert "Kronecker products" in tr("help.tab.stadio.long")
+
+
+def test_twelfth_block_glossary_and_tab_help_resolve_keys():
+    from gioco27.gui.glossary import GLOSSARY, TAB_HELP
+    from gioco27.gui.i18n import set_language, tr
+
+    assert len(GLOSSARY) == 14
+    for _, _, long_key in GLOSSARY:
+        assert long_key.startswith("glossary.long.")
+        assert tr(long_key)
+    assert len(TAB_HELP) == 8
+    for short_key, long_key in TAB_HELP.values():
+        assert short_key.startswith("help.tab.")
+        assert long_key.startswith("help.tab.")
+        assert tr(short_key) and tr(long_key)
+
+    italian = tr("glossary.long.cayley")
+    set_language("en")
+    english = tr("glossary.long.cayley")
+    assert "216×216" in italian and "216×216" in english
+    assert "La tavola di Cayley" in italian
+    assert "The Cayley table" in english
+
+
+def test_twelfth_block_filter_explanations_use_named_placeholders():
+    from gioco27.gui import filter_frame
+    from gioco27.gui.i18n import set_language, tr
+
+    assert filter_frame._LEVEL_DESC["P0"] == "filter.level.P0"
+    assert tr("filter.combo.tooltip", name="P0") == \
+        "Fissa P0 a un valore preciso (oppure * = considera tutte le opzioni)."
+    assert "S→S" in tr("filter.option.tooltip", option="SCD_U",
+                         description=tr("filter.option.SCD_U"))
+    set_language("en")
+    assert tr("filter.combo.tooltip", name="P0") == \
+        "Fix P0 to one precise value (or * = consider all options)."
+    assert "S→S" in tr("filter.option.tooltip", option="SCD_U",
+                         description=tr("filter.option.SCD_U"))
+
+
+def test_twelfth_block_fallback_and_placeholder_parity_remain_valid(monkeypatch):
+    from string import Formatter
+    from gioco27.gui import i18n
+
+    monkeypatch.delitem(i18n.CATALOGS["en"], "help.tab.explorer.long")
+    i18n.set_language("en")
+    assert i18n.tr("help.tab.explorer.long").startswith("Scrivi un'espressione")
+    fields = lambda text: {name for _, name, _, _ in Formatter().parse(text)
+                           if name}
+    for key in i18n.CATALOGS["it"]:
+        assert fields(i18n.CATALOGS["it"][key]) == fields(
+            i18n.CATALOGS["en"].get(key, i18n.CATALOGS["it"][key])), key
+
+
+def test_twelfth_block_long_text_sources_are_no_longer_hardcoded():
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[1] / "gioco27" / "gui"
+    sources = {name: (root / name).read_text(encoding="utf-8")
+               for name in ("cayley_dialog.py", "conjugacy_dialog.py",
+                            "filter_frame.py", "onboarding_tab.py", "app.py")}
+    assert 'text=tr("cayley.help.intro")' in sources["cayley_dialog.py"]
+    assert 'text=tr("conjugacy.help.intro"' in sources["conjugacy_dialog.py"]
+    assert 'text=tr("filter.intro")' in sources["filter_frame.py"]
+    assert 'long=tr("onboarding.help.long")' in sources["onboarding_tab.py"]
+    assert 'long=tr("settings.help.long")' in sources["app.py"]
+    for text, source_name in (
+        ("A ∘ B significa: esegui PRIMA", "cayley_dialog.py"),
+        ("Due elementi x, y sono CONIUGATI", "conjugacy_dialog.py"),
+        ("Questo stadio applica  P ∘ MSC ∘ J", "filter_frame.py"),
+        ("Più worker accelerano le ricerche", "app.py"),
+    ):
+        assert text not in sources[source_name]
+
+
+def test_twelfth_block_catalog_additions_are_symmetric_and_counted():
+    from gioco27.gui import i18n
+
+    assert set(i18n.CATALOGS["it"]) == set(i18n.CATALOGS["en"])
+    assert len([k for k in i18n.CATALOGS["it"] if k.startswith("glossary.long.")]) == 14
+    assert len([k for k in i18n.CATALOGS["it"] if k.startswith("help.tab.")]) == 16
+    assert len([k for k in i18n.CATALOGS["it"] if k.startswith("filter.")]) == 17
+    assert len(i18n.CATALOGS["it"]) == 662
 
 
 def _use_config_file(monkeypatch, tmp_path):

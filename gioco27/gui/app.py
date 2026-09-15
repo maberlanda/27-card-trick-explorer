@@ -396,7 +396,9 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
         self._stadi_wraps = []
         for i in range(3):
             wrap = ttk.Frame(nb)
-            self._mk_banner(wrap, *TAB_HELP["stadio"], section="12").pack(fill="x")
+            short_key, long_key = TAB_HELP["stadio"]
+            self._mk_banner(wrap, tr(short_key), tr(long_key),
+                            section="12").pack(fill="x")
             ff = FilterFrame(wrap, stage_num=i, on_change=self._update_count)
             ff.pack(fill="both", expand=True)
             self.filter_frames.append(ff)
@@ -447,9 +449,7 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
                      relief="solid", bd=1).pack(side="left")
             tk.Label(chip, text=" " + name, bg=self.C_ACTION_BG, fg=col,
                      font=("Consolas", 9, "bold")).pack(side="left")
-            _tooltip.attach(
-                chip, f"{name}: una delle 6 mosse base su 3 elementi. "
-                      "Questo colore evidenzia il nome nelle formule dell'Explorer.")
+            _tooltip.attach(chip, tr("tooltip.color_chip", name=name))
         tk.Label(bar,
                  text=tr("label.legend_note"),
                  bg=self.C_ACTION_BG, fg="#8a96a3",
@@ -465,8 +465,9 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
     def _wrap_tab(self, build_fn, key, section=None):
         """Crea un contenitore con banner d'aiuto + la scheda costruita da build_fn."""
         wrap = ttk.Frame(self._nb)
-        short, long = TAB_HELP[key]
-        self._mk_banner(wrap, short, long, section=section).pack(fill="x")
+        short_key, long_key = TAB_HELP[key]
+        self._mk_banner(wrap, tr(short_key), tr(long_key),
+                        section=section).pack(fill="x")
         inner = build_fn(wrap)
         inner.pack(fill="both", expand=True)
         return wrap
@@ -1013,10 +1014,8 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
 
         HelpBanner(
             dlg,
-            "Numero di processi paralleli, ricerca parallela e gestione della cache.",
-            long=("Più worker accelerano le ricerche di decomposizioni ma usano "
-                  "più CPU. La cache conserva i risultati già calcolati per "
-                  "riaprirli all'istante."),
+            tr("settings.help.short"),
+            long=tr("settings.help.long"),
         ).pack(fill="x")
 
         fr = ttk.Frame(dlg, padding=(20, 14))

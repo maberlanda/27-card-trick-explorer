@@ -4,31 +4,30 @@ from tkinter import ttk
 
 from ..core.constants import P_OPTS, J_OPTS, ANY
 from .tooltip import attach as _tip
+from .i18n import tr
 
 # Descrizioni in parole semplici delle 6 permutazioni P (su S=sinistra,
 # C=centro, D=destra) e delle 2 orientazioni J.
 _PERM3_DESC = {
-    "SCD_U": "Identità: S→S, C→C, D→D (non cambia nulla).",
-    "SDC_U": "Scambia Centro e Destra (Sinistra ferma).",
-    "CSD_U": "Scambia Sinistra e Centro (Destra ferma).",
-    "CDS_U": "Rotazione in avanti: S→C, C→D, D→S.",
-    "DSC_U": "Rotazione indietro: S→D, C→S, D→C.",
-    "DCS_U": "Scambia Sinistra e Destra (Centro fermo).",
+    "SCD_U": "filter.option.SCD_U",
+    "SDC_U": "filter.option.SDC_U",
+    "CSD_U": "filter.option.CSD_U",
+    "CDS_U": "filter.option.CDS_U",
+    "DSC_U": "filter.option.DSC_U",
+    "DCS_U": "filter.option.DCS_U",
 }
 _J_DESC = {
-    "I_3": "Identità: nessuna inversione.",
-    "R_U": "Inversione: capovolge l'ordine (Sinistra↔Destra).",
+    "I_3": "filter.option.I_3",
+    "R_U": "filter.option.R_U",
 }
 # Significato di ciascun livello di Kronecker.
 _LEVEL_DESC = {
-    "P0": "P₀ — livello carte: riordina le 3 carte dentro ogni terzina "
-          "(agisce sulla cifra ternaria i₀).",
-    "P1": "P₁ — livello terzine: riordina le 3 terzine dentro ogni pacchetto "
-          "(cifra i₁).",
-    "P2": "P₂ — livello pacchetti: riordina i 3 pacchetti (cifra i₂).",
-    "J0": "J₀ — orientazione a livello carte.",
-    "J1": "J₁ — orientazione a livello terzine.",
-    "J2": "J₂ — orientazione a livello pacchetti.",
+    "P0": "filter.level.P0",
+    "P1": "filter.level.P1",
+    "P2": "filter.level.P2",
+    "J0": "filter.level.J0",
+    "J1": "filter.level.J1",
+    "J2": "filter.level.J2",
 }
 
 class FilterFrame(ttk.LabelFrame):
@@ -63,20 +62,7 @@ class FilterFrame(ttk.LabelFrame):
         intro.pack(side="top", fill="x", pady=(0, 8))
         tk.Label(
             intro,
-            text=(
-                "Questo stadio applica  P ∘ MSC ∘ J : prima orienti il mazzo (J), "
-                "poi lo mescoli in colonne (MSC), poi raccogli (P).\n"
-                "P e J sono prodotti di Kronecker di tre matrici 3×3  —  P₃ ⊗ P₂ ⊗ P₁  —  "
-                "una per livello:  ① le 3 carte di ogni terzina,  ② le 3 terzine di ogni "
-                "pacchetto,  ③ i 3 pacchetti.\n"
-                "Fissa un valore col menu «Fissa» per vincolarlo, oppure spunta più caselle "
-                "per esplorarne le combinazioni.\n"
-                "Vincolo del gioco reale: solo poche scelte sono fisicamente eseguibili — il "
-                "preset «Gioco Reale» tiene 12 possibilità per stadio (12³ = 1 728 sequenze). "
-                "Liberando tutti i livelli fai una «sintonia fine»: 6×6×6 (P) × 2×2×2 (J) = "
-                "1 728 per stadio, cioè 1 728³ ≈ 5,16 miliardi in tutto, comprese trasformazioni "
-                "non ottenibili col gioco base."
-            ),
+            text=tr("filter.intro"),
             font="GiocoHelp", fg="#243b53", bg="#EFF5FB",
             justify="left", wraplength=1100, anchor="w",
         ).pack(fill="x", padx=10, pady=6)
@@ -173,7 +159,7 @@ class FilterFrame(ttk.LabelFrame):
         lbl.grid(row=row, column=0, sticky="e", padx=(4, 2), pady=5)
         widgets.append(lbl)
         if name in _LEVEL_DESC:
-            _tip(lbl, _LEVEL_DESC[name])
+            _tip(lbl, tr(_LEVEL_DESC[name]))
 
         dvar = tk.StringVar(value=ANY)
         if self._on_change:
@@ -184,8 +170,7 @@ class FilterFrame(ttk.LabelFrame):
                              font=("Consolas", 10))
         combo.grid(row=row, column=1, padx=(2, 10), pady=5)
         widgets.append(combo)
-        _tip(combo, "Fissa " + name + " a un valore preciso "
-                    "(oppure * = considera tutte le opzioni).")
+        _tip(combo, tr("filter.combo.tooltip", name=name))
 
         bvars = []
         for k, opt in enumerate(opts):
@@ -200,7 +185,8 @@ class FilterFrame(ttk.LabelFrame):
             widgets.append(chk)
             _desc = _PERM3_DESC.get(opt) or _J_DESC.get(opt)
             if _desc:
-                _tip(chk, opt + " — " + _desc)
+                _tip(chk, tr("filter.option.tooltip", option=opt,
+                             description=tr(_desc)))
 
         self._vars[name] = (dvar, bvars)
         return widgets
@@ -300,4 +286,3 @@ class FilterFrame(ttk.LabelFrame):
 # ─────────────────────────────────────────────────────────────────────────────
 # RICERCA ALGEBRICA DI TUTTE LE DECOMPOSIZIONI  T⁻¹ = A2∘MSC∘A1∘MSC∘A0∘MSC
 # ─────────────────────────────────────────────────────────────────────────────
-
