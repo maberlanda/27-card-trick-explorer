@@ -488,6 +488,154 @@ def test_seventh_block_explorer_catalogs_have_matching_keys():
     assert len(italian) == 91
 
 
+def test_eighth_block_simulator_controls_are_localized():
+    from gioco27.gui.i18n import set_language, tr
+
+    assert tr("simulator.title") == "Simulatore del Trucco delle 27 Carte"
+    assert tr("simulator.calculate_sequence") == "Calcola sequenza"
+    assert tr("simulator.tab.instructions") == "Istruzioni per il mago"
+    assert tr("simulator.practice.confirm_stacking") == "Conferma impilamento"
+
+    set_language("en")
+    assert tr("simulator.title") == "27-Card Trick Simulator"
+    assert tr("simulator.calculate_sequence") == "Calculate sequence"
+    assert tr("simulator.tab.instructions") == "Instructions for the magician"
+    assert tr("simulator.practice.confirm_stacking") == "Confirm stacking"
+
+
+def test_eighth_block_simulator_dynamic_statuses_preserve_codes():
+    from gioco27.gui.i18n import set_language, tr
+
+    assert tr("simulator.practice.step_target", phase=2, card=7) == \
+        "Fase 2/3 — Carta bersaglio: C07"
+    assert "SCD CDS DCS" in tr(
+        "simulator.status.sequence", shuffles="SCD CDS DCS", number=42)
+
+    set_language("en")
+    status = tr("simulator.status.sequence",
+                shuffles="SCD CDS DCS", number=42)
+    position = tr("simulator.deck.card_position", card=7, position=13,
+                  reading_column=2)
+    assert status == "Sequence: SCD CDS DCS (arrangement #42 in the table)"
+    assert "C07" in position and "13" in position and "2" in position
+
+
+def test_eighth_block_simulator_gestures_are_localized_without_changing_codes():
+    from gioco27.gui import simulator_tab
+    from gioco27.gui.i18n import set_language, tr
+
+    assert simulator_tab._gesto("SCD") == \
+        "prima Sinistra (al dorso), poi Centro, infine Destra (al fondo)"
+    assert set(simulator_tab._SIGLA_DESC) == \
+        {"SCD", "SDC", "CSD", "CDS", "DSC", "DCS"}
+
+    set_language("en")
+    assert simulator_tab._gesto("SCD") == \
+        "first Left (at the back), then Center, finally Right (at the bottom)"
+    assert "S→C→D→S" in tr(simulator_tab._SIGLA_DESC["CDS"])
+    assert "D,S,C" in tr(simulator_tab._SIGLA_DESC["CDS"])
+
+
+def test_eighth_block_simulator_error_plural_is_explicit():
+    from gioco27.gui.i18n import set_language, tr
+
+    assert tr("simulator.summary.errors.one", count=1, maximum=6) == \
+        "Errore commesso  : 1/6"
+    assert tr("simulator.summary.errors.many", count=3, maximum=6) == \
+        "Errori commessi : 3/6"
+    set_language("en")
+    assert tr("simulator.summary.errors.one", count=1, maximum=6) == \
+        "Error made     : 1/6"
+    assert tr("simulator.summary.errors.many", count=3, maximum=6) == \
+        "Errors made    : 3/6"
+
+
+def test_eighth_block_language_switch_and_fallback_do_not_change_simulation(
+    monkeypatch,
+):
+    from gioco27.core import gioco_reale
+    from gioco27.gui import i18n
+
+    before = gioco_reale.risolvi_trucco(7, 19)
+    i18n.set_language("en")
+    after = gioco_reale.risolvi_trucco(7, 19)
+    assert after == before
+    monkeypatch.delitem(i18n.CATALOGS["en"], "simulator.photo")
+    assert i18n.tr("simulator.photo") == "Fotografia:"
+    assert gioco_reale.risolvi_trucco(7, 19) == before
+
+
+def test_eighth_block_simulator_uses_i18n_without_major_hardcoded_strings():
+    from pathlib import Path
+    from gioco27.gui import i18n
+
+    source = (Path(__file__).resolve().parents[1] / "gioco27" / "gui" /
+              "simulator_tab.py").read_text(encoding="utf-8")
+    assert "from .i18n import tr" in source
+    for key in ("simulator.title", "simulator.status.sequence",
+                "simulator.practice.question_column",
+                "simulator.summary.score"):
+        assert key in source
+    for hardcoded in ("Simulatore del Trucco delle 27 Carte",
+                      "Carta scelta dal pubblico (posizione iniziale, 0 = dorso):",
+                      "Calcola prima una sequenza, poi torna qui per esercitarti.",
+                      "Trucco completato! Vedi il riepilogo nel log."):
+        assert hardcoded not in source
+
+    italian = {key for key in i18n.CATALOGS["it"]
+               if key.startswith("simulator.")}
+    english = {key for key in i18n.CATALOGS["en"]
+               if key.startswith("simulator.")}
+    assert italian == english
+    assert len(italian) == 82
+
+
+def test_eighth_block_simulator_instruction_output_switches_language_without_ui():
+    from gioco27.core import gioco_reale
+    from gioco27.gui.i18n import set_language
+    from gioco27.gui.simulator_tab import SimulatorFrame
+
+    class Value:
+        def __init__(self, value):
+            self.value = value
+
+        def get(self):
+            return self.value
+
+    class TextCapture:
+        def __init__(self):
+            self.parts = []
+
+        def configure(self, **_kwargs):
+            pass
+
+        def delete(self, *_args):
+            self.parts.clear()
+
+        def insert(self, _where, text, _tag):
+            self.parts.append(text)
+
+    simulator = object.__new__(SimulatorFrame)
+    simulator._card_var = Value(7)
+    simulator._target_var = Value(19)
+    simulator._istr_txt = TextCapture()
+    plan = gioco_reale.risolvi_trucco(7, 19)
+
+    simulator._build_istruzioni(plan)
+    italian = "".join(simulator._istr_txt.parts)
+    set_language("en")
+    simulator._build_istruzioni(plan)
+    english = "".join(simulator._istr_txt.parts)
+
+    assert "Istruzioni per il trucco" in italian
+    assert "Carta del pubblico" in italian
+    assert "Trick instructions" in english
+    assert "Spectator's card" in english
+    for code in plan["mescolamenti"] + plan["impilamenti"]:
+        assert code in italian and code in english
+    assert plan["T"] == gioco_reale.risolvi_trucco(7, 19)["T"]
+
+
 def _use_config_file(monkeypatch, tmp_path):
     from gioco27.core import config as config_module
 

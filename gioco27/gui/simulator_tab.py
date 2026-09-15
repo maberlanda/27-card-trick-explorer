@@ -20,23 +20,26 @@ import tkinter as tk
 from tkinter import ttk
 
 from ..core import gioco_reale as gr
+from .i18n import tr
 
 # ─── Costanti ─────────────────────────────────────────────────────────────────
 
 _SIGLA_DESC = {
-    "SCD": "identità: ogni mazzetto resta al suo livello",
-    "SDC": "scambia Centro ↔ Destra",
-    "CSD": "scambia Sinistra ↔ Centro",
-    "CDS": "ciclo S→C→D→S  (si esegue impilando D,S,C!)",
-    "DSC": "ciclo S→D→C→S  (si esegue impilando C,D,S!)",
-    "DCS": "scambia Sinistra ↔ Destra",
+    code: f"simulator.shuffle_desc.{code}" for code in gr.SIGLE
 }
+
+
+def _column_name(index):
+    return tr(("simulator.column.left", "simulator.column.center",
+               "simulator.column.right")[index])
+
 
 def _gesto(imp):
     """Descrizione del gesto fisico per la sigla di impilamento data."""
-    nomi = {"S": "Sinistra", "C": "Centro", "D": "Destra"}
-    return (f"prima {nomi[imp[0]]} (al dorso), poi {nomi[imp[1]]}, "
-            f"infine {nomi[imp[2]]} (al fondo)")
+    names = {"S": _column_name(0), "C": _column_name(1),
+             "D": _column_name(2)}
+    return tr("simulator.gesture", first=names[imp[0]],
+              second=names[imp[1]], third=names[imp[2]])
 
 _C_NORMAL  = "#D6EDD6"
 _C_TARGET  = "#FFD700"
@@ -71,27 +74,29 @@ class SimulatorFrame(ttk.Frame):
         hdr = ttk.Frame(self, padding=(10, 8, 10, 4))
         hdr.grid(row=0, column=0, sticky="ew")
         ttk.Label(hdr,
-                  text="🎩  Simulatore del Trucco delle 27 Carte",
+                  text=f"🎩  {tr('simulator.title')}",
                   font=("Segoe UI", 13, "bold"),
                   foreground="#1a3a5c").pack(side="left")
 
-        ctrl = ttk.LabelFrame(self, text=" Impostazioni ", padding=(10, 6))
+        ctrl = ttk.LabelFrame(
+            self, text=f" {tr('simulator.settings')} ", padding=(10, 6))
         ctrl.grid(row=1, column=0, sticky="ew", padx=10, pady=(0, 6))
         ctrl.columnconfigure(7, weight=1)
 
-        ttk.Label(ctrl, text="Carta scelta dal pubblico (posizione iniziale, 0 = dorso):",
+        ttk.Label(ctrl, text=tr("simulator.chosen_card"),
                   font=("Segoe UI", 10)).grid(row=0, column=0, sticky="w")
         self._card_var = tk.IntVar(value=0)
         ttk.Spinbox(ctrl, from_=0, to=26, textvariable=self._card_var,
                     width=4).grid(row=0, column=1, padx=6)
 
-        ttk.Label(ctrl, text="Posizione finale desiderata:",
+        ttk.Label(ctrl, text=tr("simulator.final_position"),
                   font=("Segoe UI", 10)).grid(row=0, column=2, padx=(20, 4), sticky="w")
         self._target_var = tk.IntVar(value=13)
         ttk.Spinbox(ctrl, from_=0, to=26, textvariable=self._target_var,
                     width=4).grid(row=0, column=3, padx=6)
 
-        self._go_btn = ttk.Button(ctrl, text="▶  Calcola sequenza",
+        self._go_btn = ttk.Button(
+            ctrl, text=f"▶  {tr('simulator.calculate_sequence')}",
                                   command=self._find_sequence)
         self._go_btn.grid(row=0, column=4, padx=12)
 
@@ -105,9 +110,11 @@ class SimulatorFrame(ttk.Frame):
         self._istr_tab     = ttk.Frame(nb)
         self._deck_tab     = ttk.Frame(nb)
         self._practice_tab = ttk.Frame(nb)
-        nb.add(self._istr_tab,     text="  📋 Istruzioni per il mago  ")
-        nb.add(self._deck_tab,     text="  🃏 Visualizzazione mazzo  ")
-        nb.add(self._practice_tab, text="  🎯 Pratica interattiva  ")
+        nb.add(self._istr_tab,
+               text=f"  📋 {tr('simulator.tab.instructions')}  ")
+        nb.add(self._deck_tab, text=f"  🃏 {tr('simulator.tab.deck')}  ")
+        nb.add(self._practice_tab,
+               text=f"  🎯 {tr('simulator.tab.practice')}  ")
 
         self._build_istr_tab()
         self._build_deck_tab()
@@ -144,7 +151,8 @@ class SimulatorFrame(ttk.Frame):
 
         bar = ttk.Frame(fr, padding=(10, 8))
         bar.grid(row=0, column=0, sticky="ew")
-        ttk.Label(bar, text="Fotografia:", font=("Segoe UI", 10, "bold")
+        ttk.Label(bar, text=tr("simulator.photo"),
+                  font=("Segoe UI", 10, "bold")
                   ).pack(side="left")
         self._phase_var = tk.IntVar(value=0)
         self._phase_scale = ttk.Scale(bar, from_=0, to=6, orient="horizontal",
@@ -192,32 +200,33 @@ class SimulatorFrame(ttk.Frame):
         phdr.grid(row=0, column=0, sticky="ew")
         phdr.columnconfigure(1, weight=1)
         self._pstep_lbl = ttk.Label(
-            phdr, text="Calcola prima una sequenza, poi torna qui per esercitarti.",
+            phdr, text=tr("simulator.practice.first_calculate"),
             font=("Segoe UI", 11, "bold"), foreground="#1a3a5c")
         self._pstep_lbl.grid(row=0, column=0, sticky="w")
 
         err_row = ttk.Frame(phdr)
         err_row.grid(row=0, column=2, sticky="e")
-        ttk.Label(err_row, text="Errori:",
+        ttk.Label(err_row, text=tr("simulator.practice.errors"),
                   font=("Segoe UI", 10, "bold")).pack(side="left")
         self._p_err_count_lbl = ttk.Label(
             err_row, text="—", width=3,
             font=("Segoe UI", 12, "bold"), foreground="#cc0000")
         self._p_err_count_lbl.pack(side="left", padx=(4, 12))
         self._p_reset_btn = ttk.Button(
-            err_row, text="↺  Ricomincia",
+            err_row, text=f"↺  {tr('simulator.practice.restart')}",
             command=self._practice_reset, state="disabled")
         self._p_reset_btn.pack(side="left")
 
         deck_fr = ttk.LabelFrame(
-            fr, text=" Colonne sul tavolo (ordine di distribuzione, dall'alto) ",
+            fr, text=f" {tr('simulator.practice.table_columns')} ",
             padding=(6, 4))
         deck_fr.grid(row=1, column=0, padx=10, pady=4, sticky="ew")
         self._p_deck_col_labels = []
         for col in range(3):
             col_f = ttk.Frame(deck_fr)
             col_f.grid(row=0, column=col, padx=14)
-            nome = ("Sinistra (S)", "Centro (C)", "Destra (D)")[col]
+            nome = tr("simulator.deck.column_header",
+                      column=_column_name(col), code="SCD"[col])
             ttk.Label(col_f, text=nome, font=("Segoe UI", 9, "bold"),
                       foreground="#1a3a5c").grid(row=0, column=0, pady=(0, 3))
             col_labels = []
@@ -230,7 +239,8 @@ class SimulatorFrame(ttk.Frame):
                 col_labels.append(lbl)
             self._p_deck_col_labels.append(col_labels)
 
-        self._p_action_fr = ttk.LabelFrame(fr, text=" Azione richiesta ",
+        self._p_action_fr = ttk.LabelFrame(
+            fr, text=f" {tr('simulator.practice.action_required')} ",
                                            padding=(12, 8))
         self._p_action_fr.grid(row=2, column=0, padx=10, pady=4, sticky="ew")
         self._p_action_fr.columnconfigure(0, weight=1)
@@ -242,7 +252,7 @@ class SimulatorFrame(ttk.Frame):
 
         self._p_col_btn_frame = ttk.Frame(self._p_action_fr)
         self._p_col_btn_frame.grid(row=1, column=0, sticky="w")
-        for i, nome in enumerate(("Sinistra", "Centro", "Destra")):
+        for i, nome in enumerate(_column_name(i) for i in range(3)):
             ttk.Button(self._p_col_btn_frame, text=f"   {nome}   ",
                        command=lambda c=i: self._practice_choose_col(c)
                        ).grid(row=0, column=i, padx=6)
@@ -254,7 +264,7 @@ class SimulatorFrame(ttk.Frame):
         self._p_order_frame = ttk.Frame(self._p_action_fr)
         self._p_order_frame.grid(row=3, column=0, sticky="w", pady=(10, 0))
         ttk.Label(self._p_order_frame,
-                  text="Impilamento (mazzetti dal dorso al fondo):",
+                  text=tr("simulator.practice.stacking"),
                   font=("Segoe UI", 10)).pack(side="left")
         self._p_order_var = tk.StringVar(value="SCD")
         order_cb = ttk.Combobox(
@@ -268,7 +278,8 @@ class SimulatorFrame(ttk.Frame):
         order_cb.bind("<<ComboboxSelected>>", self._p_on_order_select)
 
         self._p_confirm_btn = ttk.Button(
-            self._p_action_fr, text="✔  Conferma impilamento",
+            self._p_action_fr,
+            text=f"✔  {tr('simulator.practice.confirm_stacking')}",
             command=self._practice_confirm_order)
         self._p_confirm_btn.grid(row=4, column=0, sticky="w", pady=(10, 0))
 
@@ -302,13 +313,15 @@ class SimulatorFrame(ttk.Frame):
             card   = int(self._card_var.get())
             target = int(self._target_var.get())
             plan   = gr.risolvi_trucco(card, target)
-        except (ValueError, tk.TclError) as e:
-            self._status_lbl.configure(text=f"✗  {e}")
+        except (ValueError, tk.TclError):
+            self._status_lbl.configure(
+                text=f"✗  {tr('simulator.validation.positions')}")
             return
         self._plan = plan
         self._status_lbl.configure(
-            text=f"✓  Sequenza: {' '.join(plan['mescolamenti'])} "
-                 f"(disposizione #{plan['numero']} della tavola)")
+            text="✓  " + tr("simulator.status.sequence",
+                            shuffles=" ".join(plan["mescolamenti"]),
+                            number=plan["numero"]))
         self._build_istruzioni(plan)
         self._build_deck_phases(plan)
         self._init_practice(plan, card)
@@ -328,49 +341,42 @@ class SimulatorFrame(ttk.Frame):
         txt.delete("1.0", "end")
         ins = lambda t, tag="action": txt.insert("end", t, tag)
 
-        ins("✨  Istruzioni per il trucco\n\n", "title")
-        ins(f"Carta del pubblico: posizione {card:02d} (0 = dorso).   "
-            f"Posizione finale: {target:02d}.\n", "action")
-        ins(f"Disposizione #{plan['numero']} della tavola — "
-            f"mescolamenti {' '.join(plan['mescolamenti'])}, "
-            f"impilamenti {' '.join(plan['impilamenti'])}.\n\n", "mesc")
+        ins(f"✨  {tr('simulator.instructions.title')}\n\n", "title")
+        ins(tr("simulator.instructions.positions", card=card, target=target)
+            + "\n", "action")
+        ins(tr("simulator.instructions.arrangement", number=plan["numero"],
+               shuffles=" ".join(plan["mescolamenti"]),
+               stackings=" ".join(plan["impilamenti"])) + "\n\n", "mesc")
         ins("─" * 70 + "\n\n", "note")
 
-        ins("PREPARAZIONE\n", "step")
-        ins("  Mazzo di 27 carte a faccia in giù: la posizione 0 è la carta "
-            "al dorso.\n  Il pubblico sceglie mentalmente la carta in "
-            f"posizione {card:02d}.\n\n", "action")
+        ins(tr("simulator.instructions.preparation_title") + "\n", "step")
+        ins(tr("simulator.instructions.preparation", card=card) + "\n\n",
+            "action")
 
         for i, (mesc, imp, col) in enumerate(zip(plan["mescolamenti"],
                                                  plan["impilamenti"],
                                                  plan["colonne"]), start=1):
-            nome_col = ("Sinistra", "Centro", "Destra")[col]
-            ins(f"\nFASE {i}\n", "step")
-            ins("  1. Distribuisci le 27 carte, una alla volta e a faccia "
-                "in su, in tre colonne\n     (S, C, D) da sinistra a destra: "
-                "le prime carte finiscono in fondo alle colonne.\n", "action")
-            ins(f"     La carta del pubblico cadrà nella colonna "
-                f"{nome_col}.\n", "note")
-            ins("  2. Esegui il mescolamento ", "action")
-            ins(f"{mesc}", "mesc")
-            ins(f"  ({_SIGLA_DESC[mesc]})\n", "note")
-            ins("     Gesto: ", "action")
-            ins(f"{_gesto(imp)}.\n", "pile")
+            nome_col = _column_name(col)
+            ins("\n" + tr("simulator.instructions.phase_title", phase=i)
+                + "\n", "step")
+            ins(tr("simulator.instructions.deal") + "\n", "action")
+            ins(tr("simulator.instructions.chosen_column",
+                   column=nome_col) + "\n", "note")
+            ins(tr("simulator.instructions.perform_shuffle", shuffle=mesc,
+                   description=tr(_SIGLA_DESC[mesc])) + "\n", "action")
+            ins(tr("simulator.instructions.gesture",
+                   gesture=_gesto(imp)) + "\n", "pile")
             if mesc != imp:
-                ins("     ⚠ Prima Crisi di Seldon: la sigla del gesto "
-                    f"({imp}) è l'inversa della sigla del mescolamento "
-                    f"({mesc}).\n", "note")
-            ins("  3. Riprendi il mazzo a faccia in giù.\n", "action")
+                ins(tr("simulator.instructions.seldon_warning",
+                       stacking=imp, shuffle=mesc) + "\n", "note")
+            ins(tr("simulator.instructions.pick_up") + "\n", "action")
 
         ins("\n" + "─" * 70 + "\n\n", "note")
-        ins("RISULTATO\n", "step")
-        ins(f"  La carta del pubblico è ora in posizione {target:02d} "
-            f"(la {target + 1}ª dal dorso).\n\n", "result")
-        ins("Nota — il tabellone della disposizione è formato dai tre "
-            "mescolamenti impilati:\nil primo in basso, l'ultimo in alto. "
-            "Le posizioni finali degli Assi (0, 13, 26)\nne sono le colonne: "
-            f"T(0)={plan['T'][0]}, T(13)={plan['T'][13]}, "
-            f"T(26)={plan['T'][26]}.\n", "note")
+        ins(tr("simulator.instructions.result_title") + "\n", "step")
+        ins(tr("simulator.instructions.result", target=target,
+               number=target + 1) + "\n\n", "result")
+        ins(tr("simulator.instructions.board_note", t0=plan["T"][0],
+               t13=plan["T"][13], t26=plan["T"][26]) + "\n", "note")
         txt.configure(state="disabled")
 
     # ─── Tab Mazzo: 7 fotografie fisiche ──────────────────────────────────────
@@ -381,16 +387,18 @@ class SimulatorFrame(ttk.Frame):
         phases = []
         for f in fasi:
             if f["tipo"] == "iniziale":
-                phases.append(("deck", f["deck"], "Mazzo iniziale (dal dorso)"))
-            elif f["tipo"] == "colonne":
-                phases.append(("cols", f["cols"],
-                               f"Fase {f['fase']} — colonne sul tavolo"))
-            else:
-                extra = "  (rovesciato)" if f.get("rovesciato") else ""
                 phases.append(("deck", f["deck"],
-                               f"Fase {f['fase']} — dopo il mescolamento "
-                               f"{f['sigla']} (impilato {f['impilamento']})"
-                               f"{extra}"))
+                               tr("simulator.phase.initial_deck")))
+            elif f["tipo"] == "colonne":
+                phases.append(("cols", f["cols"], tr(
+                    "simulator.phase.columns", phase=f["fase"])))
+            else:
+                key = ("simulator.phase.after_shuffle_reversed"
+                       if f.get("rovesciato")
+                       else "simulator.phase.after_shuffle")
+                phases.append(("deck", f["deck"], tr(
+                    key, phase=f["fase"], shuffle=f["sigla"],
+                    stacking=f["impilamento"])))
         self._phases = phases
         self._target_card = card
         self._phase_scale.configure(to=len(phases) - 1)
@@ -412,7 +420,8 @@ class SimulatorFrame(ttk.Frame):
 
         pos_txt = ""
         if kind == "deck":
-            hdrs = ("pos 0–8", "pos 9–17", "pos 18–26")
+            hdrs = tuple(tr("simulator.deck.position_header", start=start,
+                            end=start + 8) for start in (0, 9, 18))
             for col in range(3):
                 self._deck_col_hdrs[col].configure(text=hdrs[col])
                 for row in range(9):
@@ -421,10 +430,12 @@ class SimulatorFrame(ttk.Frame):
                         text=f"C{val:02d}",
                         bg=_C_TARGET if val == card else _C_NORMAL)
             p = data.index(card)
-            pos_txt = (f"La carta C{card:02d} è in posizione {p:02d} dal "
-                       f"dorso (colonna di lettura {p//9 + 1}).")
+            pos_txt = tr("simulator.deck.card_position", card=card,
+                         position=p, reading_column=p // 9 + 1)
         else:
-            hdrs = ("Sinistra (S)", "Centro (C)", "Destra (D)")
+            hdrs = tuple(tr("simulator.deck.column_header",
+                            column=_column_name(col), code="SCD"[col])
+                         for col in range(3))
             for col in range(3):
                 self._deck_col_hdrs[col].configure(text=hdrs[col])
                 for row in range(9):
@@ -434,10 +445,9 @@ class SimulatorFrame(ttk.Frame):
                         bg=_C_TARGET if val == card else _C_NORMAL)
             for g in range(3):
                 if card in data[g]:
-                    pos_txt = (f"La carta C{card:02d} è nella colonna "
-                               f"{('Sinistra','Centro','Destra')[g]} "
-                               f"(carta n. {data[g].index(card)+1} "
-                               f"distribuita nella colonna).")
+                    pos_txt = tr(
+                        "simulator.deck.card_column", card=card,
+                        column=_column_name(g), number=data[g].index(card) + 1)
         log = self._deck_log
         log.configure(state="normal")
         log.delete("1.0", "end")
@@ -465,22 +475,19 @@ class SimulatorFrame(ttk.Frame):
 
         if state == "idle":
             self._p_question_lbl.configure(
-                text="Calcola una sequenza con '▶ Calcola sequenza', "
-                     "poi torna qui per esercitarti.")
+                text=tr("simulator.practice.first_calculate"))
         elif state == "col_q":
-            self._p_question_lbl.configure(
-                text=f"FASE {self._pstep}/3 — Le carte sono distribuite in tre "
-                     f"colonne.\nIn quale colonna è la carta C{self._p_card:02d}? "
-                     "(la carta è nascosta: rispondi come farebbe il pubblico)")
+            self._p_question_lbl.configure(text=tr(
+                "simulator.practice.question_column", phase=self._pstep,
+                card=self._p_card))
         elif state == "order_q":
             mesc = self._plan["mescolamenti"][self._pstep - 1]
-            self._p_question_lbl.configure(
-                text=f"FASE {self._pstep}/3 — Le istruzioni chiedono il "
-                     f"mescolamento {mesc}.\nCon quale IMPILAMENTO (gesto "
-                     "fisico, mazzetti dal dorso) lo esegui?")
+            self._p_question_lbl.configure(text=tr(
+                "simulator.practice.question_stacking", phase=self._pstep,
+                shuffle=mesc))
         elif state == "done":
             self._p_question_lbl.configure(
-                text="✅  Trucco completato! Vedi il riepilogo nel log.")
+                text=f"✅  {tr('simulator.practice.completed_log')}")
 
     def _init_practice(self, plan, card):
         self._p_card    = card
@@ -492,17 +499,18 @@ class SimulatorFrame(ttk.Frame):
 
         self._p_err_count_lbl.configure(text="0")
         self._p_reset_btn.configure(state="normal")
-        self._pstep_lbl.configure(
-            text=f"Fase 1/3  —  Carta bersaglio: C{card:02d}")
+        self._pstep_lbl.configure(text=tr(
+            "simulator.practice.step_target", phase=1, card=card))
 
         self._p_log.configure(state="normal")
         self._p_log.delete("1.0", "end")
-        self._p_log.insert("end", "━━━ Nuova sessione di pratica ━━━\n", "title")
+        self._p_log.insert(
+            "end", f"━━━ {tr('simulator.practice.new_session')} ━━━\n", "title")
         self._p_log.insert(
             "end",
-            f"Carta: C{card:02d}  |  Mescolamenti: "
-            f"{' '.join(plan['mescolamenti'])}  |  Impilamenti: "
-            f"{' '.join(plan['impilamenti'])}\n\n", "info")
+            tr("simulator.practice.session_data", card=card,
+               shuffles=" ".join(plan["mescolamenti"]),
+               stackings=" ".join(plan["impilamenti"])) + "\n\n", "info")
         self._p_log.configure(state="disabled")
 
         self._p_set_state("col_q")
@@ -554,22 +562,25 @@ class SimulatorFrame(ttk.Frame):
         card = self._p_card
         actual_col = next(g for g in range(3) if card in self._p_cols[g])
         self._p_render_cols(show_target=True)
-        nomi = ("Sinistra", "Centro", "Destra")
+        nomi = tuple(_column_name(i) for i in range(3))
         if col == actual_col:
-            fb, fg = (f"✓ Corretto! C{card:02d} è nella colonna "
-                      f"{nomi[actual_col]}.", "#006400")
+            fb, fg = ("✓ " + tr("simulator.practice.correct_column",
+                                  card=card, column=nomi[actual_col]),
+                      "#006400")
             self._p_log_append(
-                f"Fase {self._pstep}: colonna corretta ({nomi[col]}).\n", "ok")
+                tr("simulator.practice.column_ok_log", phase=self._pstep,
+                   column=nomi[col]) + "\n", "ok")
         else:
-            fb, fg = (f"✗ Errore! Hai indicato {nomi[col]}, ma la carta è "
-                      f"nella colonna {nomi[actual_col]}.", "#cc0000")
+            fb, fg = ("✗ " + tr("simulator.practice.wrong_column",
+                                  chosen=nomi[col],
+                                  correct=nomi[actual_col]), "#cc0000")
             self._p_errors += 1
-            self._p_err_log.append(
-                f"Fase {self._pstep} – colonna: indicata {nomi[col]}, "
-                f"corretta {nomi[actual_col]}")
+            self._p_err_log.append(tr(
+                "simulator.practice.column_error_detail", phase=self._pstep,
+                chosen=nomi[col], correct=nomi[actual_col]))
             self._p_log_append(
-                f"Fase {self._pstep}: ERRORE colonna — indicata {nomi[col]}, "
-                f"corretta {nomi[actual_col]}.\n", "err")
+                tr("simulator.practice.column_error_log", phase=self._pstep,
+                   chosen=nomi[col], correct=nomi[actual_col]) + "\n", "err")
             self._p_err_count_lbl.configure(text=str(self._p_errors))
         self._p_set_state("order_q")
         self._p_col_feedback.configure(text=fb, foreground=fg)
@@ -584,20 +595,22 @@ class SimulatorFrame(ttk.Frame):
 
         if chosen == correct:
             self._p_log_append(
-                f"Fase {self._pstep}: impilamento ✓ ({chosen}: "
-                f"{_gesto(chosen)})\n", "ok")
+                tr("simulator.practice.stacking_ok_log", phase=self._pstep,
+                   chosen=chosen, gesture=_gesto(chosen)) + "\n", "ok")
         else:
             self._p_errors += 1
-            extra = ""
-            if chosen == mesc and mesc != correct:
-                extra = (" — hai impilato la sigla del mescolamento: "
-                         "è la Prima Crisi di Seldon!")
-            self._p_err_log.append(
-                f"Fase {self._pstep} – impilamento: scelto {chosen}, "
-                f"corretto {correct}{extra}")
-            self._p_log_append(
-                f"Fase {self._pstep}: ERRORE impilamento — scelto {chosen}, "
-                f"corretto {correct}.{extra}\n", "err")
+            is_seldon = chosen == mesc and mesc != correct
+            detail_key = ("simulator.practice.stacking_error_seldon_detail"
+                          if is_seldon
+                          else "simulator.practice.stacking_error_detail")
+            log_key = ("simulator.practice.stacking_error_seldon_log"
+                       if is_seldon
+                       else "simulator.practice.stacking_error_log")
+            self._p_err_log.append(tr(
+                detail_key, phase=self._pstep, chosen=chosen, correct=correct))
+            self._p_log_append(tr(
+                log_key, phase=self._pstep, chosen=chosen,
+                correct=correct) + "\n", "err")
             self._p_err_count_lbl.configure(text=str(self._p_errors))
 
         # applica SEMPRE il mescolamento corretto al mazzo fisico
@@ -606,14 +619,15 @@ class SimulatorFrame(ttk.Frame):
         if self._pstep < 3:
             self._pstep += 1
             self._p_cols = gr.distribuisci(self._p_deck)
-            self._pstep_lbl.configure(
-                text=f"Fase {self._pstep}/3  —  Carta bersaglio: "
-                     f"C{self._p_card:02d}")
+            self._pstep_lbl.configure(text=tr(
+                "simulator.practice.step_target", phase=self._pstep,
+                card=self._p_card))
             self._p_set_state("col_q")
             self._p_render_cols(show_target=False)
         else:
             self._p_cols = gr.distribuisci(self._p_deck)  # per il rendering
-            self._pstep_lbl.configure(text="✅  Trucco completato!")
+            self._pstep_lbl.configure(
+                text=f"✅  {tr('simulator.practice.completed')}")
             self._p_set_state("done")
             self._p_render_cols(show_target=True)
             self._show_practice_summary()
@@ -625,26 +639,32 @@ class SimulatorFrame(ttk.Frame):
         success   = final_pos == target
         max_err   = 6
         score     = max(0, round(100 * (max_err - self._p_errors) / max_err))
-        grade = ("🏆 Perfetto!" if self._p_errors == 0 else
-                 "🥈 Molto bene" if self._p_errors <= 2 else
-                 "🥉 Discreto" if self._p_errors <= 4 else "📚 Da ripassare")
+        grade_key = ("simulator.summary.grade.perfect"
+                     if self._p_errors == 0 else
+                     "simulator.summary.grade.very_good"
+                     if self._p_errors <= 2 else
+                     "simulator.summary.grade.fair"
+                     if self._p_errors <= 4 else
+                     "simulator.summary.grade.review")
+        grade = tr(grade_key)
+        error_key = ("simulator.summary.errors.one" if self._p_errors == 1
+                     else "simulator.summary.errors.many")
 
         lines = [
             ("═" * 50 + "\n", "title"),
-            ("  RIEPILOGO SESSIONE DI PRATICA\n", "title"),
+            (f"  {tr('simulator.summary.title')}\n", "title"),
             ("═" * 50 + "\n\n", "title"),
-            (f"  Carta bersaglio : C{card:02d}\n", "info"),
-            (f"  Posizione finale: {final_pos}  "
-             f"{'✓ Corretto!' if success else f'✗ Attesa: {target}'}\n",
+            (f"  {tr('simulator.summary.target_card', card=card)}\n", "info"),
+            (f"  {tr('simulator.summary.final_success', position=final_pos) if success else tr('simulator.summary.final_failure', position=final_pos, target=target)}\n",
              "ok" if success else "err"),
-            (f"\n  Errori commessi : {self._p_errors}/{max_err}\n", "info"),
-            (f"  Punteggio       : {score}/100   {grade}\n\n", "sum"),
+            (f"\n  {tr(error_key, count=self._p_errors, maximum=max_err)}\n", "info"),
+            (f"  {tr('simulator.summary.score', score=score, grade=grade)}\n\n", "sum"),
         ]
         if self._p_err_log:
-            lines.append(("  Dettaglio errori:\n", "err"))
+            lines.append((f"  {tr('simulator.summary.error_details')}\n", "err"))
             lines += [(f"    • {e}\n", "info") for e in self._p_err_log]
         else:
-            lines.append(("  Nessun errore commesso — ottimo lavoro! 🎉\n", "ok"))
+            lines.append((f"  {tr('simulator.summary.no_errors')}\n", "ok"))
         lines.append(("\n" + "═" * 50 + "\n", "title"))
 
         self._p_log.configure(state="normal")
@@ -664,15 +684,7 @@ class SimulatorFrame(ttk.Frame):
     def _write_placeholder_istr(self):
         txt = self._istr_txt
         txt.configure(state="normal")
-        txt.insert("end",
-                   "Scegli la posizione della carta e la posizione finale, "
-                   "poi premi '▶ Calcola sequenza'.\n\n"
-                   "Il calcolo è immediato: al passo i la carta si trova in "
-                   "una colonna nota e basta scegliere\nil mescolamento che "
-                   "manda quella colonna nella cifra ternaria giusta del "
-                   "bersaglio.\nNessuna ricerca: è la matematica del "
-                   "tabellone (capitolo 7 del libro).",
-                   "note")
+        txt.insert("end", tr("simulator.instructions.placeholder"), "note")
         txt.configure(state="disabled")
 
     # compatibilità col vecchio nome usato in reset()
