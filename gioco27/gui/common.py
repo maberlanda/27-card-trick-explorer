@@ -8,6 +8,7 @@ from tkinter import messagebox
 from ..core.constants import PERM3_COLORS
 from ..core.log import get_logger
 from ..core.permutations import _compile_perm3_pat
+from .i18n import tr
 
 _log = get_logger(__name__)
 
@@ -133,7 +134,7 @@ class EtaEstimator:
         if rate <= 0:
             return ""
         remaining = (total - done) / rate
-        return f"  -  ~{fmt_duration(remaining)} rimanenti"
+        return f"  -  ~{fmt_duration(remaining)} {tr('common.remaining')}"
 def configure_matrix_tags(txt_widget, base_font=("Courier New", 9)):
     """Configura tag-colore bold per tutti i nomi di matrice su un tk.Text."""
     for name, color in PERM3_COLORS.items():

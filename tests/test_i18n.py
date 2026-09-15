@@ -636,6 +636,177 @@ def test_eighth_block_simulator_instruction_output_switches_language_without_ui(
     assert plan["T"] == gioco_reale.risolvi_trucco(7, 19)["T"]
 
 
+def test_ninth_block_analysis_controls_and_columns_are_localized():
+    from gioco27.gui.i18n import set_language, tr
+
+    assert tr("analysis.title") == "Analisi Molteplicità delle Permutazioni"
+    assert tr("analysis.generate") == "Genera & Analizza"
+    assert tr("analysis.column.multiplicity") == "Molt."
+    assert tr("analysis.open_explorer") == "Apri nel Explorer"
+
+    set_language("en")
+    assert tr("analysis.title") == "Permutation Multiplicity Analysis"
+    assert tr("analysis.generate") == "Generate & Analyze"
+    assert tr("analysis.column.multiplicity") == "Mult."
+    assert tr("analysis.open_explorer") == "Open in Explorer"
+
+
+def test_ninth_block_analysis_dynamic_statuses_use_named_placeholders():
+    from gioco27.gui.i18n import set_language, tr
+
+    italian = tr("analysis.status.summary", combinations="1.728",
+                 permutations=216, minimum=2, maximum=12)
+    assert "1.728 combinazioni" in italian
+    assert "216 permutazioni distinte" in italian
+    set_language("en")
+    english = tr("analysis.status.summary", combinations="1,728",
+                 permutations=216, minimum=2, maximum=12)
+    assert "1,728 combinations" in english
+    assert "216 distinct permutations" in english
+    assert tr("analysis.status.reading_csv", filename="input.csv") == \
+        "Reading CSV: input.csv…"
+
+
+def test_ninth_block_analysis_multiplicity_plural_is_explicit():
+    from gioco27.gui.i18n import set_language, tr
+
+    assert "1 sequenza Stage distinta produce" in tr(
+        "analysis.detail.multiplicity.one", count=1)
+    assert "3 sequenze Stage distinte producono" in tr(
+        "analysis.detail.multiplicity.many", count=3)
+    set_language("en")
+    assert "1 distinct Stage sequence produces" in tr(
+        "analysis.detail.multiplicity.one", count=1)
+    assert "3 distinct Stage sequences produce" in tr(
+        "analysis.detail.multiplicity.many", count=3)
+
+
+def test_ninth_block_analysis_preserves_exposed_identifiers_and_formats():
+    from gioco27.gui.i18n import set_language, tr
+
+    set_language("en")
+    values = " ".join((
+        tr("analysis.column.permutation"),
+        tr("analysis.column.first_symbolic"),
+        tr("analysis.detail.subtitle"),
+        tr("analysis.detail.footer_hint"),
+    ))
+    for identifier in ("T_permutazione", "T_simbolica", "Stage",
+                       "P₃×P₂×P₁", "J₃×J₂×J₁", "P o MSC o J"):
+        assert identifier in values
+    for format_name in ("CSV", "Excel", "HTML"):
+        assert format_name in " ".join((
+            tr("analysis.menu.summary_csv"),
+            tr("analysis.menu.summary_excel"),
+            tr("analysis.menu.summary_html"),
+        ))
+
+
+def test_ninth_block_language_switch_and_fallback_do_not_change_analysis(
+    monkeypatch,
+):
+    from gioco27.core.algebra import analizza_righe
+    from gioco27.gui import i18n
+
+    rows = [
+        {"Stage0": "SCD_U", "Stage1": "CDS_U", "Stage2": "DCS_U",
+         "T_permutazione": "[0,1,2]"},
+        {"Stage0": "DCS_U", "Stage1": "CDS_U", "Stage2": "SCD_U",
+         "T_permutazione": "[0,1,2]"},
+    ]
+    before = analizza_righe(rows)
+    i18n.set_language("en")
+    assert analizza_righe(rows) == before
+    monkeypatch.delitem(i18n.CATALOGS["en"], "analysis.status.prompt")
+    assert i18n.tr("analysis.status.prompt") == \
+        "Premi «Genera & Analizza» per avviare l'analisi."
+    assert analizza_righe(rows) == before
+
+
+def test_ninth_block_analysis_detail_switches_language_without_ui():
+    from gioco27.gui.analysis_tab import AnalysisTabMixin
+    from gioco27.gui.i18n import set_language
+
+    symbolic = ("T = [SCD_U o MSC o I_3] o [CDS_U o MSC o R_U] o "
+                "[DCS_U o MSC o I_3]")
+
+    class Tree:
+        def selection(self):
+            return ("0",)
+
+    class TextCapture:
+        def __init__(self):
+            self.parts = []
+
+        def configure(self, **_kwargs):
+            pass
+
+        def delete(self, *_args):
+            self.parts.clear()
+
+        def insert(self, _where, text, *_tags):
+            self.parts.append(str(text))
+
+        def tag_names(self):
+            return ()
+
+        def tag_delete(self, *_args):
+            pass
+
+        def tag_configure(self, *_args, **_kwargs):
+            pass
+
+        def tag_bind(self, *_args, **_kwargs):
+            pass
+
+    analysis = object.__new__(AnalysisTabMixin)
+    analysis._analisi_tv = Tree()
+    analysis._analisi_detail_text = TextCapture()
+    analysis._analisi_risultati = [{
+        "simboliche": [symbolic], "perm_str": "[0,1,2]", "n_sim": 1,
+    }]
+
+    analysis._analisi_show_detail()
+    italian = "".join(analysis._analisi_detail_text.parts)
+    set_language("en")
+    analysis._analisi_show_detail()
+    english = "".join(analysis._analisi_detail_text.parts)
+    assert "Molteplicità 1" in italian and "apri Explorer" in italian
+    assert "Multiplicity 1" in english and "open Explorer" in english
+    for identifier in ("SCD_U", "CDS_U", "DCS_U", "MSC", "I_3", "R_U"):
+        assert identifier in italian and identifier in english
+
+
+def test_ninth_block_analysis_uses_i18n_and_localizes_eta(monkeypatch):
+    from pathlib import Path
+    from gioco27.gui import common, i18n
+
+    source = (Path(__file__).resolve().parents[1] / "gioco27" / "gui" /
+              "analysis_tab.py").read_text(encoding="utf-8")
+    assert "from .i18n import tr" in source
+    for key in ("analysis.title", "analysis.status.summary",
+                "analysis.detail.multiplicity.one", "analysis.no_data"):
+        assert key in source
+    for hardcoded in ("Analisi Molteplicità delle Permutazioni",
+                      "Premi «Genera & Analizza» per avviare l'analisi.",
+                      "Seleziona prima una riga."):
+        assert hardcoded not in source
+
+    times = iter((0.0, 2.0))
+    monkeypatch.setattr(common.time, "time", lambda: next(times))
+    eta = common.EtaEstimator(min_interval=0, min_span=0, min_samples=2)
+    assert eta.text(10, 100) == ""
+    i18n.set_language("en")
+    assert eta.text(20, 100).endswith("remaining")
+
+    italian = {key for key in i18n.CATALOGS["it"]
+               if key.startswith("analysis.")}
+    english = {key for key in i18n.CATALOGS["en"]
+               if key.startswith("analysis.")}
+    assert italian == english
+    assert len(italian) == 52
+
+
 def _use_config_file(monkeypatch, tmp_path):
     from gioco27.core import config as config_module
 

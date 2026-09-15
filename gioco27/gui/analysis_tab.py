@@ -14,6 +14,7 @@ from ..core.algebra import (analizza_righe, analizza_csv, _prep_explorer_expr,
 from ..core.combinations import iter_combinations_ex, count_combinations_ex
 from ..core.permutations import make_csv_row
 from .common import configure_matrix_tags, insert_colored, EtaEstimator, run_in_thread
+from .i18n import tr
 
 
 class AnalysisTabMixin:
@@ -29,33 +30,40 @@ class AnalysisTabMixin:
         hdr = ttk.Frame(outer)
         hdr.grid(row=0, column=0, sticky="ew", pady=(0, 8))
         ttk.Label(hdr,
-                  text="📊  Analisi Molteplicità delle Permutazioni",
+                  text=f"📊  {tr('analysis.title')}",
                   font=("Segoe UI", 13, "bold"),
                   foreground="#1a5276").pack(side="left")
         ttk.Label(hdr,
-                  text="   — quante sequenze simboliche diverse producono la stessa T?",
+                  text=f"   {tr('analysis.subtitle')}",
                   font=("Segoe UI", 10, "italic"),
                   foreground="#555").pack(side="left")
 
         cmd = ttk.Frame(outer)
         cmd.grid(row=1, column=0, sticky="ew", pady=(0, 6))
-        ttk.Button(cmd, text="🔄  Genera & Analizza", style="Action.TButton",
+        ttk.Button(cmd, text=f"🔄  {tr('analysis.generate')}",
+                   style="Action.TButton",
                    command=self._run_analisi).pack(side="left", padx=(0, 6))
-        self._analisi_exp_mb = tk.Menubutton(cmd, text="Esporta…",
+        self._analisi_exp_mb = tk.Menubutton(cmd, text=tr("analysis.export"),
                                               relief="raised", state="disabled")
         exp_menu2 = tk.Menu(self._analisi_exp_mb, tearoff=0)
-        exp_menu2.add_command(label="📊  Analisi — CSV (;)",   command=self._export_analisi_csv)
-        exp_menu2.add_command(label="📗  Analisi — Excel",     command=self._export_analisi_excel)
-        exp_menu2.add_command(label="🌐  Analisi — HTML",      command=self._export_analisi_html)
+        exp_menu2.add_command(label=f"📊  {tr('analysis.menu.summary_csv')}",
+                              command=self._export_analisi_csv)
+        exp_menu2.add_command(label=f"📗  {tr('analysis.menu.summary_excel')}",
+                              command=self._export_analisi_excel)
+        exp_menu2.add_command(label=f"🌐  {tr('analysis.menu.summary_html')}",
+                              command=self._export_analisi_html)
         exp_menu2.add_separator()
-        exp_menu2.add_command(label="📋  Dati grezzi — CSV (;)", command=self._export_analisi_raw_csv)
-        exp_menu2.add_command(label="📗  Dati grezzi — Excel",   command=self._export_analisi_raw_excel)
+        exp_menu2.add_command(label=f"📋  {tr('analysis.menu.raw_csv')}",
+                              command=self._export_analisi_raw_csv)
+        exp_menu2.add_command(label=f"📗  {tr('analysis.menu.raw_excel')}",
+                              command=self._export_analisi_raw_excel)
         self._analisi_exp_mb["menu"] = exp_menu2
         self._analisi_exp_mb.pack(side="left", padx=4)
-        ttk.Button(cmd, text="🔬  Apri nel Explorer", style="Preset.TButton",
+        ttk.Button(cmd, text=f"🔬  {tr('analysis.open_explorer')}",
+                   style="Preset.TButton",
                    command=self._analisi_to_explorer).pack(side="left", padx=10)
         self._analisi_status = tk.StringVar(
-            value="Premi «Genera & Analizza» per avviare l'analisi.")
+            value=tr("analysis.status.prompt"))
         ttk.Label(cmd, textvariable=self._analisi_status,
                   font=("Segoe UI", 10, "italic"), foreground="#555",
                   wraplength=500).pack(side="left", padx=8)
@@ -73,9 +81,12 @@ class AnalysisTabMixin:
         cols = ("n_sim", "perm", "simbolica_0")
         self._analisi_tv = ttk.Treeview(
             tv_frame, columns=cols, show="headings", selectmode="browse")
-        self._analisi_tv.heading("n_sim",       text="Molt.")
-        self._analisi_tv.heading("perm",        text="T_permutazione  [0..26]")
-        self._analisi_tv.heading("simbolica_0", text="Prima T_simbolica distinta")
+        self._analisi_tv.heading(
+            "n_sim", text=tr("analysis.column.multiplicity"))
+        self._analisi_tv.heading(
+            "perm", text=tr("analysis.column.permutation"))
+        self._analisi_tv.heading(
+            "simbolica_0", text=tr("analysis.column.first_symbolic"))
         self._analisi_tv.column("n_sim",       width=70,  anchor="center", stretch=False)
         self._analisi_tv.column("perm",        width=340, anchor="w")
         self._analisi_tv.column("simbolica_0", width=600, anchor="w")
@@ -101,11 +112,11 @@ class AnalysisTabMixin:
         det_hdr = ttk.Frame(det_frame)
         det_hdr.grid(row=0, column=0, sticky="ew", pady=(4, 2))
         ttk.Label(det_hdr,
-                  text="🔍  Dettaglio P e J per ogni T_simbolica della riga selezionata",
+                  text=f"🔍  {tr('analysis.detail.title')}",
                   font=("Segoe UI", 11, "bold"),
                   foreground="#1a5276").pack(side="left")
         ttk.Label(det_hdr,
-                  text="   — formato Stage: P=(P₃×P₂×P₁)  J=(J₃×J₂×J₁)",
+                  text=f"   {tr('analysis.detail.subtitle')}",
                   font=("Segoe UI", 9, "italic"),
                   foreground="#777").pack(side="left")
 
@@ -150,7 +161,7 @@ class AnalysisTabMixin:
             "hint",   font=("Courier New", 9, "italic"), foreground="#AAAAAA")
 
         configure_matrix_tags(self._analisi_detail_text)
-        _hint = "  Premi «Genera & Analizza», poi seleziona una riga per vederne il dettaglio (P e J)."
+        _hint = f"  {tr('analysis.detail.hint')}"
         self._analisi_detail_text.configure(state="normal")
         self._analisi_detail_text.insert("1.0", _hint, "hint")
         self._analisi_detail_text.configure(state="disabled")
@@ -170,30 +181,27 @@ class AnalysisTabMixin:
         if txt is not None:
             txt.configure(state="normal")
             txt.delete("1.0", "end")
-            txt.insert("1.0",
-                       "  Premi «Genera & Analizza», poi seleziona una riga per vederne il dettaglio (P e J).",
-                       "hint")
+            txt.insert("1.0", f"  {tr('analysis.detail.hint')}", "hint")
             txt.configure(state="disabled")
         if hasattr(self, "_analisi_exp_mb"):
             self._analisi_exp_mb.configure(state="disabled")
-        self._analisi_status.set(
-            "Premi «Genera & Analizza» per avviare l'analisi.")
+        self._analisi_status.set(tr("analysis.status.prompt"))
 
     def _run_analisi(self):
         filters = self._get_filters()
         n = count_combinations_ex(filters)
         if n == 0:
-            messagebox.showwarning("Nessuna combinazione",
-                                   "I filtri attuali non producono combinazioni.")
+            messagebox.showwarning(tr("analysis.no_combinations_title"),
+                                   tr("analysis.no_combinations"))
             return
         if n > 50_000:
             ok = messagebox.askyesno(
-                "Attenzione",
-                f"L'analisi richiede di generare {n:,} combinazioni in memoria.\n"
-                f"Procedere?")
+                tr("analysis.large_title"),
+                tr("analysis.large_confirmation", count=f"{n:,}"))
             if not ok:
                 return
-        self._analisi_status.set(f"Generazione {n:,} combinazioni…")
+        self._analisi_status.set(
+            tr("analysis.status.generating", count=f"{n:,}"))
         self.progress["maximum"] = n
         self.progress["value"]   = 0
         self.update_idletasks()
@@ -213,30 +221,34 @@ class AnalysisTabMixin:
                 if i % 200 == 0:
                     self._ui(lambda v=i: (
                         self.progress.__setitem__("value", v),
-                        self._analisi_status.set(
-                            f"Generazione… {v:,}/{n:,}{_eta.text(v, n)}")))
+                        self._analisi_status.set(tr(
+                            "analysis.status.generation_progress",
+                            done=f"{v:,}", total=f"{n:,}", eta=_eta.text(v, n)))))
             if getattr(self, "_closing", False):
                 return
             self._analisi_righe_raw = righe
-            self._ui(lambda: self._analisi_status.set(
-                f"Analisi di {len(righe):,} righe…"))
+            self._ui(lambda: self._analisi_status.set(tr(
+                "analysis.status.analyzing_rows", count=f"{len(righe):,}")))
             risultati = analizza_righe(righe)
             if getattr(self, "_closing", False):
                 return
             self._analisi_risultati = risultati
             self._ui(lambda: self._analisi_populate(risultati, n))
 
-        run_in_thread(self, job, error_title="Errore analisi",
-                      on_error=lambda e: self._analisi_status.set("Errore."))
+        run_in_thread(self, job, error_title=tr("analysis.error_title"),
+                      on_error=lambda e: self._analisi_status.set(
+                          tr("analysis.status.error")))
 
     def _analisi_load_csv(self):
         """Carica un CSV COMBINAZIONI esterno e avvia l'analisi Stage-level."""
         path = filedialog.askopenfilename(
-            title="Apri CSV COMBINAZIONI",
-            filetypes=[("CSV", "*.csv"), ("Tutti", "*.*")])
+            title=tr("analysis.open_csv"),
+            filetypes=[("CSV", "*.csv"),
+                       (tr("common.filetype_all"), "*.*")])
         if not path:
             return
-        self._analisi_status.set(f"Lettura CSV: {os.path.basename(path)}…")
+        self._analisi_status.set(tr(
+            "analysis.status.reading_csv", filename=os.path.basename(path)))
         self.update_idletasks()
 
         def job():
@@ -247,23 +259,25 @@ class AnalysisTabMixin:
             self._analisi_risultati = risultati
             self._ui(lambda: self._analisi_populate(risultati, n))
 
-        run_in_thread(self, job, error_title="Errore lettura CSV",
-                      on_error=lambda e: self._analisi_status.set("Errore."))
+        run_in_thread(self, job, error_title=tr("analysis.csv_read_error_title"),
+                      on_error=lambda e: self._analisi_status.set(
+                          tr("analysis.status.error")))
 
 
     def _analisi_csv_pipeline(self):
         """Pipeline completa: carica COMBINAZIONI CSV → analisi → salva CSV + Excel.
         Replica esattamente il comportamento di analisi_sequenze.py."""
         inp = filedialog.askopenfilename(
-            title="Apri CSV COMBINAZIONI",
-            filetypes=[("CSV", "*.csv"), ("Tutti", "*.*")])
+            title=tr("analysis.open_csv"),
+            filetypes=[("CSV", "*.csv"),
+                       (tr("common.filetype_all"), "*.*")])
         if not inp:
             return
 
         import os as _os
         base, _ = _os.path.splitext(inp)
         out_csv  = filedialog.asksaveasfilename(
-            title="Salva CSV analisi (e .xlsx con stesso nome)",
+            title=tr("analysis.save_pipeline"),
             initialfile=_os.path.basename(base) + "_analisi.csv",
             defaultextension=".csv",
             filetypes=[("CSV", "*.csv")])
@@ -271,7 +285,7 @@ class AnalysisTabMixin:
             return
         out_xlsx = _os.path.splitext(out_csv)[0] + ".xlsx"
 
-        self._analisi_status.set("Analisi in corso…")
+        self._analisi_status.set(tr("analysis.status.running"))
         self.update_idletasks()
 
         def job():
@@ -288,15 +302,16 @@ class AnalysisTabMixin:
             n_tot  = sum(r["n_sim"] for r in risultati)
             self._analisi_risultati = risultati
             self._ui(lambda: self._analisi_populate(risultati, n_tot))
-            msg = (f"Permutazioni distinte: {n_perm:,}\n"
-                   f"Sequenze totali: {n_tot:,}\n\n"
-                   f"CSV   → {_os.path.basename(out_csv)}\n"
-                   f"Excel → {_os.path.basename(out_xlsx)}")
+            msg = tr(
+                "analysis.completed_summary", permutations=f"{n_perm:,}",
+                sequences=f"{n_tot:,}", csv=_os.path.basename(out_csv),
+                excel=_os.path.basename(out_xlsx))
             self._ui(lambda m=msg: messagebox.showinfo(
-                "Analisi completata", m))
+                tr("analysis.completed_title"), m))
 
-        run_in_thread(self, job, error_title="Errore",
-                      on_error=lambda e: self._analisi_status.set("Errore."))
+        run_in_thread(self, job, error_title=tr("error.generic"),
+                      on_error=lambda e: self._analisi_status.set(
+                          tr("analysis.status.error")))
 
 
     def _analisi_populate(self, risultati, n_tot):
@@ -313,10 +328,9 @@ class AnalysisTabMixin:
         min_m  = risultati[-1]["n_sim"] if risultati else 0
         if hasattr(self, "_analisi_exp_mb"):
             self._analisi_exp_mb.configure(state="normal")
-        self._analisi_status.set(
-            f"✓  {n_tot:,} combinazioni  →  {n_dist:,} permutazioni distinte  "
-            f"(molt. min={min_m}, max={max_m}).  "
-            f"Doppio-click o «Apri nel Explorer» per l'analisi algebrica.")
+        self._analisi_status.set("✓  " + tr(
+            "analysis.status.summary", combinations=f"{n_tot:,}",
+            permutations=f"{n_dist:,}", minimum=min_m, maximum=max_m))
 
     def _analisi_show_detail(self, event=None):
         """Mostra nel pannello inferiore tutte le sequenze Stage della riga selezionata,
@@ -327,7 +341,7 @@ class AnalysisTabMixin:
 
         sel = self._analisi_tv.selection()
         if not sel or not self._analisi_risultati:
-            txt.insert("end", "  ← seleziona una riga per vedere il dettaglio", "hint")
+            txt.insert("end", f"  {tr('analysis.detail.select_row')}", "hint")
             txt.configure(state="disabled")
             return
 
@@ -356,11 +370,11 @@ class AnalysisTabMixin:
                 return parts[0].strip(), parts[1].strip()
             return stage_str.strip(), ""
 
-        txt.insert("end",
-            f"  Molteplicità {n}  —  {n} sequenze Stage distinte producono la stessa T_permutazione\n",
-            "title")
-        txt.insert("end",
-            f"  T_permutazione:  {r['perm_str']}\n\n", "tsim")
+        multiplicity_key = ("analysis.detail.multiplicity.one" if n == 1
+                            else "analysis.detail.multiplicity.many")
+        txt.insert("end", f"  {tr(multiplicity_key, count=n)}\n", "title")
+        txt.insert("end", f"  {tr('analysis.detail.permutation', permutation=r['perm_str'])}\n\n",
+                   "tsim")
 
         # intestazione colonne
         hdr = (f"  {'#':>2}  "
@@ -407,15 +421,12 @@ class AnalysisTabMixin:
                          lambda e, w=txt: w.configure(cursor=""))
             txt.tag_bind(link_tag, "<Button-1>",
                          lambda e, t=ts: self._analisi_send_to_explorer(t))
-            lbl = f"      → {ts}  (apri Explorer)"
+            lbl = f"      → {ts}  ({tr('analysis.detail.open_explorer')})"
             insert_colored(txt, lbl, (link_tag, "tsim"))
             txt.insert("end", "\n\n", "tsim")
 
         # nota in fondo
-        txt.insert("end",
-            "  💡 Clicca su una riga (sottolineata) per aprirla nell'Explorer "
-            "in notazione di gioco (P o MSC o J).\n",
-            "hint")
+        txt.insert("end", f"  {tr('analysis.detail.footer_hint')}\n", "hint")
         txt.configure(state="disabled")
 
     def _analisi_send_to_explorer(self, t_sim):
@@ -429,14 +440,14 @@ class AnalysisTabMixin:
     def _analisi_to_explorer(self):
         sel = self._analisi_tv.selection()
         if not sel:
-            messagebox.showinfo("Selezione", "Seleziona prima una riga.")
+            messagebox.showinfo(tr("analysis.selection_title"),
+                                tr("analysis.selection_required"))
             return
         idx   = int(sel[0])
         r     = self._analisi_risultati[idx]
         stage0 = r["simboliche"][0] if r["simboliche"] else ""
         if not stage0:
-            messagebox.showinfo("Explorer",
-                "Nessuna sequenza simbolica per questa riga.")
+            messagebox.showinfo("Explorer", tr("analysis.no_symbolic"))
             return
         # Dalla v2.8.4 si invia direttamente la Stage string (P e J separati)
         expr = _prep_explorer_expr(stage0)
@@ -449,47 +460,51 @@ class AnalysisTabMixin:
 
     def _export_analisi_csv(self):
         if not self._analisi_risultati:
-            messagebox.showinfo("Nessun dato",
-                                "Esegui prima l'analisi con «Genera & Analizza».")
+            messagebox.showinfo(tr("analysis.no_data_title"),
+                                tr("analysis.no_data"))
             return
         path = filedialog.asksaveasfilename(
             defaultextension=".csv", filetypes=[("CSV", "*.csv")],
-            title="Salva CSV analisi molteplicità")
+            title=tr("analysis.save_summary_csv"))
         if not path:
             return
         try:
             scrivi_output(self._analisi_risultati, path)
-            self._analisi_status.set(f"✓  CSV: {os.path.basename(path)}")
+            self._analisi_status.set("✓  " + tr(
+                "analysis.status.exported", format="CSV",
+                filename=os.path.basename(path)))
         except Exception as e:
-            messagebox.showerror("Errore", str(e))
+            messagebox.showerror(tr("error.generic"), str(e))
 
     def _export_analisi_excel(self):
         if not self._analisi_risultati:
-            messagebox.showinfo("Nessun dato",
-                                "Esegui prima l'analisi con «Genera & Analizza».")
+            messagebox.showinfo(tr("analysis.no_data_title"),
+                                tr("analysis.no_data"))
             return
         path = filedialog.asksaveasfilename(
             defaultextension=".xlsx", filetypes=[("Excel", "*.xlsx")],
-            title="Salva Excel analisi molteplicità")
+            title=tr("analysis.save_summary_excel"))
         if not path:
             return
         try:
             scrivi_excel(self._analisi_risultati, path)
-            self._analisi_status.set(f"✓  Excel: {os.path.basename(path)}")
+            self._analisi_status.set("✓  " + tr(
+                "analysis.status.exported", format="Excel",
+                filename=os.path.basename(path)))
         except Exception as e:
-            messagebox.showerror("Errore", str(e))
+            messagebox.showerror(tr("error.generic"), str(e))
 
 
     def _export_analisi_html(self):
         """Esporta l'analisi molteplicità in HTML leggibile (una simbolica per riga)."""
         if not self._analisi_risultati:
-            messagebox.showinfo("Nessun dato",
-                                "Esegui prima l'analisi con «Genera & Analizza».")
+            messagebox.showinfo(tr("analysis.no_data_title"),
+                                tr("analysis.no_data"))
             return
         import html as _h
         path = filedialog.asksaveasfilename(
             defaultextension=".html", filetypes=[("HTML", "*.html")],
-            title="Salva HTML analisi molteplicità")
+            title=tr("analysis.save_summary_html"))
         if not path:
             return
         try:
@@ -539,21 +554,23 @@ class AnalysisTabMixin:
             )
             with open(path, "w", encoding="utf-8") as f:
                 f.write(html_str)
-            self._analisi_status.set(f"✓  HTML: {os.path.basename(path)}")
+            self._analisi_status.set("✓  " + tr(
+                "analysis.status.exported", format="HTML",
+                filename=os.path.basename(path)))
             import webbrowser
             webbrowser.open(f"file://{path}")
         except Exception as e:
-            messagebox.showerror("Errore", str(e))
+            messagebox.showerror(tr("error.generic"), str(e))
 
     def _export_analisi_raw_csv(self):
         """Esporta i dati grezzi (una riga per combinazione) in CSV con sep=;"""
         if not self._analisi_righe_raw:
-            messagebox.showinfo("Nessun dato",
-                                "Esegui prima l'analisi con «Genera & Analizza».")
+            messagebox.showinfo(tr("analysis.no_data_title"),
+                                tr("analysis.no_data"))
             return
         path = filedialog.asksaveasfilename(
             defaultextension=".csv", filetypes=[("CSV", "*.csv")],
-            title="Salva CSV dati grezzi combinazioni")
+            title=tr("analysis.save_raw_csv"))
         if not path:
             return
         try:
@@ -571,19 +588,21 @@ class AnalysisTabMixin:
                         r.get("A0", ""),     r.get("A1", ""),     r.get("A2", ""),
                         r.get("T_simbolica", ""), r.get("T_permutazione", ""),
                     ])
-            self._analisi_status.set(f"✓  CSV grezzi: {os.path.basename(path)}")
+            self._analisi_status.set("✓  " + tr(
+                "analysis.status.raw_exported", format="CSV",
+                filename=os.path.basename(path)))
         except Exception as e:
-            messagebox.showerror("Errore", str(e))
+            messagebox.showerror(tr("error.generic"), str(e))
 
     def _export_analisi_raw_excel(self):
         """Esporta i dati grezzi (una riga per combinazione) in Excel."""
         if not self._analisi_righe_raw:
-            messagebox.showinfo("Nessun dato",
-                                "Esegui prima l'analisi con «Genera & Analizza».")
+            messagebox.showinfo(tr("analysis.no_data_title"),
+                                tr("analysis.no_data"))
             return
         path = filedialog.asksaveasfilename(
             defaultextension=".xlsx", filetypes=[("Excel", "*.xlsx")],
-            title="Salva Excel dati grezzi combinazioni")
+            title=tr("analysis.save_raw_excel"))
         if not path:
             return
         try:
@@ -645,6 +664,8 @@ class AnalysisTabMixin:
             ws2.freeze_panes = "A2"
 
             wb.save(path)
-            self._analisi_status.set(f"✓  Excel grezzi: {os.path.basename(path)}")
+            self._analisi_status.set("✓  " + tr(
+                "analysis.status.raw_exported", format="Excel",
+                filename=os.path.basename(path)))
         except Exception as e:
-            messagebox.showerror("Errore", str(e))
+            messagebox.showerror(tr("error.generic"), str(e))
