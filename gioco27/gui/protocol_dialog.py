@@ -15,6 +15,7 @@ Sezioni (ognuna attivabile dal dialog):
 import tkinter as tk
 from tkinter import ttk, messagebox
 from .help_banner import HelpBanner
+from .i18n import tr
 import webbrowser
 import tempfile
 import os
@@ -477,40 +478,37 @@ class ProtocolDialog(tk.Toplevel):
     """Dialog per scegliere le sezioni e aprire il protocollo nel browser."""
 
     _SECTIONS = [
-        ("sintesi",    "1 · Il trucco in sintesi"),
-        ("legenda",    "2 · Legenda dei simboli GEN3"),
-        ("fasi",       "3 · Fasi dettagliate per il presentatore"),
-        ("verifica",   "4 · Verifica pratica (mazzo 1–27 prima/dopo)"),
-        ("cicli",      "5 · Struttura ciclica e periodo"),
-        ("tabelle",    "6 · Tabelle delle permutazioni T e T⁻¹"),
-        ("matrice",    "7 · Matrice 27×27 (figura)"),
-        ("matematica", "8 · Perché funziona (matematica)"),
+        ("sintesi",    "protocol.section.summary"),
+        ("legenda",    "protocol.section.legend"),
+        ("fasi",       "protocol.section.phases"),
+        ("verifica",   "protocol.section.verification"),
+        ("cicli",      "protocol.section.cycles"),
+        ("tabelle",    "protocol.section.tables"),
+        ("matrice",    "protocol.section.matrix"),
+        ("matematica", "protocol.section.mathematics"),
     ]
 
     def __init__(self, parent, T_data: dict):
         super().__init__(parent)
         self._T_data = T_data
-        self.title("Esporta Protocollo del Trucco")
+        self.title(tr("protocol.dialog.title"))
         self.resizable(False, False)
         self._build_ui()
 
     def _build_ui(self):
-        ttk.Label(self, text="Esporta Protocollo HTML",
+        ttk.Label(self, text=tr("protocol.heading"),
                   font=("Segoe UI", 13, "bold"),
                   padding=(16, 14, 16, 4)).pack(anchor="w")
         ttk.Label(self,
-                  text="Documento stampabile, didattico e completo:\n"
-                       "scegli le sezioni da includere.",
+                  text=tr("protocol.subtitle"),
                   font=("Segoe UI", 10),
                   foreground="#444", justify="left",
                   padding=(16, 2, 16, 10)).pack(anchor="w")
 
         HelpBanner(
             self,
-            "Crea un documento HTML stampabile col protocollo passo-passo del trucco.",
-            long=("Genera istruzioni e tabelle per eseguire il gioco "
-                  "corrispondente all'ultima trasformazione T calcolata. "
-                  "Scegli sotto le sezioni da includere."),
+            tr("protocol.help.short"),
+            long=tr("protocol.help.long"),
             on_open_guide=getattr(self.master, "_open_guide", None),
         ).pack(fill="x", padx=16, pady=(0, 8))
 
@@ -519,17 +517,15 @@ class ProtocolDialog(tk.Toplevel):
         opt_fr = ttk.Frame(self, padding=(16, 10))
         opt_fr.pack(fill="x")
         self._vars = {}
-        for key, label in self._SECTIONS:
+        for key, label_key in self._SECTIONS:
             var = tk.BooleanVar(value=True)
             self._vars[key] = var
-            ttk.Checkbutton(opt_fr, text=label, variable=var).pack(
+            ttk.Checkbutton(opt_fr, text=tr(label_key), variable=var).pack(
                 anchor="w", pady=1)
 
         if not self._T_data.get("decompositions"):
             ttk.Label(self,
-                      text="ℹ Nessuna decomposizione calcolata: le sezioni 3 e 4\n"
-                           "   saranno ridotte. Usa «🔍 Decomposizioni T⁻¹»\n"
-                           "   nell'Explorer per ottenerle.",
+                      text=tr("protocol.no_decompositions"),
                       font=("Segoe UI", 9, "italic"),
                       foreground="#B26A00",
                       padding=(16, 4, 16, 4)).pack(anchor="w")
@@ -538,14 +534,13 @@ class ProtocolDialog(tk.Toplevel):
 
         bf = ttk.Frame(self, padding=(16, 12))
         bf.pack(fill="x")
-        ttk.Button(bf, text="Apri nel browser",
+        ttk.Button(bf, text=tr("protocol.open_browser"),
                    command=self._open_browser).pack(side="left", padx=(0, 8))
-        ttk.Button(bf, text="Annulla",
+        ttk.Button(bf, text=tr("button.cancel"),
                    command=self.destroy).pack(side="left")
 
         ttk.Label(self,
-                  text="Il documento si apre nel browser di default;\n"
-                       "usa Ctrl+P per stamparlo o salvarlo come PDF.",
+                  text=tr("protocol.browser_hint"),
                   font=("Segoe UI", 9, "italic"),
                   foreground="#666",
                   padding=(16, 2, 16, 12)).pack(anchor="w")
@@ -562,6 +557,6 @@ class ProtocolDialog(tk.Toplevel):
             self.destroy()
         except Exception as exc:
             messagebox.showerror(
-                "Errore",
-                f"Impossibile generare o aprire il protocollo:\n{exc}",
+                tr("error.generic"),
+                tr("protocol.error.open", detail=exc),
                 parent=self)

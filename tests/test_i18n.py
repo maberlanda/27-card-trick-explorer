@@ -807,6 +807,125 @@ def test_ninth_block_analysis_uses_i18n_and_localizes_eta(monkeypatch):
     assert len(italian) == 52
 
 
+def test_tenth_block_protocol_main_controls_and_sections_are_localized():
+    from gioco27.gui.i18n import set_language, tr
+    from gioco27.gui.protocol_dialog import ProtocolDialog
+
+    assert tr("protocol.dialog.title") == "Esporta Protocollo del Trucco"
+    assert tr("protocol.heading") == "Esporta Protocollo HTML"
+    assert tr("protocol.open_browser") == "Apri nel browser"
+    italian_sections = [tr(label_key) for _, label_key in ProtocolDialog._SECTIONS]
+    assert italian_sections[0] == "1 · Il trucco in sintesi"
+    assert italian_sections[-1] == "8 · Perché funziona (matematica)"
+
+    set_language("en")
+    assert tr("protocol.dialog.title") == "Export Trick Protocol"
+    assert tr("protocol.heading") == "Export HTML Protocol"
+    assert tr("protocol.open_browser") == "Open in browser"
+    english_sections = [tr(label_key) for _, label_key in ProtocolDialog._SECTIONS]
+    assert english_sections[0] == "1 · Trick summary"
+    assert english_sections[-1] == "8 · Why it works (mathematics)"
+
+
+def test_tenth_block_protocol_message_uses_named_placeholder():
+    from gioco27.gui.i18n import set_language, tr
+
+    assert tr("protocol.error.open", detail="accesso negato") == \
+        "Impossibile generare o aprire il protocollo:\naccesso negato"
+    set_language("en")
+    assert tr("protocol.error.open", detail="access denied") == \
+        "Unable to generate or open the protocol:\naccess denied"
+
+
+def test_tenth_block_protocol_shell_notice_switches_language(monkeypatch):
+    from gioco27.gui import app as app_module
+    from gioco27.gui.i18n import set_language
+
+    shown = []
+    monkeypatch.setattr(
+        app_module.messagebox, "showinfo",
+        lambda title, message, **kwargs: shown.append((title, message, kwargs)),
+    )
+    app = SimpleNamespace(_explorer_last_result=None)
+
+    app_module.App._open_protocol(app)
+    assert shown[-1][0] == "Nessuna T calcolata"
+    assert "permutazione T" in shown[-1][1]
+
+    set_language("en")
+    app_module.App._open_protocol(app)
+    assert shown[-1][0] == "No T calculated"
+    assert "permutation T" in shown[-1][1]
+
+
+def test_tenth_block_protocol_preserves_codes_and_generated_content():
+    from gioco27.gui.i18n import set_language, tr
+    from gioco27.gui.protocol_dialog import ProtocolDialog, generate_protocol_html
+
+    section_ids = [section_id for section_id, _ in ProtocolDialog._SECTIONS]
+    assert section_ids == [
+        "sintesi", "legenda", "fasi", "verifica", "cicli", "tabelle",
+        "matrice", "matematica",
+    ]
+    data = {
+        "perm": list(range(27)),
+        "inverse_perm": list(range(27)),
+        "label": "T",
+        "period": 1,
+        "decompositions": [],
+        "canonical_sym": None,
+    }
+    italian_html = generate_protocol_html(data)
+    set_language("en")
+    english_html = generate_protocol_html(data)
+    assert english_html == italian_html
+    for identifier in ("GEN3", "T", "T⁻¹", "27×27"):
+        assert identifier in " ".join(
+            tr(label_key) for _, label_key in ProtocolDialog._SECTIONS
+        )
+
+
+def test_tenth_block_protocol_fallback_remains_italian(monkeypatch):
+    from gioco27.gui import i18n
+
+    monkeypatch.delitem(i18n.CATALOGS["en"], "protocol.open_browser")
+    i18n.set_language("en")
+    assert i18n.tr("protocol.open_browser") == "Apri nel browser"
+
+
+def test_tenth_block_protocol_uses_i18n_without_short_ui_hardcoding():
+    from pathlib import Path
+    from gioco27.gui import i18n
+
+    root = Path(__file__).resolve().parents[1]
+    protocol_source = (root / "gioco27" / "gui" /
+                       "protocol_dialog.py").read_text(encoding="utf-8")
+    app_source = (root / "gioco27" / "gui" / "app.py").read_text(
+        encoding="utf-8")
+    assert "from .i18n import tr" in protocol_source
+    for key in (
+        "protocol.dialog.title", "protocol.section.summary",
+        "protocol.no_decompositions", "protocol.error.open",
+    ):
+        assert key in protocol_source
+    for hardcoded in (
+        "Esporta Protocollo del Trucco", "Apri nel browser",
+        "Nessuna decomposizione calcolata", "Impossibile generare o aprire",
+    ):
+        assert hardcoded not in protocol_source
+    assert 'tr("tooltip.protocol")' in app_source
+    assert 'tr("protocol.no_result.message")' in app_source
+    assert 'text="📋  Protocollo"' not in app_source
+    assert "Genera un protocollo passo-passo dell'ultima T calcolata." not in app_source
+
+    italian = {key for key in i18n.CATALOGS["it"]
+               if key.startswith("protocol.") or key == "tooltip.protocol"}
+    english = {key for key in i18n.CATALOGS["en"]
+               if key.startswith("protocol.") or key == "tooltip.protocol"}
+    assert italian == english
+    assert len(italian) == 20
+
+
 def _use_config_file(monkeypatch, tmp_path):
     from gioco27.core import config as config_module
 

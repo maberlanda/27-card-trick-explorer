@@ -310,11 +310,10 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
         _b.configure(text=f"🖥️  {tr('button.presentation')}")
         _b.pack(side="right", padx=2)
         _tooltip.attach(_b, tr("tooltip.presentation"))
-        _b = ttk.Button(inner, text="📋  Protocollo",
+        _b = ttk.Button(inner, text=f"📋  {tr('button.protocol')}",
                    command=self._open_protocol)
-        _b.configure(text=f"📋  {tr('button.protocol')}")
         _b.pack(side="right", padx=2)
-        _tooltip.attach(_b, "Genera un protocollo passo-passo dell'ultima T calcolata.")
+        _tooltip.attach(_b, tr("tooltip.protocol"))
         ttk.Separator(inner, orient="vertical").pack(
             side="right", fill="y", padx=6)
         _b = ttk.Button(inner, text="🔮  Cayley",
@@ -973,9 +972,8 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
         r = getattr(self, "_explorer_last_result", None)
         if not r or not r.get("ok") or r.get("perm") is None:
             messagebox.showinfo(
-                "Nessuna T calcolata",
-                "Calcola prima una permutazione T nell'Explorer,\n"
-                "poi usa il pulsante Protocollo.",
+                tr("protocol.no_result.title"),
+                tr("protocol.no_result.message"),
                 parent=self)
             return
         import numpy as _np
