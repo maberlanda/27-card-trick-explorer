@@ -13,6 +13,7 @@ from tkinter import ttk, filedialog, messagebox
 from ..core.group_theory import get_group_data
 from ..core.log import get_logger
 from .common import run_in_thread, ui_call
+from .i18n import tr
 
 _log = get_logger(__name__)
 from .tooltip import attach as _tip
@@ -20,12 +21,12 @@ from .tooltip import attach as _tip
 # Classe di coniugio in S3 di ciascun generatore GEN3:
 # l'identità, le 3 trasposizioni, i 2 tre-cicli.
 _S3_CLASS = {
-    "SCD_U": ("id",      1),
-    "SDC_U": ("trasp.",  3),
-    "CSD_U": ("trasp.",  3),
-    "DCS_U": ("trasp.",  3),
-    "CDS_U": ("3-ciclo", 2),
-    "DSC_U": ("3-ciclo", 2),
+    "SCD_U": ("conjugacy.type.identity",      1),
+    "SDC_U": ("conjugacy.type.transposition", 3),
+    "CSD_U": ("conjugacy.type.transposition", 3),
+    "DCS_U": ("conjugacy.type.transposition", 3),
+    "CDS_U": ("conjugacy.type.three_cycle",   2),
+    "DSC_U": ("conjugacy.type.three_cycle",   2),
 }
 
 
@@ -34,7 +35,7 @@ def _class_type(triple):
     In S3×S3×S3 la classe di coniugio di (a,b,c) è il prodotto delle classi
     dei fattori: il tipo identifica la classe e la dimensione è il prodotto
     delle dimensioni (1 per id, 3 per trasposizioni, 2 per 3-cicli)."""
-    kinds = [_S3_CLASS[f][0] for f in triple]
+    kinds = [tr(_S3_CLASS[f][0]) for f in triple]
     size  = 1
     for f in triple:
         size *= _S3_CLASS[f][1]
@@ -46,7 +47,7 @@ class ConjugacyDialog(tk.Toplevel):
 
     def __init__(self, parent):
         super().__init__(parent)
-        self.title("Classi di coniugio e centro  |  G = GEN3^3  (|G| = 216)")
+        self.title(tr("conjugacy.window_title"))
         self.geometry("1100x680")
         self.resizable(True, True)
         self._gd = None
@@ -55,7 +56,7 @@ class ConjugacyDialog(tk.Toplevel):
         # mostra un messaggio se il precalcolo del gruppo fallisce, invece di
         # lasciare la finestra bloccata su "Calcolo in corso..." per sempre.
         run_in_thread(self, self._load,
-                      error_title="Errore nel calcolo del gruppo")
+                      error_title=tr("conjugacy.error.calculation"))
 
     # ---------------------------------------------------------------- UI ----
 
@@ -63,8 +64,7 @@ class ConjugacyDialog(tk.Toplevel):
         hdr = ttk.Frame(self, padding=(10, 8, 10, 4))
         hdr.pack(fill="x")
         ttk.Label(hdr,
-                  text="Classi di coniugio di G = GEN3ˣ  "
-                       "  (|G| = 216 = 6³,  G ≅ S₃³)",
+                  text=tr("conjugacy.header"),
                   font=("Segoe UI", 12, "bold"),
                   foreground="#1a3a5c").pack(side="left")
 
@@ -81,7 +81,7 @@ class ConjugacyDialog(tk.Toplevel):
                   wraplength=1050, justify="left",
                   padding=(10, 2, 10, 4)).pack(fill="x")
 
-        self._status = tk.StringVar(value="Calcolo in corso...")
+        self._status = tk.StringVar(value=tr("conjugacy.status.calculating"))
         ttk.Label(self, textvariable=self._status,
                   font=("Segoe UI", 9, "italic"),
                   foreground="#666", padding=(10, 0)).pack(fill="x")
@@ -91,7 +91,7 @@ class ConjugacyDialog(tk.Toplevel):
         #     contenuto centrale è alto. ---
         bf = ttk.Frame(self, padding=(8, 4))
         bf.pack(side="bottom", fill="x")
-        self._exp_mb = tk.Menubutton(bf, text="Esporta…", relief="raised")
+        self._exp_mb = tk.Menubutton(bf, text=tr("button.export"), relief="raised")
         exp_menu = tk.Menu(self._exp_mb, tearoff=0)
         exp_menu.add_command(label="📄  TXT",  command=self._export_txt)
         exp_menu.add_command(label="🌐  HTML", command=self._export_html)
@@ -99,8 +99,8 @@ class ConjugacyDialog(tk.Toplevel):
         exp_menu.add_command(label="📐  LaTeX / SVG…", command=self._export_latex_svg)
         self._exp_mb["menu"] = exp_menu
         self._exp_mb.pack(side="left", padx=(0, 8))
-        _tip(self._exp_mb, "Esporta le classi di coniugio: TXT, HTML oppure LaTeX / SVG.")
-        ttk.Button(bf, text="Chiudi", command=self.destroy).pack(side="left")
+        _tip(self._exp_mb, tr("conjugacy.tooltip.export"))
+        ttk.Button(bf, text=tr("button.close"), command=self.destroy).pack(side="left")
 
         # Frame principale a tre colonne
         main = ttk.Frame(self, padding=(8, 4))
@@ -111,7 +111,7 @@ class ConjugacyDialog(tk.Toplevel):
         main.rowconfigure(0, weight=1)
 
         # --- Colonna sinistra: lista classi ---
-        lf = ttk.LabelFrame(main, text="Classi di coniugio", padding=6)
+        lf = ttk.LabelFrame(main, text=tr("conjugacy.classes.title"), padding=6)
         lf.grid(row=0, column=0, sticky="nsew", padx=(0, 4))
         lf.rowconfigure(0, weight=1)
         lf.columnconfigure(0, weight=1)
@@ -120,9 +120,9 @@ class ConjugacyDialog(tk.Toplevel):
         self._cls_tree = ttk.Treeview(
             lf, columns=cls_cols, show="headings", selectmode="browse")
         self._cls_tree.heading("idx",  text="#")
-        self._cls_tree.heading("size", text="Dim.", command=lambda: self._sort_cls("size"))
-        self._cls_tree.heading("ord",  text="Ord.")
-        self._cls_tree.heading("tipo", text="Tipo (f₃, f₂, f₁)")
+        self._cls_tree.heading("size", text=tr("conjugacy.column.size"), command=lambda: self._sort_cls("size"))
+        self._cls_tree.heading("ord",  text=tr("conjugacy.column.order"))
+        self._cls_tree.heading("tipo", text=tr("conjugacy.column.type"))
         self._cls_tree.column("idx",  width=36,  stretch=False, anchor="center")
         self._cls_tree.column("size", width=50,  stretch=False, anchor="center")
         self._cls_tree.column("ord",  width=46,  stretch=False, anchor="center")
@@ -132,12 +132,12 @@ class ConjugacyDialog(tk.Toplevel):
         vsb1 = ttk.Scrollbar(lf, orient="vertical", command=self._cls_tree.yview)
         self._cls_tree.configure(yscrollcommand=vsb1.set)
         self._cls_tree.grid(row=0, column=0, sticky="nsew")
-        _tip(self._cls_tree, "Le 27 classi di coniugio. Clicca una classe per vederne gli elementi.")
+        _tip(self._cls_tree, tr("conjugacy.tooltip.classes"))
         vsb1.grid(row=0, column=1, sticky="ns")
         self._cls_tree.bind("<<TreeviewSelect>>", self._on_cls_select)
 
         # --- Colonna centrale: elementi della classe ---
-        ef = ttk.LabelFrame(main, text="Elementi della classe selezionata", padding=6)
+        ef = ttk.LabelFrame(main, text=tr("conjugacy.elements.title"), padding=6)
         ef.grid(row=0, column=1, sticky="nsew", padx=4)
         ef.rowconfigure(0, weight=1)
         ef.columnconfigure(0, weight=1)
@@ -153,7 +153,7 @@ class ConjugacyDialog(tk.Toplevel):
         hsb2.grid(row=1, column=0, sticky="ew")
 
         # --- Colonna destra: centro e statistiche ---
-        rf = ttk.LabelFrame(main, text="Centro Z(G)  e  statistiche", padding=6)
+        rf = ttk.LabelFrame(main, text=tr("conjugacy.center_stats.title"), padding=6)
         rf.grid(row=0, column=2, sticky="nsew", padx=(4, 0))
         rf.rowconfigure(1, weight=1)
         rf.columnconfigure(0, weight=1)
@@ -163,7 +163,7 @@ class ConjugacyDialog(tk.Toplevel):
                                     justify="left", wraplength=240)
         self._stats_lbl.grid(row=0, column=0, sticky="nw", pady=(0, 8))
 
-        ttk.Label(rf, text="Elementi del centro:",
+        ttk.Label(rf, text=tr("conjugacy.center_elements"),
                   font=("Segoe UI", 9, "bold")).grid(row=1, column=0, sticky="nw")
         self._center_box = tk.Text(rf, font=("Courier New", 9),
                                    wrap="word", state="disabled",
@@ -194,29 +194,23 @@ class ConjugacyDialog(tk.Toplevel):
         # Statistiche
         from collections import Counter
         size_counts = Counter(len(c) for c in cls)
-        stats = (
-            f"|G| = {len(gd.kron_arr)}\n"
-            f"Classi di coniugio: {n_cls}\n"
-            f"|Z(G)| = {len(center)}\n\n"
-            f"Dimensioni classi:\n"
-        )
+        stats = tr("conjugacy.stats.header", group_size=len(gd.kron_arr),
+                   class_count=n_cls, center_size=len(center))
         for sz in sorted(size_counts):
-            stats += f"  {sz:>3} elementi  x {size_counts[sz]:>2} classi\n"
-        stats += "\nOrdini elementi:\n"
+            stats += tr("conjugacy.stats.class_size", size=sz,
+                        count=size_counts[sz])
+        stats += tr("conjugacy.stats.orders")
         ord_counter = Counter(int(ord_arr[i]) for i in range(len(gd.kron_arr)))
         for o in sorted(ord_counter):
-            stats += f"  ordine {o}: {ord_counter[o]:>3} elementi\n"
+            stats += tr("conjugacy.stats.order", order=o, count=ord_counter[o])
         # Equazione delle classi: |G| = somma delle dimensioni
         eq_parts = [f"{sz}·{cnt}" for sz, cnt in sorted(size_counts.items())]
-        stats += ("\nEquazione delle classi:\n  216 = "
-                  + " + ".join(eq_parts)
-                  + f"\n  ({' + '.join(str(sz*cnt) for sz, cnt in sorted(size_counts.items()))})\n")
-        stats += ("\nPerché Z(G) è banale:\n  Z(S₃) = {e}, quindi\n"
-                  "  Z(S₃×S₃×S₃) = {(e,e,e)}.\n")
-        stats += ("\nNel gioco: raccolte coniugate\n"
-                  "producono trucchi equivalenti\n"
-                  "a meno di rietichettare le\n"
-                  "posizioni del mazzo.")
+        stats += tr("conjugacy.stats.equation", terms=" + ".join(eq_parts),
+                    products=" + ".join(
+                        str(sz * cnt) for sz, cnt in sorted(size_counts.items())))
+        stats += tr("conjugacy.stats.center", identity="e",
+                    center_identity="(e,e,e)")
+        stats += tr("conjugacy.stats.game")
         self._stats_lbl.configure(text=stats)
 
         # Popolamento lista classi (col tipo S3 dei tre fattori)
@@ -246,11 +240,12 @@ class ConjugacyDialog(tk.Toplevel):
             for idx in center:
                 self._center_box.insert("end", gd.name(idx) + "\n")
         else:
-            self._center_box.insert("end", "Centro triviale {e}")
+            self._center_box.insert(
+                "end", tr("conjugacy.center.trivial", identity="e"))
         self._center_box.configure(state="disabled")
 
-        self._status.set(
-            f"Pronto  —  {n_cls} classi di coniugio,  |Z(G)| = {len(center)}")
+        self._status.set(tr("conjugacy.status.ready", class_count=n_cls,
+                            center_size=len(center)))
 
     def _on_cls_select(self, event):
         sel = self._cls_tree.selection()
@@ -267,17 +262,11 @@ class ConjugacyDialog(tk.Toplevel):
         sizes = [str(_S3_CLASS[f][1]) for f in gd.kron_names[cls[0]]]
         self._elem_box.configure(state="normal")
         self._elem_box.delete("1.0", "end")
-        self._elem_box.insert("end",
-            f"Classe {idx+1}  —  {len(cls)} elementi   "
-            f"(ordine comune: {int(ord_arr[cls[0]])})\n"
-            f"Tipo: {tipo}\n"
-            f"Dimensione = {' × '.join(sizes)} = {len(cls)}  "
-            f"(prodotto delle dimensioni delle classi S₃ dei fattori)\n"
-            f"Rappresentante: {gd.name(cls[0])}\n"
-            "Tutti gli elementi qui sotto sono coniugati tra loro: stessa\n"
-            "struttura ciclica, stesso ordine, stesso «comportamento» nel\n"
-            "gioco a meno di rinominare le posizioni.\n"
-            + "─" * 52 + "\n")
+        self._elem_box.insert("end", tr(
+            "conjugacy.class.details", number=idx + 1, count=len(cls),
+            order=int(ord_arr[cls[0]]), type=tipo,
+            dimensions=" × ".join(sizes), representative=gd.name(cls[0]),
+            separator="─" * 52))
         for j, elem_idx in enumerate(cls):
             self._elem_box.insert(
                 "end", f"  {j+1:>3}.  {gd.name(elem_idx)}\n")
@@ -297,8 +286,9 @@ class ConjugacyDialog(tk.Toplevel):
             return
         path = filedialog.asksaveasfilename(
             parent=self, defaultextension=".txt",
-            filetypes=[("Testo", "*.txt"), ("Tutti", "*.*")],
-            title="Esporta classi di coniugio")
+            filetypes=[(tr("common.filetype_text"), "*.txt"),
+                       (tr("common.filetype_all"), "*.*")],
+            title=tr("conjugacy.export.title"))
         if not path:
             return
         gd = self._gd
@@ -324,16 +314,18 @@ class ConjugacyDialog(tk.Toplevel):
         try:
             with open(path, "w", encoding="utf-8") as f:
                 f.write("\n".join(lines))
-            messagebox.showinfo("Esportato", f"Salvato in:\n{path}", parent=self)
+            messagebox.showinfo(tr("export.completed_title"),
+                                tr("conjugacy.export.saved", path=path),
+                                parent=self)
         except OSError as exc:
-            messagebox.showerror("Errore", str(exc), parent=self)
+            messagebox.showerror(tr("error.generic"), str(exc), parent=self)
 
     def _export_latex_svg(self):
         """Apre il dialog di export LaTeX/SVG delle classi di coniugio."""
         gd = getattr(self, "_gd", None)
         if gd is None:
-            messagebox.showinfo("Attendere",
-                                "Calcolo ancora in corso, riprova tra poco.",
+            messagebox.showinfo(tr("conjugacy.wait.title"),
+                                tr("conjugacy.wait.message"),
                                 parent=self)
             return
         from .export_group_dialog import ConjugacyExportDialog
@@ -347,8 +339,9 @@ class ConjugacyDialog(tk.Toplevel):
             return
         path = __import__("tkinter.filedialog", fromlist=["asksaveasfilename"]).asksaveasfilename(
             parent=self, defaultextension=".html",
-            filetypes=[("HTML", "*.html"), ("Tutti", "*.*")],
-            title="Esporta classi di coniugio HTML")
+            filetypes=[("HTML", "*.html"),
+                       (tr("common.filetype_all"), "*.*")],
+            title=tr("conjugacy.export.html_title"))
         if not path:
             return
         classes = gd.classes
@@ -376,5 +369,5 @@ th{{background:#f0f4f0}}tr:nth-child(even){{background:#fafafa}}</style></head>
                 f.write(html)
             __import__("webbrowser").open(f"file://{path}")
         except Exception as exc:
-            __import__("tkinter.messagebox", fromlist=["showerror"]).showerror("Errore", str(exc), parent=self)
-
+            __import__("tkinter.messagebox", fromlist=["showerror"]).showerror(
+                tr("error.generic"), str(exc), parent=self)

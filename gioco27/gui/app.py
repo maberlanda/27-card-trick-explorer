@@ -305,9 +305,8 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
         _tooltip.attach(_b, "Verifica di integrità: simulazione fisica vs modello "
                         "matriciale (1728 combinazioni), ancore del libro, "
                         "statistiche del capitolo 100.")
-        _b = ttk.Button(inner, text="🖥️  Presentazione",
+        _b = ttk.Button(inner, text=f"🖥️  {tr('button.presentation')}",
                    command=self._open_presentation)
-        _b.configure(text=f"🖥️  {tr('button.presentation')}")
         _b.pack(side="right", padx=2)
         _tooltip.attach(_b, tr("tooltip.presentation"))
         _b = ttk.Button(inner, text=f"📋  {tr('button.protocol')}",
@@ -316,15 +315,14 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
         _tooltip.attach(_b, tr("tooltip.protocol"))
         ttk.Separator(inner, orient="vertical").pack(
             side="right", fill="y", padx=6)
-        _b = ttk.Button(inner, text="🔮  Cayley",
+        _b = ttk.Button(inner, text=f"🔮  {tr('button.cayley')}",
                    command=self._open_cayley)
         _b.pack(side="right", padx=2)
-        _tooltip.attach(_b, "Tavola di Cayley: prodotti A∘B tra le mosse del gruppo.")
-        _b = ttk.Button(inner, text="🔬  Coniugio",
+        _tooltip.attach(_b, tr("tooltip.cayley"))
+        _b = ttk.Button(inner, text=f"🔬  {tr('button.conjugacy')}",
                    command=self._open_conjugacy)
-        _b.configure(text=f"🔬  {tr('button.conjugacy')}")
         _b.pack(side="right", padx=2)
-        _tooltip.attach(_b, "Classi di coniugio e centro del gruppo G = GEN3³.")
+        _tooltip.attach(_b, tr("tooltip.conjugacy"))
         ttk.Separator(inner, orient="vertical").pack(
             side="right", fill="y", padx=6)
 

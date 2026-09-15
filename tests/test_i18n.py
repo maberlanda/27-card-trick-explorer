@@ -926,6 +926,147 @@ def test_tenth_block_protocol_uses_i18n_without_short_ui_hardcoding():
     assert len(italian) == 20
 
 
+def test_eleventh_block_presentation_steps_switch_language_and_keep_codes():
+    from gioco27.gui.i18n import set_language
+    from gioco27.gui.presentation import PresentationWindow
+
+    permutation = list(range(27))
+    italian = PresentationWindow._costruisci_passi(permutation)
+    assert italian[0]["fase"] == "PRONTI?"
+    assert italian[1]["fase"] == "FASE 1 DI 3"
+    assert "Distribuisci in 3 colonne" in italian[1]["testo"]
+    assert italian[-1]["fase"] == "FINALE"
+
+    set_language("en")
+    english = PresentationWindow._costruisci_passi(permutation)
+    assert english[0]["fase"] == "READY?"
+    assert english[1]["fase"] == "PHASE 1 OF 3"
+    assert "Deal into 3 columns" in english[1]["testo"]
+    assert english[-1]["fase"] == "FINAL"
+    assert len(english) == len(italian) == 5
+    for index in range(1, 4):
+        italian_codes = italian[index]["math"].split("·")
+        english_codes = english[index]["math"].split("·")
+        assert italian_codes[0].split()[-1] == english_codes[0].split()[-1]
+        assert italian_codes[1].split()[-1] == english_codes[1].split()[-1]
+
+
+def test_eleventh_block_presentation_dynamic_labels_and_fallback(monkeypatch):
+    from gioco27.gui import i18n
+
+    assert i18n.tr("presentation.phase.progress", current=2, total=3) == \
+        "FASE 2 DI 3"
+    i18n.set_language("en")
+    assert i18n.tr("presentation.phase.progress", current=2, total=3) == \
+        "PHASE 2 OF 3"
+    assert "A♠ → 1" in i18n.tr(
+        "presentation.final.aces", spades=1, clubs=14, hearts=27)
+    monkeypatch.delitem(i18n.CATALOGS["en"], "presentation.phase.waiting")
+    assert i18n.tr("presentation.phase.waiting") == "IN ATTESA"
+
+
+def test_eleventh_block_math_dialog_controls_switch_language():
+    from gioco27.gui.i18n import set_language, tr
+
+    assert tr("cayley.window_title").startswith("Tabella di Cayley")
+    assert tr("cayley.info.prompt") == "Seleziona A e B, poi premi Calcola."
+    assert tr("conjugacy.classes.title") == "Classi di coniugio"
+    assert tr("conjugacy.column.type") == "Tipo (f₃, f₂, f₁)"
+    set_language("en")
+    assert tr("cayley.window_title").startswith("Cayley table")
+    assert tr("cayley.info.prompt") == "Select A and B, then press Calculate."
+    assert tr("conjugacy.classes.title") == "Conjugacy classes"
+    assert tr("conjugacy.column.type") == "Type (f₃, f₂, f₁)"
+
+
+def test_eleventh_block_math_dialog_dynamic_results_preserve_notation():
+    from gioco27.gui.i18n import set_language, tr
+
+    values = dict(
+        a_name="SCD_U x CDS_U x DCS_U", a_order=3,
+        b_name="DCS_U x SCD_U x CDS_U", b_order=3,
+        powers="SCD_U → CDS_U → e", commute=tr("cayley.commute.no"),
+        product_note=tr("cayley.products.conjugate", order=3),
+        commutator="SCD_U x SCD_U x SCD_U",
+        commutator_note=tr("cayley.commutator.non_identity"),
+        conjugate=tr("cayley.conjugate.yes"), ab_order=3, ba_order=3,
+    )
+    italian = tr("cayley.info.details", **values)
+    set_language("en")
+    values.update(
+        commute=tr("cayley.commute.no"),
+        product_note=tr("cayley.products.conjugate", order=3),
+        commutator_note=tr("cayley.commutator.non_identity"),
+        conjugate=tr("cayley.conjugate.yes"),
+    )
+    english = tr("cayley.info.details", **values)
+    assert "ordine 3" in italian and "order 3" in english
+    for notation in ("SCD_U", "CDS_U", "DCS_U", "A⁻¹∘B⁻¹∘A∘B",
+                     "ord(A∘B)"):
+        assert notation in italian and notation in english
+
+
+def test_eleventh_block_conjugacy_types_and_placeholders_are_localized():
+    from gioco27.gui.conjugacy_dialog import _class_type
+    from gioco27.gui.i18n import set_language, tr
+
+    italian_type, italian_size = _class_type(("SDC_U", "CDS_U", "SCD_U"))
+    assert italian_type == "(trasp., 3-ciclo, id)"
+    set_language("en")
+    english_type, english_size = _class_type(("SDC_U", "CDS_U", "SCD_U"))
+    assert english_type == "(transp., 3-cycle, id)"
+    assert italian_size == english_size == 6
+    assert tr("conjugacy.status.ready", class_count=27, center_size=1) == \
+        "Ready  —  27 conjugacy classes,  |Z(G)| = 1"
+    assert "{(e,e,e)}" in tr("conjugacy.stats.center", identity="e",
+                              center_identity="(e,e,e)")
+
+
+def test_eleventh_block_catalogs_and_sources_cover_scoped_ui():
+    from pathlib import Path
+    from gioco27.gui import i18n
+
+    root = Path(__file__).resolve().parents[1] / "gioco27" / "gui"
+    sources = {
+        name: (root / name).read_text(encoding="utf-8")
+        for name in ("presentation.py", "cayley_dialog.py",
+                     "conjugacy_dialog.py", "app.py")
+    }
+    for name in ("presentation.py", "cayley_dialog.py", "conjugacy_dialog.py"):
+        assert "from .i18n import tr" in sources[name]
+    assert 'tr("tooltip.presentation")' in sources["app.py"]
+    assert 'tr("tooltip.cayley")' in sources["app.py"]
+    assert 'tr("tooltip.conjugacy")' in sources["app.py"]
+    for hardcoded in ("PRONTI?", "Calcolo tabella in corso...",
+                      "Classi di coniugio e centro  |"):
+        assert hardcoded not in {
+            "PRONTI?": sources["presentation.py"],
+            "Calcolo tabella in corso...": sources["cayley_dialog.py"],
+            "Classi di coniugio e centro  |": sources["conjugacy_dialog.py"],
+        }[hardcoded]
+
+    assert set(i18n.CATALOGS["it"]) == set(i18n.CATALOGS["en"])
+    assert len([key for key in i18n.CATALOGS["it"]
+                if key.startswith("presentation.")]) == 23
+    assert len([key for key in i18n.CATALOGS["it"]
+                if key.startswith("cayley.")]) == 33
+    assert len([key for key in i18n.CATALOGS["it"]
+                if key.startswith("conjugacy.")]) == 31
+
+
+def test_eleventh_block_language_does_not_change_group_results():
+    from gioco27.core.group_theory import get_group_data
+    from gioco27.gui.i18n import set_language
+
+    gd = get_group_data()
+    before = (gd.cayley.copy(), gd.inverse.copy(), tuple(map(tuple, gd.classes)))
+    set_language("en")
+    after = (gd.cayley.copy(), gd.inverse.copy(), tuple(map(tuple, gd.classes)))
+    assert (before[0] == after[0]).all()
+    assert (before[1] == after[1]).all()
+    assert before[2] == after[2]
+
+
 def _use_config_file(monkeypatch, tmp_path):
     from gioco27.core import config as config_module
 

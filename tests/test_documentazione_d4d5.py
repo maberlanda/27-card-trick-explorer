@@ -79,9 +79,12 @@ def test_d4_ordine_sottotab_come_costruiti_dalla_gui(guide):
 def test_d4_coniugio_dalla_barra_azioni(guide):
     tree = _tree("gioco27/gui/app.py")
     buttons = [n for n in ast.walk(tree) if isinstance(n, ast.Call)
-               and any(kw.arg == "text" and isinstance(kw.value, ast.Constant)
-                       and "Coniugio" in str(kw.value.value) for kw in n.keywords)]
+               and any(kw.arg == "command" and isinstance(kw.value, ast.Attribute)
+                       and kw.value.attr == "_open_conjugacy"
+                       for kw in n.keywords)]
     assert len(buttons) == 1
+    text_node = next(kw.value for kw in buttons[0].keywords if kw.arg == "text")
+    assert "Coniugio" in _localized_literal(text_node)
     assert any(kw.arg == "command" and isinstance(kw.value, ast.Attribute)
                and kw.value.attr == "_open_conjugacy" for kw in buttons[0].keywords)
     assert "Accessibile dal pulsante 🔬 Coniugio nella barra azioni" in guide

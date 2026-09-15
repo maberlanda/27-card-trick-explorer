@@ -18,6 +18,7 @@ Tasti:  →/spazio avanti,  ← indietro,  F11 fullscreen,  Esc esci.
 import tkinter as tk
 
 from ..core import gioco_reale as gr
+from .i18n import tr
 
 _BG     = "#0d1117"
 _FG     = "#e8eaf6"
@@ -34,7 +35,7 @@ class PresentationWindow(tk.Toplevel):
         super().__init__(parent)
         self._app = parent
         self.configure(background=_BG)
-        self.title("Gioco delle 27 carte — Vista esecutore")
+        self.title(tr("presentation.window_title"))
         self.attributes("-fullscreen", True)
         self._fullscreen = True
         self._steps = []
@@ -55,13 +56,12 @@ class PresentationWindow(tk.Toplevel):
     def _build_ui(self):
         top = tk.Frame(self, background=_BG)
         top.pack(fill="x", padx=24, pady=(16, 0))
-        self._title_lbl = tk.Label(top, text="Gioco delle 27 carte",
+        self._title_lbl = tk.Label(top, text=tr("presentation.title"),
                                    font=("Segoe UI", 20, "bold"),
                                    background=_BG, foreground=_ACCENT)
         self._title_lbl.pack(side="left")
         tk.Label(top,
-                 text="→ / spazio / clic: avanti    ←: indietro    "
-                      "F11: schermo intero    Esc: esci",
+                 text=tr("presentation.navigation_hint"),
                  font=("Segoe UI", 10), background=_BG,
                  foreground=_DIM).pack(side="right")
 
@@ -90,7 +90,7 @@ class PresentationWindow(tk.Toplevel):
         self._prog_lbl = tk.Label(bottom, text="", font=("Segoe UI", 12, "bold"),
                                   background=_BG, foreground=_DIM)
         self._prog_lbl.pack(side="right", padx=(0, 16))
-        tk.Button(bottom, text="Chiudi", command=self.destroy,
+        tk.Button(bottom, text=tr("button.close"), command=self.destroy,
                   background="#21262d", foreground=_FG,
                   activebackground="#30363d", relief="flat",
                   font=("Segoe UI", 10)).pack(side="right")
@@ -109,9 +109,9 @@ class PresentationWindow(tk.Toplevel):
     @staticmethod
     def _costruisci_passi(T):
         T = list(T)
-        passi = [dict(fase="PRONTI?",
-                      testo="Mazzo di 27 carte a faccia in giù.",
-                      sotto="Il pubblico sceglie una carta e la tiene a mente.",
+        passi = [dict(fase=tr("presentation.phase.ready"),
+                      testo=tr("presentation.ready.deck"),
+                      sotto=tr("presentation.ready.spectator"),
                       math="")]
         # è una disposizione semplice del gioco?
         mesc = None
@@ -123,32 +123,33 @@ class PresentationWindow(tk.Toplevel):
             pass
         if mesc is None:
             passi.append(dict(
-                fase="ANALISI",
-                testo="Questa T non è una sequenza di sole raccolte.",
-                sotto="Nessun gobbo eseguibile: usa il Simulatore o "
-                      "l'Explorer per i dettagli.",
+                fase=tr("presentation.phase.analysis"),
+                testo=tr("presentation.analysis.unsupported"),
+                sotto=tr("presentation.analysis.hint"),
                 math="T = [" + " ".join(f"{x}" for x in T) + "]"))
             return passi
         num = gr.numero_tavola(mesc)
         for i, m in enumerate(mesc, start=1):
             imp = gr.IMPILAMENTO_DI[m]
-            nomi = {"S": "SINISTRA", "C": "CENTRO", "D": "DESTRA"}
+            nomi = {"S": tr("presentation.direction.left"),
+                    "C": tr("presentation.direction.center"),
+                    "D": tr("presentation.direction.right")}
             gesto = "  →  ".join(nomi[ch] for ch in imp)
             avviso = ("" if m == imp else
-                      f"   (sigla del mescolamento: {m} — il gesto è l'inverso!)")
+                      tr("presentation.shuffle_inverse_note", shuffle=m))
             passi.append(dict(
-                fase=f"FASE {i} DI 3",
-                testo=f"Distribuisci in 3 colonne,\npoi impila:  {gesto}",
-                sotto=f"Primo mazzetto al dorso, ultimo al fondo.{avviso}",
-                math=f"mescolamento {m}  ·  impilamento {imp}",
+                fase=tr("presentation.phase.progress", current=i, total=3),
+                testo=tr("presentation.phase.action", stacking=gesto),
+                sotto=tr("presentation.phase.packet_order", note=avviso),
+                math=tr("presentation.phase.math", shuffle=m, stacking=imp),
                 colore=_STAGE_COLORS[i - 1]))
         passi.append(dict(
-            fase="FINALE",
-            testo="Il mazzo è pronto.",
-            sotto=(f"Assi:  A♠ → {T[0]}   A♣ → {T[13]}   A♥ → {T[26]}  "
-                   "(posizioni dal dorso)"),
-            math=(f"disposizione #{num}  ·  mescolamenti {' '.join(mesc)}  ·  "
-                  f"periodo {gr.periodo(T)}")))
+            fase=tr("presentation.phase.final"),
+            testo=tr("presentation.final.ready"),
+            sotto=tr("presentation.final.aces", spades=T[0], clubs=T[13],
+                     hearts=T[26]),
+            math=tr("presentation.final.math", number=num,
+                    shuffles=" ".join(mesc), period=gr.periodo(T))))
         return passi
 
     # ── Rendering / navigazione ───────────────────────────────────────────────
@@ -173,12 +174,11 @@ class PresentationWindow(tk.Toplevel):
         self._render()
 
     def _show_idle(self):
-        self._phase_lbl.configure(text="IN ATTESA", foreground=_DIM)
-        self._main_lbl.configure(text="Gioco delle 27 carte")
+        self._phase_lbl.configure(text=tr("presentation.phase.waiting"),
+                                  foreground=_DIM)
+        self._main_lbl.configure(text=tr("presentation.title"))
         self._sub_lbl.configure(
-            text="Calcola una sequenza nel Simulatore o una T "
-                 "nell'Explorer:\nqui compariranno i passi da eseguire, "
-                 "uno alla volta.")
+            text=tr("presentation.waiting.hint"))
         self._math_lbl.configure(text="")
         self._prog_lbl.configure(text="")
 

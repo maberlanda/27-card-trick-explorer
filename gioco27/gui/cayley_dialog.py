@@ -8,6 +8,7 @@ from tkinter import ttk, filedialog, messagebox
 from ..core.group_theory import get_group_data
 from .common import run_in_thread, ui_call
 from .tooltip import attach as _tip
+from .i18n import tr
 
 
 class CayleyDialog(tk.Toplevel):
@@ -15,7 +16,7 @@ class CayleyDialog(tk.Toplevel):
 
     def __init__(self, parent):
         super().__init__(parent)
-        self.title("Tabella di Cayley  |  G = GEN3^3  (|G| = 216)")
+        self.title(tr("cayley.window_title"))
         self.geometry("900x600")
         self.resizable(True, True)
         self._gd = None
@@ -25,7 +26,7 @@ class CayleyDialog(tk.Toplevel):
         # mostra un messaggio se il precalcolo del gruppo fallisce, invece di
         # lasciare la finestra bloccata su "Calcolo in corso..." per sempre.
         run_in_thread(self, self._load,
-                      error_title="Errore nel calcolo del gruppo")
+                      error_title=tr("cayley.error.calculation"))
 
     # ----------------------------------------------------------------- UI ---
 
@@ -33,7 +34,7 @@ class CayleyDialog(tk.Toplevel):
         hdr = ttk.Frame(self, padding=(10, 8, 10, 4))
         hdr.pack(fill="x")
         ttk.Label(hdr,
-                  text="Calcolatore prodotti in G = GEN3^3",
+                  text=tr("cayley.header"),
                   font=("Segoe UI", 12, "bold"),
                   foreground="#1a3a5c").pack(side="left")
 
@@ -48,13 +49,13 @@ class CayleyDialog(tk.Toplevel):
                   wraplength=860, justify="left",
                   padding=(10, 2, 10, 4)).pack(fill="x")
 
-        self._status = tk.StringVar(value="Calcolo tabella in corso...")
+        self._status = tk.StringVar(value=tr("cayley.status.calculating"))
         ttk.Label(self, textvariable=self._status,
                   font=("Segoe UI", 9, "italic"),
                   foreground="#666", padding=(10, 0)).pack(fill="x")
 
         # Calcolatore prodotti
-        calc = ttk.LabelFrame(self, text="Calcolatore  A ∘ B", padding=10)
+        calc = ttk.LabelFrame(self, text=tr("cayley.calculator"), padding=10)
         calc.pack(fill="x", padx=10, pady=(4, 0))
 
         row1 = ttk.Frame(calc)
@@ -63,19 +64,19 @@ class CayleyDialog(tk.Toplevel):
         ttk.Label(row1, text="A =", font=("Segoe UI", 10, "bold")).pack(side="left")
         self._combo_a = ttk.Combobox(row1, state="readonly", width=32)
         self._combo_a.pack(side="left", padx=(4, 20))
-        _tip(self._combo_a, "Prima mossa A. Ricorda: A∘B = esegui prima B, poi A.")
+        _tip(self._combo_a, tr("cayley.tooltip.a"))
 
         ttk.Label(row1, text="B =", font=("Segoe UI", 10, "bold")).pack(side="left")
         self._combo_b = ttk.Combobox(row1, state="readonly", width=32)
         self._combo_b.pack(side="left", padx=(4, 20))
-        _tip(self._combo_b, "Seconda mossa B (eseguita per prima nella composizione A∘B).")
+        _tip(self._combo_b, tr("cayley.tooltip.b"))
 
-        _bc = ttk.Button(row1, text="Calcola", command=self._calc)
+        _bc = ttk.Button(row1, text=tr("button.calculate"), command=self._calc)
         _bc.pack(side="left")
-        _tip(_bc, "Calcola A∘B, B∘A, gli inversi, il commutatore e il sottogruppo ⟨A,B⟩.")
-        _bs = ttk.Button(row1, text="Scambia A↔B", command=self._swap)
+        _tip(_bc, tr("cayley.tooltip.calculate"))
+        _bs = ttk.Button(row1, text=tr("button.swap_ab"), command=self._swap)
         _bs.pack(side="left", padx=(8, 0))
-        _tip(_bs, "Inverte A e B e ricalcola: utile per vedere se A∘B ≠ B∘A.")
+        _tip(_bs, tr("cayley.tooltip.swap"))
 
         row2 = ttk.Frame(calc)
         row2.pack(fill="x", pady=(8, 0))
@@ -92,11 +93,11 @@ class CayleyDialog(tk.Toplevel):
                       foreground="#1a3a5c").pack(side="left", padx=(4, 0))
 
         # Riquadro ordini e informazioni
-        info = ttk.LabelFrame(self, text="Informazioni sugli elementi selezionati",
+        info = ttk.LabelFrame(self, text=tr("cayley.info.title"),
                               padding=8)
         info.pack(fill="x", padx=10, pady=6)
 
-        self._info_var = tk.StringVar(value="Seleziona A e B, poi premi Calcola.")
+        self._info_var = tk.StringVar(value=tr("cayley.info.prompt"))
         ttk.Label(info, textvariable=self._info_var,
                   font=("Courier New", 9), foreground="#333",
                   justify="left").pack(anchor="w")
@@ -105,7 +106,7 @@ class CayleyDialog(tk.Toplevel):
         #     restano sempre visibili anche con finestra piccola. ---
         bf = ttk.Frame(self, padding=(8, 4))
         bf.pack(side="bottom", fill="x")
-        self._exp_mb = tk.Menubutton(bf, text="Esporta…", relief="raised",
+        self._exp_mb = tk.Menubutton(bf, text=tr("button.export"), relief="raised",
                                      state="disabled")
         exp_menu = tk.Menu(self._exp_mb, tearoff=0)
         exp_menu.add_command(label="📊  CSV (;)", command=self._export_csv)
@@ -114,11 +115,11 @@ class CayleyDialog(tk.Toplevel):
         exp_menu.add_command(label="📐  LaTeX / SVG…", command=self._export_latex_svg)
         self._exp_mb["menu"] = exp_menu
         self._exp_mb.pack(side="left", padx=(0, 8))
-        _tip(self._exp_mb, "Esporta la tavola di Cayley: CSV, HTML oppure LaTeX / SVG.")
-        ttk.Button(bf, text="Chiudi", command=self.destroy).pack(side="left")
+        _tip(self._exp_mb, tr("cayley.tooltip.export"))
+        ttk.Button(bf, text=tr("button.close"), command=self.destroy).pack(side="left")
 
         # Sottogruppo generato
-        sg = ttk.LabelFrame(self, text="Sottogruppo <A, B>  generato da A e B",
+        sg = ttk.LabelFrame(self, text=tr("cayley.subgroup.title"),
                              padding=8)
         sg.pack(fill="both", expand=True, padx=10, pady=(0, 4))
         sg.rowconfigure(0, weight=1); sg.columnconfigure(0, weight=1)
@@ -157,9 +158,8 @@ class CayleyDialog(tk.Toplevel):
         self._combo_b["values"] = values
         self._combo_a.current(0)
         self._combo_b.current(1)
-        self._status.set(
-            f"Pronto  —  |G| = {len(self._gd.kron_arr)},  "
-            f"generatori: 6,  struttura: S₃³")
+        self._status.set(tr("cayley.status.ready",
+                            count=len(self._gd.kron_arr)))
         self._exp_mb.configure(state="normal")
 
     # ------------------------------------------------------------ calc ------
@@ -203,21 +203,22 @@ class CayleyDialog(tk.Toplevel):
         # coniugio: A e B nella stessa classe?  inoltre B∘A = B(A∘B)B⁻¹
         same_cls = (self._class_of.get(ia) == self._class_of.get(ib))
 
-        commute = "SÌ (A∘B = B∘A)" if ab == ba else "NO (A∘B ≠ B∘A)"
-        info = (
-            f"A: {gd.name(ia):<28} ordine {ord_a}   "
-            f"(A^{ord_a} = e: ripetuta {ord_a} volte torna tutto com'era)\n"
-            f"B: {gd.name(ib):<28} ordine {ord_b}\n"
-            f"Potenze di A:  {pow_str}\n"
-            f"Commutano: {commute}"
-            + ("" if ab == ba else
-               f"   |   B∘A = B∘(A∘B)∘B⁻¹: i due prodotti sono CONIUGATI, "
-               f"quindi stesso ordine ({int(gd.orders[ab])})") + "\n"
-            f"Commutatore [A,B] = A⁻¹∘B⁻¹∘A∘B = {gd.name(comm)}"
-            f"{'  (= e, conferma che commutano)' if comm == iden else '  (≠ e: misura quanto NON commutano)'}\n"
-            f"A e B coniugati tra loro: {'SÌ — stessa classe: stessa struttura a meno di rinominare le posizioni' if same_cls else 'NO — classi di coniugio diverse'}\n"
-            f"ord(A∘B) = {int(gd.orders[ab])}   ord(B∘A) = {int(gd.orders[ba])}"
-        )
+        commute = tr("cayley.commute.yes" if ab == ba else
+                     "cayley.commute.no")
+        product_note = ("" if ab == ba else
+                        tr("cayley.products.conjugate",
+                           order=int(gd.orders[ab])))
+        commutator_note = tr("cayley.commutator.identity" if comm == iden else
+                             "cayley.commutator.non_identity")
+        conjugate = tr("cayley.conjugate.yes" if same_cls else
+                       "cayley.conjugate.no")
+        info = tr(
+            "cayley.info.details", a_name=gd.name(ia), a_order=ord_a,
+            b_name=gd.name(ib), b_order=ord_b, powers=pow_str,
+            commute=commute, product_note=product_note,
+            commutator=gd.name(comm), commutator_note=commutator_note,
+            conjugate=conjugate, ab_order=int(gd.orders[ab]),
+            ba_order=int(gd.orders[ba]))
         self._info_var.set(info)
 
         # Sottogruppo generato da A e B
@@ -259,14 +260,12 @@ class CayleyDialog(tk.Toplevel):
         abelian = all(int(cay[x, y]) == int(cay[y, x])
                       for xi, x in enumerate(sg_list)
                       for y in sg_list[xi + 1:])
-        intestazione = (
-            f"<A, B> = sottogruppo di ordine {k}"
-            f"   |   indice [G : <A,B>] = {n // k}"
-            f"   |   {'ABELIANO (tutti gli elementi commutano)' if abelian else 'NON abeliano'}"
-            + ("   |   <A,B> = G: A e B generano TUTTO il gruppo!" if k == n else "")
-            + "\n"
-            f"Per il teorema di Lagrange l'ordine ({k}) divide |G| = 216.\n"
-            + "─" * 54 + "\n")
+        intestazione = tr(
+            "cayley.subgroup.summary", order=k, index=n // k,
+            structure=tr("cayley.subgroup.abelian" if abelian else
+                         "cayley.subgroup.non_abelian"),
+            all_group=(tr("cayley.subgroup.all_group") if k == n else ""),
+            separator="─" * 54)
         self._sg_box.configure(state="normal")
         self._sg_box.delete("1.0", "end")
         self._sg_box.insert("end", intestazione)
@@ -283,20 +282,20 @@ class CayleyDialog(tk.Toplevel):
             return
         path = filedialog.asksaveasfilename(
             parent=self, defaultextension=".csv",
-            filetypes=[("CSV", "*.csv"), ("Tutti", "*.*")],
-            title="Esporta tabella di Cayley")
+            filetypes=[("CSV", "*.csv"), (tr("common.filetype_all"), "*.*")],
+            title=tr("cayley.export.title"))
         if not path:
             return
-        self._status.set("Esportazione in corso...")
+        self._status.set(tr("cayley.status.exporting"))
         self.update_idletasks()
         try:
             gd.export_cayley_csv(path)
-            self._status.set("Esportazione completata.")
-            messagebox.showinfo("Esportato",
-                                f"Tabella 216×216 salvata in:\n{path}",
+            self._status.set(tr("cayley.status.exported"))
+            messagebox.showinfo(tr("export.completed_title"),
+                                tr("cayley.export.saved", path=path),
                                 parent=self)
         except Exception as exc:
-            messagebox.showerror("Errore", str(exc), parent=self)
+            messagebox.showerror(tr("error.generic"), str(exc), parent=self)
 
     def _export_latex_svg(self):
         """Apre il dialog di export LaTeX/SVG con A,B correnti."""
@@ -318,11 +317,11 @@ class CayleyDialog(tk.Toplevel):
             return
         path = __import__("tkinter.filedialog", fromlist=["asksaveasfilename"]).asksaveasfilename(
             parent=self, defaultextension=".html",
-            filetypes=[("HTML", "*.html"), ("Tutti", "*.*")],
-            title="Esporta tabella di Cayley HTML")
+            filetypes=[("HTML", "*.html"), (tr("common.filetype_all"), "*.*")],
+            title=tr("cayley.export.html_title"))
         if not path:
             return
-        self._status.set("Esportazione HTML in corso…")
+        self._status.set(tr("cayley.status.exporting_html"))
         self.update_idletasks()
         try:
             names = self._names
@@ -343,9 +342,9 @@ th{{background:#f0f4f0;font-weight:bold}}</style></head>
 <table><tr><th></th>{hdr}</tr>{rows}</table></body></html>"""
             with open(path, "w", encoding="utf-8") as f:
                 f.write(html_str)
-            self._status.set("Esportazione HTML completata.")
+            self._status.set(tr("cayley.status.exported_html"))
             __import__("webbrowser").open(f"file://{path}")
         except Exception as exc:
-            __import__("tkinter.messagebox", fromlist=["showerror"]).showerror("Errore", str(exc), parent=self)
+            __import__("tkinter.messagebox", fromlist=["showerror"]).showerror(
+                tr("error.generic"), str(exc), parent=self)
             self._status.set("")
-
