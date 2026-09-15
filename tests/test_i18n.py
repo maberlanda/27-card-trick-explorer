@@ -390,6 +390,104 @@ def test_sixth_block_export_catalogs_have_matching_keys():
     assert italian == english
 
 
+def test_seventh_block_explorer_labels_are_localized():
+    from gioco27.gui.i18n import set_language, tr
+
+    assert tr("explorer.title") == "Explorer Algebrico"
+    assert tr("explorer.tab.rewrite") == "Traccia riscrittura"
+    assert tr("explorer.normalized_form") == "Forma normalizzata"
+    assert tr("explorer.decomposition.open") == "Apri nell'Explorer"
+
+    set_language("en")
+    assert tr("explorer.title") == "Algebraic Explorer"
+    assert tr("explorer.tab.rewrite") == "Rewrite trace"
+    assert tr("explorer.normalized_form") == "Normalized form"
+    assert tr("explorer.decomposition.open") == "Open in Explorer"
+
+
+def test_seventh_block_explorer_dynamic_text_uses_named_placeholders():
+    from gioco27.gui.i18n import set_language, tr
+
+    italian = tr("explorer.status.result", period=6, signature="(1, 2, 3)")
+    assert italian == "Periodo: 6   Firma: (1, 2, 3)…"
+    assert tr("explorer.decomposition.progress", done=120, found=17) == \
+        "120 / 216 -- trovate: 17"
+
+    set_language("en")
+    english = tr("explorer.status.result", period=6, signature="(1, 2, 3)")
+    assert english == "Period: 6   Signature: (1, 2, 3)…"
+    assert tr("explorer.decomposition.loading", loaded=600, total=1200,
+              percent=50) == "Loading... 600 / 1200 (50%)"
+
+
+def test_seventh_block_explorer_preserves_mathematical_identifiers():
+    from gioco27.gui import decomposition
+    from gioco27.gui.i18n import set_language, tr
+
+    set_language("en")
+    values = [
+        tr("explorer.status.prompt"),
+        tr("explorer.canonical.subtitle"),
+        tr("explorer.button.decompositions_inverse"),
+        tr("explorer.decomposition.found", count=1, target="T⁻¹"),
+    ]
+    joined = " ".join(values)
+    for identifier in ("P1", "MSC", "J1", "K ∘ MSCᵏ", "T⁻¹",
+                       "A0", "A1", "A2", "GEN3"):
+        assert identifier in joined
+    assert decomposition._expr_triple(("SCD_U", "CDS_U", "DCS_U")) == \
+        "(SCD_U x CDS_U x DCS_U)"
+
+
+def test_seventh_block_explorer_fallback_and_language_switch(monkeypatch):
+    from gioco27.gui import i18n
+
+    i18n.set_language("en")
+    assert i18n.tr("explorer.tab.matrix") == "Matrix"
+    monkeypatch.delitem(i18n.CATALOGS["en"], "explorer.tab.matrix")
+    assert i18n.tr("explorer.tab.matrix") == "Matrice"
+    i18n.set_language("it")
+    assert i18n.tr("explorer.decomposition.searching") == "Ricerca in corso..."
+    i18n.set_language("en")
+    assert i18n.tr("explorer.decomposition.searching") == "Searching..."
+
+
+def test_seventh_block_explorer_ui_uses_i18n_without_real_windows():
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[1]
+    explorer = (root / "gioco27" / "gui" / "explorer_tab.py").read_text(
+        encoding="utf-8")
+    decomposition = (root / "gioco27" / "gui" / "decomposition.py").read_text(
+        encoding="utf-8")
+    assert "from .i18n import tr" in explorer
+    assert "from .i18n import tr" in decomposition
+    for key in ("explorer.title", "explorer.tab.numeric",
+                "explorer.status.result", "explorer.canonical.calculated"):
+        assert key in explorer
+    for key in ("explorer.decomposition.title",
+                "explorer.decomposition.progress",
+                "explorer.decomposition.table_status"):
+        assert key in decomposition
+    for hardcoded in ("Explorer Algebrico", "Espressione T",
+                      "Nessuna espressione inserita."):
+        assert hardcoded not in explorer
+    for hardcoded in ("Ricerca in corso...", "Apri nell'Explorer",
+                      "A2  (doppio clic -> Explorer)"):
+        assert hardcoded not in decomposition
+
+
+def test_seventh_block_explorer_catalogs_have_matching_keys():
+    from gioco27.gui import i18n
+
+    italian = {key for key in i18n.CATALOGS["it"]
+               if key.startswith("explorer.")}
+    english = {key for key in i18n.CATALOGS["en"]
+               if key.startswith("explorer.")}
+    assert italian == english
+    assert len(italian) == 91
+
+
 def _use_config_file(monkeypatch, tmp_path):
     from gioco27.core import config as config_module
 

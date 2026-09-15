@@ -13,6 +13,7 @@ from ..core.constants import PERM3
 from ..core.kronecker import try_kron_decompose, decomposition_context
 from .common import configure_matrix_tags, insert_colored
 from .decomposition import DecompositionDialog
+from .i18n import tr
 from .shuffle import ShuffleViewerFrame
 
 
@@ -30,13 +31,14 @@ class ExplorerTabMixin:
 
         hdr = ttk.Frame(outer)
         hdr.grid(row=0, column=0, sticky="ew", pady=(0, 6))
-        ttk.Label(hdr, text="🔬  Explorer Algebrico",
+        ttk.Label(hdr, text=f"🔬  {tr('explorer.title')}",
                   font=("Segoe UI", 13, "bold"), foreground="#1F4E79").pack(side="left")
         ttk.Label(hdr,
-                  text="   — analisi simbolica, traccia di riscrittura e forma canonica",
+                  text=f"   {tr('explorer.subtitle')}",
                   font=("Segoe UI", 10, "italic"), foreground="#555").pack(side="left")
 
-        inp_frame = ttk.LabelFrame(outer, text="  Espressione T  ", padding=(10, 6))
+        inp_frame = ttk.LabelFrame(
+            outer, text=f"  {tr('explorer.expression')}  ", padding=(10, 6))
         inp_frame.grid(row=1, column=0, sticky="ew", pady=(0, 8))
         inp_frame.columnconfigure(0, weight=1)
 
@@ -50,21 +52,21 @@ class ExplorerTabMixin:
 
         btn_row = ttk.Frame(inp_frame)
         btn_row.grid(row=1, column=0, sticky="w")
-        ttk.Button(btn_row, text="▶  Calcola", style="Action.TButton",
+        ttk.Button(btn_row, text=f"▶  {tr('button.calculate')}", style="Action.TButton",
                    command=self._explorer_calc).pack(side="left", padx=(0, 6))
-        ttk.Button(btn_row, text="✕  Pulisci", style="Preset.TButton",
+        ttk.Button(btn_row, text=f"✕  {tr('explorer.button.clear')}", style="Preset.TButton",
                    command=self._explorer_clear).pack(side="left", padx=(0, 12))
         self._decomp_btn = ttk.Button(
-            btn_row, text="🔍  Decomposizioni T⁻¹",
+            btn_row, text=f"🔍  {tr('explorer.button.decompositions_inverse')}",
             state="disabled", command=self._explorer_find_decompositions)
         self._decomp_btn.pack(side="left", padx=(6, 0))
         self._exp_export_btn = ttk.Button(
-            btn_row, text="📄  Esporta LaTeX / SVG",
+            btn_row, text=f"📄  {tr('explorer.button.export')}",
             state="disabled",
             command=self._explorer_export)
         self._exp_export_btn.pack(side="left", padx=(6, 0))
         self._explorer_status = tk.StringVar(
-            value="Scrivi un'espressione (es. P1 MSC J1) e premi  ▶ Calcola.")
+            value=tr("explorer.status.prompt"))
         ttk.Label(btn_row, textvariable=self._explorer_status,
                   font="GiocoHelp", foreground="#333",
                   wraplength=600).pack(side="left")
@@ -101,7 +103,8 @@ class ExplorerTabMixin:
     def _build_explorer_tab_shuffle(self, nb):
         """Tab '\U0001f3b4 Mescolamento' — simulazione visiva passo-per-passo."""
         self._shuffle_viewer = ShuffleViewerFrame(nb, self)
-        nb.add(self._shuffle_viewer, text="  \U0001f3b4  Mescolamento  ")
+        nb.add(self._shuffle_viewer,
+               text=f"  \U0001f3b4  {tr('explorer.tab.shuffle')}  ")
         return self._shuffle_viewer
 
 
@@ -131,17 +134,17 @@ class ExplorerTabMixin:
 
     def _build_explorer_tab_numeric(self, nb):
         fr = ttk.Frame(nb, padding=8)
-        nb.add(fr, text="  🔢 Numerico  ")
+        nb.add(fr, text=f"  🔢 {tr('explorer.tab.numeric')}  ")
 
-        self._exp_lbl(fr, "Forma normalizzata", bold=True)
+        self._exp_lbl(fr, tr("explorer.normalized_form"), bold=True)
         _f, self._exp_norm = self._exp_scrolled(fr, height=2)
         _f.pack(fill="x")
 
-        self._exp_lbl(fr, "Riepilogo passi di riscrittura")
+        self._exp_lbl(fr, tr("explorer.rewrite_summary"))
         _f, self._exp_steps_sum = self._exp_scrolled(fr, height=2)
         _f.pack(fill="x")
 
-        self._exp_lbl(fr, "Vettore di permutazione  T[0..26]", bold=True)
+        self._exp_lbl(fr, tr("explorer.permutation_vector"), bold=True)
         _f, self._exp_perm = self._exp_scrolled(fr, height=4)
         _f.pack(fill="x")
 
@@ -152,30 +155,30 @@ class ExplorerTabMixin:
 
         col_a = ttk.Frame(row2)
         col_a.grid(row=0, column=0, sticky="nsew", padx=(0, 8))
-        self._exp_lbl(col_a, "Periodo (ordine della permutazione)")
+        self._exp_lbl(col_a, tr("explorer.period"))
         _f, self._exp_period = self._exp_scrolled(col_a, height=1)
         _f.pack(fill="x")
-        self._exp_lbl(col_a, "Firma canonica")
+        self._exp_lbl(col_a, tr("explorer.canonical_signature"))
         _f, self._exp_sig = self._exp_scrolled(col_a, height=2)
         _f.pack(fill="x")
 
         col_b = ttk.Frame(row2)
         col_b.grid(row=0, column=1, sticky="nsew")
-        self._exp_lbl(col_b, "Permutazione inversa")
+        self._exp_lbl(col_b, tr("explorer.inverse_permutation"))
         _f, self._exp_inv = self._exp_scrolled(col_b, height=4)
         _f.pack(fill="x")
 
-        self._exp_lbl(fr, "Log / Errori")
+        self._exp_lbl(fr, tr("explorer.log_errors"))
         _f, self._exp_log = self._exp_scrolled(fr, height=3)
         _f.pack(fill="x")
 
     def _build_explorer_tab_rewrite(self, nb):
         fr = ttk.Frame(nb, padding=8)
-        nb.add(fr, text="  ✏️ Traccia riscrittura  ")
+        nb.add(fr, text=f"  ✏️ {tr('explorer.tab.rewrite')}  ")
         fr.rowconfigure(1, weight=1)
         fr.columnconfigure(0, weight=1)
         ttk.Label(fr,
-                  text="Ogni passo: regola applicata · espressione prima · dopo",
+                  text=tr("explorer.rewrite.subtitle"),
                   font=("Segoe UI", 10, "italic"),
                   foreground="#555").grid(row=0, column=0, sticky="w", pady=(0, 4))
         tf = ttk.Frame(fr)
@@ -194,9 +197,9 @@ class ExplorerTabMixin:
 
     def _build_explorer_tab_algebra(self, nb):
         fr = ttk.Frame(nb, padding=8)
-        nb.add(fr, text="  🧮 Forma algebrica  ")
+        nb.add(fr, text=f"  🧮 {tr('explorer.tab.algebra')}  ")
         fr.columnconfigure(0, weight=1)
-        ttk.Label(fr, text="Forma normale strutturata  K ∘ MSCᵏ",
+        ttk.Label(fr, text=tr("explorer.algebra.subtitle"),
                   font=("Segoe UI", 10, "italic"),
                   foreground="#555").pack(anchor="w", pady=(0, 6))
         row_meta = ttk.Frame(fr)
@@ -204,8 +207,8 @@ class ExplorerTabMixin:
         row_meta.columnconfigure(0, weight=1)
         row_meta.columnconfigure(1, weight=1)
         for col_i, (label, attr) in enumerate([
-            ("Tipo forma normale",    "_exp_nf_kind"),
-            ("Esponente MSC (mod 3)", "_exp_nf_msc"),
+            (tr("explorer.normal_form_type"), "_exp_nf_kind"),
+            (tr("explorer.msc_exponent_mod"), "_exp_nf_msc"),
         ]):
             box = ttk.LabelFrame(row_meta, text=f"  {label}  ", padding=(6, 4))
             box.grid(row=0, column=col_i, sticky="nsew", padx=4)
@@ -214,23 +217,23 @@ class ExplorerTabMixin:
                         padx=4, pady=2, relief="flat", state="disabled")
             w.pack(fill="x")
             setattr(self, attr, w)
-        self._exp_lbl(fr, "Forma simbolica leggibile", bold=True)
+        self._exp_lbl(fr, tr("explorer.readable_symbolic_form"), bold=True)
         _f, self._exp_nf_sym = self._exp_scrolled(fr, height=2)
         _f.pack(fill="x")
-        self._exp_lbl(fr, "Fattori Kronecker residui  P₁, P₂, P₃")
+        self._exp_lbl(fr, tr("explorer.residual_kronecker_factors"))
         _f, self._exp_nf_kron = self._exp_scrolled(fr, height=4)
         _f.pack(fill="x")
-        self._exp_lbl(fr, "Note")
+        self._exp_lbl(fr, tr("explorer.notes"))
         _f, self._exp_nf_notes = self._exp_scrolled(fr, height=3)
         _f.pack(fill="x")
 
     def _build_explorer_tab_steps(self, nb):
         fr = ttk.Frame(nb, padding=8)
-        nb.add(fr, text="  📋 Passi parziali  ")
+        nb.add(fr, text=f"  📋 {tr('explorer.tab.partial_steps')}  ")
         fr.rowconfigure(1, weight=1)
         fr.columnconfigure(0, weight=1)
         ttk.Label(fr,
-                  text="Permutazione parziale dopo ogni operazione elementare",
+                  text=tr("explorer.partial.subtitle"),
                   font=("Segoe UI", 10, "italic"),
                   foreground="#555").grid(row=0, column=0, sticky="w", pady=(0, 4))
         tf = ttk.Frame(fr)
@@ -249,26 +252,25 @@ class ExplorerTabMixin:
 
     def _build_explorer_tab_canonical(self, nb):
         fr = ttk.Frame(nb, padding=8)
-        nb.add(fr, text="  ⧆ Forma canonica  ")
+        nb.add(fr, text=f"  ⧆ {tr('explorer.tab.canonical')}  ")
         fr.columnconfigure(0, weight=1)
         ttk.Label(fr,
-                  text="Forma canonica globale  K ∘ MSCᵏ  "
-                       "(disponibile solo per espressioni senza J)",
+                  text=tr("explorer.canonical.subtitle"),
                   font=("Segoe UI", 10, "italic"),
                   foreground="#555").pack(anchor="w", pady=(0, 8))
         for label, attr in [
-            ("Disponibile",     "_exp_can_avail"),
-            ("Forma simbolica", "_exp_can_sym"),
+            (tr("explorer.available"), "_exp_can_avail"),
+            (tr("explorer.symbolic_form"), "_exp_can_sym"),
         ]:
             ttk.Label(fr, text=f"{label}:",
                       font=("Segoe UI", 10, "bold"),
                       foreground="#1F4E79").pack(anchor="w", pady=(4, 1))
-            h = 1 if label == "Disponibile" else 2
+            h = 1 if attr == "_exp_can_avail" else 2
             _f, w = self._exp_scrolled(fr, height=h)
             _f.pack(fill="x")
             setattr(self, attr, w)
         ttk.Separator(fr, orient="horizontal").pack(fill="x", pady=6)
-        self._exp_lbl(fr, "Fattori Kronecker  P₁, P₂, P₃", bold=True)
+        self._exp_lbl(fr, tr("explorer.kronecker_factors"), bold=True)
         self._exp_can_factors = []
         for lab in ("P₁", "P₂", "P₃"):
             row = ttk.Frame(fr)
@@ -281,10 +283,10 @@ class ExplorerTabMixin:
                         padx=4, pady=2, relief="flat", state="disabled")
             w.pack(side="left", fill="x", expand=True)
             self._exp_can_factors.append(w)
-        self._exp_lbl(fr, "Esponente MSC  k")
+        self._exp_lbl(fr, tr("explorer.msc_exponent"))
         _f, self._exp_can_exp = self._exp_scrolled(fr, height=1)
         _f.pack(fill="x")
-        self._exp_lbl(fr, "Note / Verifica coerenza")
+        self._exp_lbl(fr, tr("explorer.coherence_notes"))
         _f, self._exp_can_notes = self._exp_scrolled(fr, height=4)
         _f.pack(fill="x")
 
@@ -300,7 +302,7 @@ class ExplorerTabMixin:
         SMALL = 20
 
         outer = ttk.Frame(nb, padding=8)
-        nb.add(outer, text="  \U0001f4d0  Matrice  ")
+        nb.add(outer, text=f"  \U0001f4d0  {tr('explorer.tab.matrix')}  ")
         outer.columnconfigure(0, weight=1)
         outer.columnconfigure(1, weight=1)
         outer.rowconfigure(1, weight=1)
@@ -329,7 +331,7 @@ class ExplorerTabMixin:
             self._draw_empty_grid(cv, 27, CELL)
 
             cf_lbl = ttk.Label(panel,
-                               text="Forma canonica:  —",
+                               text=tr("explorer.matrix.canonical_empty"),
                                font=("Consolas", 9),
                                foreground="#555")
             cf_lbl.grid(row=2, column=0, sticky="w", padx=8, pady=(4, 2))
@@ -354,9 +356,9 @@ class ExplorerTabMixin:
             return cv, cf_lbl, fcvs, flbls
 
         (self._mat_cv_t,   self._mat_lbl_t,   self._mat_fcvs_t,   self._mat_flbls_t
-         ) = make_panel(0, "Permutazione  T", "T")
+         ) = make_panel(0, tr("explorer.matrix.permutation", symbol="T"), "T")
         (self._mat_cv_inv, self._mat_lbl_inv, self._mat_fcvs_inv, self._mat_flbls_inv
-         ) = make_panel(1, "Permutazione  T⁻\xb9", "T_inv")
+         ) = make_panel(1, tr("explorer.matrix.permutation", symbol="T⁻¹"), "T_inv")
 
         self._mat_cell_size = CELL
         self._mat_small_size = SMALL
@@ -397,12 +399,12 @@ class ExplorerTabMixin:
             try:
                 names = canonical_form.kron_factor_names()
                 sym   = canonical_form.symbolic()
-                cf_lbl.config(text=f"Forma canonica:  {sym}")
+                cf_lbl.config(text=tr("explorer.matrix.canonical", form=sym))
                 for i, (fcv, flbl) in enumerate(zip(fcvs, flbls)):
                     self._draw_perm_on_canvas(fcv, canonical_form.kron_factors[i], SMALL)
                     flbl.config(text=f"P{i+1} = {names[i]}")
             except Exception:
-                cf_lbl.config(text="Forma canonica:  errore nel calcolo")
+                cf_lbl.config(text=tr("explorer.matrix.canonical_error"))
         else:
             # Fallback: prova ad estrarre i fattori direttamente dalla matrice
             try:
@@ -411,8 +413,9 @@ class ExplorerTabMixin:
                 factors = None
             if factors is not None:
                 f3, f2, f1 = factors
-                cf_lbl.config(
-                    text=f"Forma canonica (da matrice):  {f3} ⊗ {f2} ⊗ {f1}")
+                cf_lbl.config(text=tr(
+                    "explorer.matrix.canonical_from_matrix",
+                    form=f"{f3} ⊗ {f2} ⊗ {f1}"))
                 for fcv, flbl, fname, fperm in zip(
                         fcvs, flbls,
                         [f"f₃={f3}", f"f₂={f2}", f"f₁={f1}"],
@@ -420,7 +423,7 @@ class ExplorerTabMixin:
                     self._draw_perm_on_canvas(fcv, fperm, SMALL)
                     flbl.config(text=fname)
             else:
-                cf_lbl.config(text="Forma canonica:  non disponibile")
+                cf_lbl.config(text=tr("explorer.matrix.canonical_unavailable"))
                 for fcv, flbl in zip(fcvs, flbls):
                     self._draw_empty_grid(fcv, 3, SMALL)
                     flbl.config(text="—")
@@ -464,7 +467,7 @@ class ExplorerTabMixin:
         for cv in (self._mat_cv_t, self._mat_cv_inv):
             self._draw_empty_grid(cv, 27, CELL)
         for lbl in (self._mat_lbl_t, self._mat_lbl_inv):
-            lbl.config(text="Forma canonica:  —")
+            lbl.config(text=tr("explorer.matrix.canonical_empty"))
         for fcvs, flbls in ((self._mat_fcvs_t, self._mat_flbls_t),
                              (self._mat_fcvs_inv, self._mat_flbls_inv)):
             for fcv, flbl in zip(fcvs, flbls):
@@ -490,8 +493,8 @@ class ExplorerTabMixin:
         perm     = r.get("perm")
         inv_perm = r.get("inverse_perm")
         if not inv_perm:
-            messagebox.showinfo("T⁻¹ non disponibile",
-                                "T⁻¹ non disponibile per questa espressione.")
+            messagebox.showinfo(tr("explorer.inverse_unavailable_title"),
+                                tr("explorer.inverse_unavailable"))
             return
         # Memorizza per il Protocollo
         self._last_T_perm   = perm
@@ -548,19 +551,20 @@ class ExplorerTabMixin:
         text = self._explorer_entry.get("1.0", "end-1c").strip()
         if not text:
             self._explorer_last_result = None
-            self._explorer_status.set("⚠  Nessuna espressione inserita.")
+            self._explorer_status.set(
+                f"⚠  {tr('explorer.status.empty_expression')}")
             return
         result = self._explorer_ctrl.process(text)
         self._explorer_last_result = result
         if not result["ok"]:
-            self._explorer_status.set("✗  Errore — vedi scheda Numerico (Log)")
+            self._explorer_status.set(f"✗  {tr('explorer.status.error_log')}")
             self._exp_set(self._exp_log, result["error"])
             self._explorer_clear_results(except_log=True)
         else:
             period = result["period"]
             sig    = result["signature"][:40]
             self._explorer_status.set(
-                f"✓  Periodo: {period}   Firma: {sig}…")
+                f"✓  {tr('explorer.status.result', period=period, signature=sig)}")
             self._exp_set(self._exp_log, "")
             self._explorer_display(result)
             if result.get('perm') is not None:
@@ -630,7 +634,7 @@ class ExplorerTabMixin:
         period = r.get("period")
         self._exp_set(self._exp_period,
                       str(period) if period is not None
-                      else "Non trovato (limite 200 iter.)")
+                      else tr("explorer.period_not_found"))
         self._exp_set(self._exp_sig, r.get("signature", ""))
         self._exp_set(self._exp_inv, self._fmt_perm27(r.get("inverse_perm")))
         # Traccia riscrittura
@@ -661,21 +665,21 @@ class ExplorerTabMixin:
         ]
         for idx, step in enumerate(trace):
             lines.append("═" * 72)
-            lines.append(f"  Passo {idx}  ·  {step.rule}")
+            lines.append(f"  {tr('explorer.rewrite.step', number=idx, rule=step.rule)}")
             lines.append(div)
             if step.detail:
                 det = str(step.detail).split("\n")
-                lines.append(f"  Nota : {det[0]}")
+                lines.append(f"  {tr('explorer.rewrite.note', detail=det[0])}")
                 lines.extend(f"  {d}" for d in det[1:])
                 lines.append("")
             if step.expr_before and step.expr_before != "—":
-                lines.append(f"  Prima: {step.expr_before}")
+                lines.append(f"  {tr('explorer.rewrite.before', expression=step.expr_before)}")
                 lines.append("")
-            lines.append(f"  Dopo : {step.expr_after}")
+            lines.append(f"  {tr('explorer.rewrite.after', expression=step.expr_after)}")
             state = getattr(step, "state_after", "")
             if state and state != step.expr_after:
                 lines.append("")
-                lines.append("  Espressione completa dopo il passo:")
+                lines.append(f"  {tr('explorer.rewrite.full_expression')}")
                 lines.append(f"      {state}")
             lines.append("")
         self._exp_set_colored(self._exp_rewrite, "\n".join(lines))
@@ -683,23 +687,26 @@ class ExplorerTabMixin:
         nf = r.get("normal_form")
         if nf:
             self._exp_set(self._exp_nf_kind, nf.kind)
-            msc_str = f"MSC^{nf.msc_exponent}" if nf.msc_exponent > 0 else "nessuno (exp=0)"
+            msc_str = (f"MSC^{nf.msc_exponent}" if nf.msc_exponent > 0
+                       else tr("explorer.no_msc_exponent"))
             self._exp_set(self._exp_nf_msc, msc_str)
             self._exp_set_colored(self._exp_nf_sym, nf.symbolic)
             if nf.kron_factors_repr:
                 kron_str = "\n".join(
                     f"  P{i+1} = {f}" for i, f in enumerate(nf.kron_factors_repr))
             else:
-                kron_str = "  (nessun blocco Kronecker residuo)"
+                kron_str = f"  {tr('explorer.no_residual_kronecker')}"
             self._exp_set_colored(self._exp_nf_kron, kron_str)
             notes = [
-                f"Già in forma normale: {'SÌ' if nf.already_normal else 'NO'}",
-                f"Tipo: {nf.kind}",
+                tr("explorer.normal_form_state",
+                   value=tr("explorer.value.yes") if nf.already_normal
+                   else tr("explorer.value.no")),
+                tr("explorer.normal_form_kind", kind=nf.kind),
             ]
             actual_perm = r.get("perm")
             if (actual_perm is not None
                     and list(actual_perm) == list(range(len(actual_perm)))):
-                notes.append("L'espressione è l'identità.")
+                notes.append(tr("explorer.identity"))
             self._exp_set(self._exp_nf_notes, "\n".join(notes))
         # Passi parziali
         descs = r.get("partial_descriptions", [])
@@ -710,17 +717,21 @@ class ExplorerTabMixin:
             step_lines.append("─" * 55)
             step_lines.append(f"  [{idx:2d}]  {desc}")
             inline = "  ".join(f"{v:2d}" for v in perm)
-            step_lines.append(f"  perm  :  {inline[:100]}")
+            step_lines.append(
+                f"  {tr('explorer.partial.permutation')}  :  {inline[:100]}")
             if sig2:
                 tail = "…" if len(sig2) > 70 else ""
-                step_lines.append(f"  firma :  {sig2[:70]}{tail}")
+                step_lines.append(
+                    f"  {tr('explorer.partial.signature')} :  {sig2[:70]}{tail}")
             step_lines.append("")
         self._exp_set_colored(self._exp_eval, "\n".join(step_lines))
         # Forma canonica
         avail  = r.get("canonical_available", False)
         cf     = r.get("canonical_form")
         cf_sym = r.get("canonical_symbolic", "")
-        self._exp_set(self._exp_can_avail, "SÌ" if avail else "NO")
+        self._exp_set(self._exp_can_avail,
+                      tr("explorer.value.yes") if avail
+                      else tr("explorer.value.no"))
         self._exp_set_colored(self._exp_can_sym, cf_sym if cf_sym else "—")
         if avail and cf is not None:
             for w, nm, pv in zip(self._exp_can_factors,
@@ -735,20 +746,20 @@ class ExplorerTabMixin:
         can_notes = []
         if not avail:
             can_notes.append(
-                "⚠  Forma canonica non disponibile.\n"
-                "   L'espressione contiene J o non è riducibile a K ∘ MSCᵏ.")
+                f"⚠  {tr('explorer.canonical.unavailable')}")
         else:
-            can_notes.append("✓  Forma canonica calcolata.")
+            can_notes.append(f"✓  {tr('explorer.canonical.calculated')}")
             if cf is not None:
                 try:
                     if cf.to_perm() == r.get("perm"):
-                        can_notes.append("✓  Coerenza verificata: perm canonica == perm calcolata.")
+                        can_notes.append(f"✓  {tr('explorer.canonical.coherent')}")
                     else:
-                        can_notes.append("⚠  Attenzione: perm canonica ≠ perm calcolata!")
+                        can_notes.append(f"⚠  {tr('explorer.canonical.mismatch')}")
                 except Exception as ex:
-                    can_notes.append(f"   (verifica non eseguita: {ex})")
+                    can_notes.append(
+                        f"   {tr('explorer.canonical.verification_skipped', detail=ex)}")
                 if cf.is_identity():
-                    can_notes.append("✓  L'espressione è l'identità.")
+                    can_notes.append(f"✓  {tr('explorer.identity')}")
         self._exp_set(self._exp_can_notes, "\n".join(can_notes))
         self._update_matrix_tab(r)
 

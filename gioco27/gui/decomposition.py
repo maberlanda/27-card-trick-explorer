@@ -12,6 +12,7 @@ Novita v3:
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 from .help_banner import HelpBanner
+from .i18n import tr
 import queue
 import threading
 from collections import defaultdict
@@ -57,7 +58,7 @@ class DecompositionDialog(tk.Toplevel):
         self._flat_job   = None
         self._cfg        = get_config()
 
-        self.title("Decomposizioni — A2 o MSC o A1 o MSC o A0 o MSC")
+        self.title(tr("explorer.decomposition.title"))
         self.geometry("1260x760")
         self.resizable(True, True)
         self._build_ui()
@@ -76,14 +77,13 @@ class DecompositionDialog(tk.Toplevel):
 
         HelpBanner(
             self,
-            "Elenca i modi di scrivere il TARGET come A₂∘MSC∘A₁∘MSC∘A₀∘MSC.",
-            long=("Cerca le decomposizioni di Kronecker: ogni riga è una "
-                  "sequenza di tre raccolte Aᵢ alternate al mescolamento MSC "
-                  "che riproduce esattamente la trasformazione cercata."),
+            tr("explorer.decomposition.help_short"),
+            long=tr("explorer.decomposition.help_long"),
             on_open_guide=getattr(self.master, "_open_guide", None),
         ).pack(fill="x", padx=10, pady=(0, 4))
 
-        self._status_var = tk.StringVar(value="Ricerca in corso...")
+        self._status_var = tk.StringVar(
+            value=tr("explorer.decomposition.searching"))
         ttk.Label(self, textvariable=self._status_var,
                   font=("Segoe UI", 10, "italic"),
                   foreground="#555", padding=(10, 0, 10, 4)).pack(fill="x")
@@ -95,7 +95,7 @@ class DecompositionDialog(tk.Toplevel):
             maximum=216, value=0, length=400)
         self._progress_bar.pack(side="left", fill="x", expand=True, padx=(0, 10))
         self._progress_lbl = ttk.Label(
-            prog_fr, text="  0 / 216  --  trovate: 0",
+            prog_fr, text=tr("explorer.decomposition.progress", done=0, found=0),
             font=("Courier New", 9), foreground="#444", width=30)
         self._progress_lbl.pack(side="left")
 
@@ -103,7 +103,8 @@ class DecompositionDialog(tk.Toplevel):
         ctrl_fr.pack(fill="x")
 
         # Scelta target
-        ttk.Label(ctrl_fr, text="Target:", font=("Segoe UI", 9)).pack(
+        ttk.Label(ctrl_fr, text=tr("explorer.decomposition.target"),
+                  font=("Segoe UI", 9)).pack(
             side="left", padx=(0, 4))
         ttk.Radiobutton(ctrl_fr, text="T⁻¹",
                         variable=self._target_inv, value=True,
@@ -112,17 +113,19 @@ class DecompositionDialog(tk.Toplevel):
                         variable=self._target_inv, value=False,
                         command=self._on_target_changed).pack(side="left", padx=(0, 20))
 
-        ttk.Checkbutton(ctrl_fr, text="Albero A0 -> A1 -> A2",
+        ttk.Checkbutton(ctrl_fr, text=tr("explorer.decomposition.tree_mode"),
                         variable=self._group_mode,
                         command=self._redisplay).pack(side="left")
 
-        ttk.Label(ctrl_fr, text="  Filtro A1:", font=("Segoe UI", 9)).pack(
+        ttk.Label(ctrl_fr, text=f"  {tr('explorer.decomposition.filter_a1')}",
+                  font=("Segoe UI", 9)).pack(
             side="left", padx=(20, 4))
         self._filter_var = tk.StringVar(value="")
         fe = ttk.Entry(ctrl_fr, textvariable=self._filter_var, width=22)
         fe.pack(side="left")
         fe.bind("<Return>", lambda e: self._redisplay())
-        ttk.Button(ctrl_fr, text="Applica", command=self._redisplay).pack(
+        ttk.Button(ctrl_fr, text=tr("explorer.decomposition.apply"),
+                   command=self._redisplay).pack(
             side="left", padx=4)
         ttk.Button(ctrl_fr, text="X",
                    command=lambda: (self._filter_var.set(""), self._redisplay()),
@@ -146,7 +149,7 @@ class DecompositionDialog(tk.Toplevel):
         self._tree.heading("#0", text="")
         self._tree.heading("a1", text="A0", command=lambda: self._sort_col("a1"))
         self._tree.heading("a2", text="A1", command=lambda: self._sort_col("a2"))
-        self._tree.heading("a3", text="A2  (doppio clic -> Explorer)",
+        self._tree.heading("a3", text=tr("explorer.decomposition.column_a2"),
                            command=lambda: self._sort_col("a3"))
         self._tree.column("#0", width=24,  stretch=False, minwidth=24)
         self._tree.column("a1", width=285, stretch=True,  minwidth=200)
@@ -174,10 +177,12 @@ class DecompositionDialog(tk.Toplevel):
 
         bf = ttk.Frame(self, padding=(8, 4))
         bf.pack(fill="x")
-        self._open_btn = ttk.Button(bf, text="Apri nell'Explorer", state="disabled",
+        self._open_btn = ttk.Button(
+            bf, text=tr("explorer.decomposition.open"), state="disabled",
                                     command=self._open_selected_in_explorer)
         self._open_btn.pack(side="left", padx=(0, 8))
-        self._export_mb = tk.Menubutton(bf, text="Esporta…", relief="raised",
+        self._export_mb = tk.Menubutton(
+            bf, text=tr("explorer.decomposition.export"), relief="raised",
                                         state="disabled")
         exp_menu = tk.Menu(self._export_mb, tearoff=0)
         exp_menu.add_command(label="📄  TXT",      command=self._export_txt)
@@ -185,7 +190,7 @@ class DecompositionDialog(tk.Toplevel):
         exp_menu.add_command(label="🌐  HTML",     command=self._export_html)
         self._export_mb["menu"] = exp_menu
         self._export_mb.pack(side="left", padx=(0, 8))
-        ttk.Button(bf, text="Chiudi", command=self.destroy).pack(side="left")
+        ttk.Button(bf, text=tr("button.close"), command=self.destroy).pack(side="left")
 
     # -------------------------------------------------- target / search -----
 
@@ -200,9 +205,10 @@ class DecompositionDialog(tk.Toplevel):
         self._node_expr.clear(); self._node_data.clear()
         self._open_btn.configure(state="disabled")
         self._export_mb.configure(state="disabled")
-        self._status_var.set("Ricerca in corso...")
+        self._status_var.set(tr("explorer.decomposition.searching"))
         self._progress_bar["value"] = 0
-        self._progress_lbl.configure(text="  0 / 216  --  trovate: 0")
+        self._progress_lbl.configure(
+            text=tr("explorer.decomposition.progress", done=0, found=0))
         self._start_search()
 
     def _start_search(self):
@@ -222,10 +228,11 @@ class DecompositionDialog(tk.Toplevel):
             self._accept_results(target, inverse, cached)
             n = len(cached)
             self._progress_bar["value"] = 216
-            self._progress_lbl.configure(text=f"216 / 216  --  trovate: {n:,}  (cache)")
+            self._progress_lbl.configure(text=tr(
+                "explorer.decomposition.progress_cache", done=216, found=f"{n:,}"))
             lbl = "T⁻¹" if self._target_inv.get() else "T"
-            self._status_var.set(
-                f"Trovate {n:,} decomposizioni di {lbl}  (da cache)")
+            self._status_var.set(tr(
+                "explorer.decomposition.found_cache", count=f"{n:,}", target=lbl))
             self._export_mb.configure(state="normal")
             self._redisplay()
             return
@@ -281,20 +288,22 @@ class DecompositionDialog(tk.Toplevel):
             pass
         try:
             if err_msg:
-                self._status_var.set("Errore: " + err_msg)
+                self._status_var.set(
+                    tr("explorer.decomposition.error", detail=err_msg))
                 return
             if last_done:
                 self._progress_bar["value"] = min(last_done, 216)
-                self._progress_lbl.configure(
-                    text=f"{min(last_done,216):>3} / 216  --  trovate: {last_found:,}")
+                self._progress_lbl.configure(text=tr(
+                    "explorer.decomposition.progress",
+                    done=f"{min(last_done,216):>3}", found=f"{last_found:,}"))
             if done_flag:
                 n   = len(self._results)
                 lbl = "T⁻¹" if inverse else "T"
                 self._progress_bar["value"] = 216
-                self._progress_lbl.configure(text=f"216 / 216  --  trovate: {n:,}")
-                self._status_var.set(
-                    f"Trovate {n:,} decomposizioni di {lbl}"
-                    f"  (A0, A1, A2 in GEN3 x GEN3 x GEN3)")
+                self._progress_lbl.configure(text=tr(
+                    "explorer.decomposition.progress", done=216, found=f"{n:,}"))
+                self._status_var.set(tr(
+                    "explorer.decomposition.found", count=f"{n:,}", target=lbl))
                 self._export_mb.configure(state="normal")
                 self._redisplay()
                 return
@@ -337,13 +346,15 @@ class DecompositionDialog(tk.Toplevel):
         by_a1 = defaultdict(lambda: defaultdict(list))
         for (a1, a2, a3) in results:
             by_a1[a1][a2].append(a3)
-        self._load_lbl.configure(
-            text=f"Albero: {len(by_a1)} nodi A0 (espandi per A1 -> A2)")
+        self._load_lbl.configure(text=tr(
+            "explorer.decomposition.tree_status", count=len(by_a1)))
         for a1, by_a2 in sorted(by_a1.items()):
             a1_disp = _disp(a1)
             n_a1    = sum(len(v) for v in by_a2.values())
             a1_node = tree.insert("", "end", text="",
-                                  values=(a1_disp, "", f"[{n_a1} comb.]"),
+                                  values=(a1_disp, "", tr(
+                                      "explorer.decomposition.combinations",
+                                      count=n_a1)),
                                   open=False, tags=("a1_node",))
             self._node_data[a1_node] = (a1, by_a2)
             tree.insert(a1_node, "end", iid=f"{a1_node}{_PLACEHOLDER}",
@@ -398,13 +409,14 @@ class DecompositionDialog(tk.Toplevel):
         try:
             if loaded < total:
                 pct = int(100 * loaded / total)
-                self._load_lbl.configure(
-                    text=f"Caricamento... {loaded:,} / {total:,}  ({pct}%)")
+                self._load_lbl.configure(text=tr(
+                    "explorer.decomposition.loading", loaded=f"{loaded:,}",
+                    total=f"{total:,}", percent=pct))
                 self._flat_job = self.after(
                     10, lambda: self._build_flat_async(results, loaded))
             else:
-                self._load_lbl.configure(
-                    text=f"Tabella: {total:,} righe  (doppio clic -> Explorer)")
+                self._load_lbl.configure(text=tr(
+                    "explorer.decomposition.table_status", count=f"{total:,}"))
                 self._flat_job = None
         except tk.TclError:
             pass
@@ -464,8 +476,9 @@ class DecompositionDialog(tk.Toplevel):
         lbl = "T-inv" if context["inverse"] else "T"
         path = filedialog.asksaveasfilename(
             parent=self, defaultextension=".txt",
-            filetypes=[("Testo", "*.txt"), ("Tutti", "*.*")],
-            title=f"Salva decomposizioni {lbl}")
+            filetypes=[(tr("explorer.decomposition.filetype_text"), "*.txt"),
+                       (tr("explorer.decomposition.filetype_all"), "*.*")],
+            title=tr("explorer.decomposition.save_title", target=lbl))
         if not path:
             return
         W = 28
@@ -484,12 +497,12 @@ class DecompositionDialog(tk.Toplevel):
         try:
             with open(path, "w", encoding="utf-8") as f:
                 f.write("\n".join(lines))
-            messagebox.showinfo("Esportato",
-                                "Salvate {:,} righe in:\n{}".format(
-                                    len(results), path),
+            messagebox.showinfo(tr("explorer.decomposition.exported_title"),
+                                tr("explorer.decomposition.exported",
+                                   count=f"{len(results):,}", path=path),
                                 parent=self)
         except OSError as exc:
-            messagebox.showerror("Errore", str(exc), parent=self)
+            messagebox.showerror(tr("error.generic"), str(exc), parent=self)
 
     def _export_csv(self):
         """Esporta le decomposizioni in CSV con separatore ;."""
@@ -501,8 +514,9 @@ class DecompositionDialog(tk.Toplevel):
         lbl = "T-inv" if context["inverse"] else "T"
         path = filedialog.asksaveasfilename(
             parent=self, defaultextension=".csv",
-            filetypes=[("CSV", "*.csv"), ("Tutti", "*.*")],
-            title=f"Salva decomposizioni {lbl} — CSV")
+            filetypes=[("CSV", "*.csv"),
+                       (tr("explorer.decomposition.filetype_all"), "*.*")],
+            title=tr("explorer.decomposition.save_title", target=f"{lbl} — CSV"))
         if not path:
             return
         try:
@@ -512,11 +526,12 @@ class DecompositionDialog(tk.Toplevel):
                 w.writerow(["#", "A0", "A1", "A2"])
                 for i, (a1, a2, a3) in enumerate(results, 1):
                     w.writerow([i, _disp(a1), _disp(a2), _disp(a3)])
-            messagebox.showinfo("Esportato",
-                                f"Salvate {len(results):,} righe in:\n{path}",
+            messagebox.showinfo(tr("explorer.decomposition.exported_title"),
+                                tr("explorer.decomposition.exported",
+                                   count=f"{len(results):,}", path=path),
                                 parent=self)
         except OSError as exc:
-            messagebox.showerror("Errore", str(exc), parent=self)
+            messagebox.showerror(tr("error.generic"), str(exc), parent=self)
 
     def _export_html(self):
         """Esporta le decomposizioni in HTML."""
@@ -528,8 +543,9 @@ class DecompositionDialog(tk.Toplevel):
         lbl = "T⁻¹" if context["inverse"] else "T"
         path = filedialog.asksaveasfilename(
             parent=self, defaultextension=".html",
-            filetypes=[("HTML", "*.html"), ("Tutti", "*.*")],
-            title=f"Salva decomposizioni {lbl} — HTML")
+            filetypes=[("HTML", "*.html"),
+                       (tr("explorer.decomposition.filetype_all"), "*.*")],
+            title=tr("explorer.decomposition.save_title", target=f"{lbl} — HTML"))
         if not path:
             return
         target = context["target"]
@@ -561,4 +577,4 @@ code{{font-family:'Courier New',monospace;font-size:0.9em}}</style></head>
             import webbrowser
             webbrowser.open(f"file://{path}")
         except OSError as exc:
-            messagebox.showerror("Errore", str(exc), parent=self)
+            messagebox.showerror(tr("error.generic"), str(exc), parent=self)

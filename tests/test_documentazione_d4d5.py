@@ -21,6 +21,30 @@ def _function(tree, name):
     return next(n for n in ast.walk(tree) if isinstance(n, ast.FunctionDef) and n.name == name)
 
 
+def _localized_literal(node):
+    """Resolve a literal/f-string tab label using the Italian i18n catalog."""
+    from gioco27.gui.i18n import CATALOGS
+
+    if isinstance(node, ast.Constant) and isinstance(node.value, str):
+        return node.value
+    if isinstance(node, ast.JoinedStr):
+        parts = []
+        for value in node.values:
+            if isinstance(value, ast.Constant) and isinstance(value.value, str):
+                parts.append(value.value)
+            elif (isinstance(value, ast.FormattedValue)
+                  and isinstance(value.value, ast.Call)
+                  and isinstance(value.value.func, ast.Name)
+                  and value.value.func.id == "tr"
+                  and value.value.args
+                  and isinstance(value.value.args[0], ast.Constant)):
+                parts.append(CATALOGS["it"][value.value.args[0].value])
+            else:
+                raise AssertionError("etichetta sotto-tab non risolvibile")
+        return "".join(parts)
+    raise AssertionError("etichetta sotto-tab non letterale/localizzata")
+
+
 @pytest.fixture
 def guide():
     tree = _tree("gioco27/gui/guide.py")
@@ -37,9 +61,10 @@ def test_d4_ordine_sottotab_come_costruiti_dalla_gui(guide):
     names = []
     for method in methods:
         function = _function(tree, method)
-        labels = [kw.value.value for n in ast.walk(function) if isinstance(n, ast.Call)
+        labels = [_localized_literal(kw.value)
+                  for n in ast.walk(function) if isinstance(n, ast.Call)
                   and isinstance(n.func, ast.Attribute) and n.func.attr == "add"
-                  for kw in n.keywords if kw.arg == "text" and isinstance(kw.value, ast.Constant)]
+                  for kw in n.keywords if kw.arg == "text"]
         assert len(labels) == 1
         names.append(_norm(labels[0]))
     assert len(names) == 7
