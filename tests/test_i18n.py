@@ -69,11 +69,11 @@ def test_main_window_title_is_localized():
     from gioco27.gui import app as app_module
     from gioco27.gui.i18n import set_language
 
-    assert app_module._window_title("3.1.2") == \
-        "Gioco delle 27 carte  v3.1.2  —  Analisi combinazioni"
+    assert app_module._window_title("3.1.3") == \
+        "Gioco delle 27 carte  v3.1.3  —  Analisi combinazioni"
     set_language("en")
-    assert app_module._window_title("3.1.2") == \
-        "27-card trick  v3.1.2  —  Combination analysis"
+    assert app_module._window_title("3.1.3") == \
+        "27-card trick  v3.1.3  —  Combination analysis"
 
 
 def test_main_notebook_labels_and_common_controls_are_localized():
