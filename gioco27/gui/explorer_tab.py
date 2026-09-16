@@ -643,24 +643,9 @@ class ExplorerTabMixin:
         div = "─" * 72
         # Legenda delle regole, sempre in testa
         lines += [
-            "  REGOLE DI RISCRITTURA",
+            tr("explorer.rewrite.legend_title"),
             div,
-            "  R1  Trasporto   MSC ∘ (a ⊗ b ⊗ c)  =  (c ⊗ a ⊗ b) ∘ MSC",
-            "  R2  Potenze     MSC ∘ MSC ∘ MSC  =  I          (esponente mod 3)",
-            "  R3  Fusione     (a⊗b⊗c) ∘ (d⊗e⊗f)  =  (a∘d ⊗ b∘e ⊗ c∘f)",
-            "  R4  Identità    I ∘ X  =  X ∘ I  =  X",
-            "",
-            "  «Prima/Dopo» mostrano il SOTTOTERMINE riscritto dal passo;",
-            "  «Espressione» è lo stato completo dopo il passo.",
-            "",
-            "  NOTA SULL'ORDINE — non confondere due cose diverse:",
-            "  • APPLICAZIONE della permutazione: da DESTRA a SINISTRA",
-            "    (il termine più a destra agisce per primo; vedi scheda",
-            "    «Passi parziali» per l'ordine fisico di esecuzione);",
-            "  • RISCRITTURA algebrica (questa scheda): le regole R1–R4 sono",
-            "    identità valide in qualunque punto dell'espressione, quindi",
-            "    l'ordine con cui vengono applicate (qui: da sinistra) è solo",
-            "    una strategia e non cambia né la T né la forma normale.",
+            *tr("explorer.rewrite.legend").split("\n"),
             "",
         ]
         for idx, step in enumerate(trace):

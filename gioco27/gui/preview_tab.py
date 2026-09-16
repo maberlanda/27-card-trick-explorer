@@ -9,6 +9,7 @@ from tkinter import ttk
 
 from ..core.constants import P_OPTS, J_OPTS
 from ..core.permutations import compute_T_full, kron_label
+from .i18n import tr
 
 
 class PreviewTabMixin:
@@ -30,17 +31,17 @@ class PreviewTabMixin:
         hdr_frame.grid(row=0, column=0, sticky="ew", pady=(0, 10))
 
         ttk.Label(hdr_frame,
-                  text="🔍  Anteprima singola combinazione",
+                  text=f"🔍  {tr('preview.title')}",
                   font=("Segoe UI", 13, "bold"),
                   foreground="#1a5276").pack(side="left")
         ttk.Label(hdr_frame,
-                  text="   — seleziona un valore per ciascun parametro e premi Calcola",
+                  text=f"   {tr('preview.subtitle')}",
                   font=("Segoe UI", 10, "italic"),
                   foreground="#555").pack(side="left")
 
         # ── Griglia parametri (3 stadi × 6 colonne) ──────────────────────────
         param_frame = ttk.LabelFrame(outer,
-                                      text="  Parametri  ",
+                                      text=f"  {tr('preview.parameters')}  ",
                                       padding=(12, 8))
         param_frame.grid(row=1, column=0, sticky="nsew")
         outer.rowconfigure(1, weight=0)
@@ -48,7 +49,8 @@ class PreviewTabMixin:
 
         self._prev_vars = []   # lista di 3 dict: nome → StringVar
 
-        col_labels = ["P0  (carte)", "P1  (terzine)", "P2  (pacchetti)",
+        col_labels = [tr("preview.column.p0"), tr("preview.column.p1"),
+                      tr("preview.column.p2"),
                       "J0", "J1", "J2"]
         col_opts   = [P_OPTS, P_OPTS, P_OPTS, J_OPTS, J_OPTS, J_OPTS]
         col_fg     = ["#1a5276","#1a5276","#1a5276",
@@ -62,7 +64,7 @@ class PreviewTabMixin:
 
         for s in range(3):
             ttk.Label(param_frame,
-                      text=f"Stadio {s}",
+                      text=tr("tab.stage", number=s),
                       font=("Segoe UI", 11, "bold"),
                       foreground="#333").grid(
                 row=s+1, column=0, sticky="e", padx=(4, 10), pady=6)
@@ -84,7 +86,7 @@ class PreviewTabMixin:
         btn_frame.grid(row=2, column=0, sticky="ew", pady=10)
 
         ttk.Button(btn_frame,
-                   text="  ▶  Calcola  ",
+                   text=f"  ▶  {tr('button.calculate')}  ",
                    style="Action.TButton",
                    command=self._calcola_anteprima).pack(side="left")
 
@@ -95,14 +97,14 @@ class PreviewTabMixin:
 
         self._prev_export_btn = ttk.Button(
             btn_frame,
-            text="📄  Esporta LaTeX / SVG",
+            text=f"📄  {tr('explorer.button.export')}",
             state="disabled",
             command=self._anteprima_export)
         self._prev_export_btn.pack(side="left", padx=8)
 
         # ── Area risultati ────────────────────────────────────────────────────
         res_frame = ttk.LabelFrame(outer,
-                                    text="  Risultato  ",
+                                    text=f"  {tr('preview.result')}  ",
                                     padding=(12, 10))
         res_frame.grid(row=3, column=0, sticky="nsew", pady=(0, 6))
         outer.rowconfigure(3, weight=1)
@@ -146,9 +148,7 @@ class PreviewTabMixin:
         txt.delete("1.0", "end")
         txt.insert(
             "end",
-            "Imposta P e J per i tre stadi qui sopra e premi  ▶ Calcola.\n"
-            "Qui compariranno le formule degli stadi e la permutazione T "
-            "risultante.",
+            tr("preview.placeholder"),
             "placeholder")
         txt.configure(state="disabled")
 
@@ -189,16 +189,16 @@ class PreviewTabMixin:
             p1,p2,p3,j1,j2,j3 = p
             lp = kron_label(p3, p2, p1)
             lj = kron_label(j3, j2, j1)
-            ins("head", f"Stadio {i}:  ")
+            ins("head", f"{tr('tab.stage', number=i)}:  ")
             ins("formula", f"Stage{i} = {lp} ∘ MSC ∘ {lj}\n")
             ins("head", f"  →  A{i} = ")
             ins("formula", f"{ai_lbl}\n")
 
         ins("head", "\n")
         ins("ok", "T = A2 ∘ MSC ∘ A1 ∘ MSC ∘ A0 ∘ MSC\n")
-        ins("head", "T simbolica:  ")
+        ins("head", f"{tr('preview.symbolic_t')}  ")
         ins("formula", f"{T_label}\n\n")
-        ins("head", "T permutazione:\n")
+        ins("head", f"{tr('preview.permutation_t')}\n")
         # Stampa in 3 righe da 9 elementi (blocchi ternari)
         for block in range(3):
             chunk = T_perm[block*9:(block+1)*9]

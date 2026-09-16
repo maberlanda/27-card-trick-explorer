@@ -7,6 +7,10 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from typing import Optional, List, Tuple
 
+# Etichette leggibili della traccia e dei passi parziali: seguono la lingua
+# attiva (stesso schema di combinations.py / detail_pdf.py).
+from ..gui.i18n import tr
+
 
 # =============================================================================
 # MOTORE ALGEBRICO E SIMBOLICO  (da gioco27_parser_explorer.py)
@@ -728,8 +732,9 @@ class Rewriter:
                             f"{repr(f1)} ∘ {repr(f2)} = {c.name}"
                             for f1, f2, c in zip(k1.children, k2.children,
                                                  composed_children))
-                        notes.append(f"{repr(k1)} ∘ {repr(k2)} → {repr(merged)}\n"
-                                     f"      fattore per fattore:  {per_factor}")
+                        notes.append(tr("explorer.trace.detail.kron_merge",
+                                        composition=f"{repr(k1)} ∘ {repr(k2)} → {repr(merged)}",
+                                        factors=per_factor))
                     new_terms.append(merged)
                     i += 2
                     made_progress = True
@@ -763,11 +768,10 @@ class Rewriter:
 
         # ── Passo 0: stato iniziale ────────────────────────────────────────
         trace.append(RewriteStep(
-            rule="Espressione iniziale",
+            rule=tr("explorer.trace.rule.initial"),
             expr_before="—",
             expr_after=expr_in,
-            detail=("Input originale dopo il parsing.\n"
-                    "      La composizione ∘ si legge da DESTRA a SINISTRA: il termine più a destra agisce per primo sul mazzo."),
+            detail=tr("explorer.trace.detail.initial"),
             state_after=expr_in,
         ))
 
@@ -776,11 +780,10 @@ class Rewriter:
         flat_str = repr(flat)
         if flat_str != expr_in:
             trace.append(RewriteStep(
-                rule="Appiattimento composizioni",
+                rule=tr("explorer.trace.rule.flatten"),
                 expr_before=expr_in,
                 expr_after=flat_str,
-                detail=("La composizione è associativa: le parentesi attorno a ∘ "
-                        "non cambiano il risultato e vengono eliminate."),
+                detail=tr("explorer.trace.detail.flatten"),
                 state_after=flat_str,
             ))
         current = flat
@@ -804,10 +807,10 @@ class Rewriter:
                 else:
                     cleaned = SymbolicExpr('compose', children=kept, ptype=27)
                 trace.append(RewriteStep(
-                    rule="Rimozione identità",
+                    rule=tr("explorer.trace.rule.identity_removal"),
                     expr_before=current_str,
                     expr_after=repr(cleaned),
-                    detail="I ∘ X = X ∘ I = X: gli atomi I vengono eliminati.",
+                    detail=tr("explorer.trace.detail.identity_removal"),
                     state_after=repr(cleaned),
                 ))
                 current = cleaned
@@ -848,17 +851,15 @@ class Rewriter:
                                                     ptype=27))
                     names = [c.name or "?" for c in k_node.children]
                     if names[0] == names[1] == names[2]:
-                        rot_note = "  — fattori tutti uguali: il blocco resta identico."
+                        rot_note = tr("explorer.trace.detail.same_factors")
                     else:
                         rot_note = "."
-                    detail_r1 = (
-                        "Regola R1:  MSC ∘ (a ⊗ b ⊗ c)  =  (c ⊗ a ⊗ b) ∘ MSC\n"
-                        "      MSC ruota le cifre ternarie della posizione, quindi nello scavalcarlo i fattori ruotano: l'ultimo passa in testa.\n"
-                        f"      Qui (a,b,c) = ({names[0]}, {names[1]}, {names[2]}) "
-                        f"→ ({names[2]}, {names[0]}, {names[1]}){rot_note}\n"
-                        "      Obiettivo: spostare tutte le MSC a destra, per poter fondere i blocchi Kronecker rimasti adiacenti.")
+                    detail_r1 = tr("explorer.trace.detail.msc_transport",
+                                   a=names[0], b=names[1], c=names[2],
+                                   note=rot_note)
                     trace.append(RewriteStep(
-                        rule=f"Trasporto MSC (passo {step_num})",
+                        rule=tr("explorer.trace.rule.msc_transport",
+                                number=step_num),
                         expr_before=before_expr,
                         expr_after=after_expr,
                         detail=detail_r1,
@@ -908,12 +909,11 @@ class Rewriter:
                                               ptype=27))
             if reduction_notes:
                 trace.append(RewriteStep(
-                    rule="Riduzione potenze MSC",
+                    rule=tr("explorer.trace.rule.msc_powers"),
                     expr_before=current_str,
                     expr_after=repr(reduced_expr),
-                    detail=("Regola R2:  MSC ∘ MSC ∘ MSC = I\n"
-                            "      (tre distribuzioni in colonne riportano il mazzo all'ordine di partenza: l'esponente conta mod 3)\n"
-                            "      " + "  |  ".join(reduction_notes)),
+                    detail=tr("explorer.trace.detail.msc_powers",
+                              reductions="  |  ".join(reduction_notes)),
                     state_after=repr(reduced_expr),
                 ))
             current = reduced_expr
@@ -923,12 +923,11 @@ class Rewriter:
         kron_notes = []
         composed, changed_kron = self._compose_kron_sequence(current, notes=kron_notes)
         if changed_kron:
-            detail = ("Regola R3:  (a ⊗ b ⊗ c) ∘ (d ⊗ e ⊗ f)  =  (a∘d ⊗ b∘e ⊗ c∘f)\n"
-                      "      (due blocchi Kronecker adiacenti si fondono componendo i fattori posizione per posizione)")
+            detail = tr("explorer.trace.detail.kron_compose")
             if kron_notes:
                 detail += "\n      " + "\n      ".join(kron_notes)
             trace.append(RewriteStep(
-                rule="Composizione Kronecker consecutivi",
+                rule=tr("explorer.trace.rule.kron_compose"),
                 expr_before=current_str,
                 expr_after=repr(composed),
                 detail=detail,
@@ -940,13 +939,11 @@ class Rewriter:
         # ── Passo finale: forma normale ────────────────────────────────────
         nf_info = self._analyze_normal_form(current)
         trace.append(RewriteStep(
-            rule="Forma normale finale",
+            rule=tr("explorer.trace.rule.final"),
             expr_before=current_str,
             expr_after=nf_info.symbolic,
-            detail=(f"Tipo: {nf_info.kind}  |  esponente MSC residuo: "
-                    f"{nf_info.msc_exponent} (mod 3)\n"
-                    "      Forma normale K ∘ MSCᵏ: un unico blocco Kronecker seguito da k ∈ {0,1,2} mescolamenti.\n"
-                    "      Due espressioni sono equivalenti se e solo se hanno la stessa forma normale."),
+            detail=tr("explorer.trace.detail.final", kind=nf_info.kind,
+                      exponent=nf_info.msc_exponent, exponents="{0,1,2}"),
             state_after=nf_info.symbolic,
         ))
 
@@ -1366,7 +1363,8 @@ class Evaluator:
             if node.kind == 'kron':
                 return repr(node)
             if node.kind == 'compose':
-                return f"composizione ({len(node.children)} termini)"
+                return tr("explorer.eval.composition_terms",
+                          count=len(node.children))
             return repr(node)
 
         def _eval_traced(node: SymbolicExpr) -> List[int]:
@@ -1375,7 +1373,8 @@ class Evaluator:
                 sig = AlgebraEngine.perm_signature(p)
                 steps.append(EvalStep(
                     index=len(steps),
-                    description=f"Atomo: {node.name or repr(node)}",
+                    description=tr("explorer.eval.atom",
+                                   name=node.name or repr(node)),
                     perm=p,
                     signature=sig
                 ))
@@ -1408,9 +1407,8 @@ class Evaluator:
                     sig = AlgebraEngine.perm_signature(current)
                     steps.append(EvalStep(
                         index=len(steps),
-                        description=(f"Composizione ∘: "
-                                     f"{_describe(child)}  ∘  "
-                                     f"[risultato precedente]"),
+                        description=tr("explorer.eval.composition",
+                                       term=_describe(child)),
                         perm=current,
                         signature=sig
                     ))
@@ -1566,7 +1564,7 @@ class Controller:
     def _format_trace_summary(self, trace: List[RewriteStep]) -> str:
         """Formatta la traccia come stringa sintetica per il pannello norm_steps."""
         if not trace:
-            return "Nessun passo di riscrittura."
+            return tr("explorer.trace.no_steps")
         return "  →  ".join(s.rule for s in trace)
 
 
