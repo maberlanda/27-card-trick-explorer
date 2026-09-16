@@ -10,6 +10,7 @@ from .parallel import (COSTO_PAGINA_PDF, ExportAnnullato, check_export_size,
                        run_export, _check_cancelled)
 from .permutations import (compute_stage, compute_R, kron_label, stage_label,
                             R_label, MAT3_P, MAT3_J)
+from ..gui.i18n import get_language, set_language, tr
 
 _log = get_logger(__name__)
 
@@ -188,7 +189,7 @@ def _render_combinations(c, params_list, start_index=1, progress_cb=None,
 
         y = MT
 
-        txt(f"Combinazione #{idx}", ML, y, size=7, bold=True,
+        txt(tr("export.document.pdf.combination", number=idx), ML, y, size=7, bold=True,
             col=colors.Color(0.25,0.25,0.25))
         y -= 13
 
@@ -214,7 +215,7 @@ def _render_combinations(c, params_list, start_index=1, progress_cb=None,
                 zip(params, stages)):
 
             sl = stage_label(i, p1,p2,p3, j1,j2,j3)
-            txt(f"Stadio {i}:  {sl}", ML, y, size=5.8, bold=True, col=RED)
+            txt(tr("export.document.pdf.stage", number=i, label=sl), ML, y, size=5.8, bold=True, col=RED)
             y -= 8
 
             for k, nm in enumerate([p1, p2, p3]):
@@ -284,12 +285,14 @@ def generate_pdf(path, filters, progress_cb=None, annullato=None):
     return n
 
 
-def _render_chunk_to_bytes(start_index, params_chunk):
+def _render_chunk_to_bytes(start_index, params_chunk, language=None):
     """
     Worker top-level (picklable): rende un blocco di combinazioni su un PDF in
     memoria e ne restituisce i byte. Eseguito nei processi figli.
     """
     import io
+    if language is not None:
+        set_language(language)
     buf = io.BytesIO()
     c, painter = _new_canvas(buf, ex=False)
     _render_combinations(c, params_chunk, start_index, painter=painter)
@@ -307,13 +310,15 @@ def generate_pdf_parallel(path, filters, n_workers=None, progress_cb=None,
     Fallback automatico al sequenziale se: n_workers<=1, poche combinazioni,
     pypdf assente, o errore di multiprocessing.
     """
+    from functools import partial
     return _pdf_parallel(path, filters,
                          total=count_combinations(filters),
                          items_iter=iter_combinations(filters),
                          sequential=lambda: generate_pdf(path, filters,
                                                          progress_cb,
                                                          annullato),
-                         worker=_render_chunk_to_bytes,
+                         worker=partial(_render_chunk_to_bytes,
+                                        language=get_language()),
                          n_workers=n_workers, progress_cb=progress_cb,
                          annullato=annullato,
                          what="Export PDF", cost_per_item=COSTO_PAGINA_PDF)
@@ -559,7 +564,7 @@ def _render_combinations_ex(c, params_list, start_index=1, progress_cb=None,
             lj = kron_label(j3, j2, j1)
 
             sl = stage_label(i, p1, p2, p3, j1, j2, j3)
-            txt(f"Stadio {i}:  {sl}", x_sx, y_stage, size=5.6,
+            txt(tr("export.document.pdf.stage", number=i, label=sl), x_sx, y_stage, size=5.6,
                 bold=True, col=RED)
 
             y_pnames = y_stage - 8
@@ -631,9 +636,11 @@ def generate_pdf_ex(path, filters, progress_cb=None, annullato=None):
     return n
 
 
-def _render_chunk_ex_to_bytes(start_index, params_chunk):
+def _render_chunk_ex_to_bytes(start_index, params_chunk, language=None):
     """Worker top-level (picklable): rende un blocco esteso su PDF in memoria."""
     import io
+    if language is not None:
+        set_language(language)
     buf = io.BytesIO()
     c, painter = _new_canvas(buf, ex=True)
     _render_combinations_ex(c, params_chunk, start_index, painter=painter)
@@ -654,13 +661,15 @@ def generate_pdf_ex_parallel(path, filters, n_workers=None, progress_cb=None,
     reportlab ha un costo non trascurabile. `plan_workers` limita i worker al
     carico effettivo (almeno 80 pagine ciascuno).
     """
+    from functools import partial
     return _pdf_parallel(path, filters,
                          total=count_combinations_ex(filters),
                          items_iter=iter_combinations_ex(filters),
                          sequential=lambda: generate_pdf_ex(path, filters,
                                                             progress_cb,
                                                             annullato),
-                         worker=_render_chunk_ex_to_bytes,
+                         worker=partial(_render_chunk_ex_to_bytes,
+                                        language=get_language()),
                          n_workers=n_workers, progress_cb=progress_cb,
                          annullato=annullato,
                          what="Export PDF esteso",

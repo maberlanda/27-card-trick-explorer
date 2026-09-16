@@ -45,6 +45,7 @@ from .parallel import (COSTO_COMBO_DETTAGLIO, ExportAnnullato, ExportTooLarge,
                        atomic_write, cronometro, imap_ordered, plan_workers,
                        _check_cancelled)
 from .permutations import compute_stage, mat_to_perm27
+from ..gui.i18n import get_language, set_language, tr
 
 _log = get_logger(__name__)
 
@@ -444,6 +445,8 @@ def render_detail_pages(c, params_list, start_index=1, progress_cb=None,
         return corpo
 
     def vtext(s, x, y, size=9):
+        s = tr({"ROVESCIAMENTO": "export.document.pdf.reversal",
+                "MOLTIPLICAZIONE": "export.document.pdf.multiplication"}.get(s, s))
         c.saveState()
         c.translate(x, y)
         c.rotate(90)
@@ -515,8 +518,8 @@ def render_detail_pages(c, params_list, start_index=1, progress_cb=None,
         s_ini = "  ".join(_card(ch)[0] for ch in d["dispositions"][0])
         s_fin = "  ".join(_card(ch)[0] for ch in d["dispositions"][-1])
         val_w = max(c.stringWidth(s_ini, FR, 8), c.stringWidth(s_fin, FR, 8)) + 10
-        for yy, lab, val in ((yI, "DISP INIZIALE", s_ini),
-                             (yF, "DISP FINALE", s_fin)):
+        for yy, lab, val in ((yI, tr("export.document.pdf.initial_arrangement"), s_ini),
+                             (yF, tr("export.document.pdf.final_arrangement"), s_fin)):
             cell(ML, yy - 4, lab_w, row_h)
             cell(ML + lab_w, yy - 4, val_w, row_h)
             Tt(lab, ML + 3, yy, size=8, bold=True)
@@ -566,9 +569,9 @@ def render_detail_pages(c, params_list, start_index=1, progress_cb=None,
             i_c, j_c, k_c = ci[0], ci[1], ci[2]
             Tt(f"M[{k_c}]xM[{j_c}]xM[{i_c}]", xm2, Y_MOLT, size=8)
             imp = [_stage_impilamento(p) for p in params]
-            Tt_fit("mescolamenti [" + "]x[".join(mesc) + "]",
+            Tt_fit(tr("export.document.pdf.shuffles") + " [" + "]x[".join(mesc) + "]",
                    xm2, Y_MOLT - 12, W_MOLT, size=8, bold=True)
-            Tt_fit("impilamenti [" + "]x[".join(imp) + "]",
+            Tt_fit(tr("export.document.pdf.stackings") + " [" + "]x[".join(imp) + "]",
                    xm2, Y_MOLT - 22, W_MOLT, size=6.5, col=GRAY)
         else:
             # Combinazione fuori dalle 1728 del gioco: NON esiste un indice
@@ -576,10 +579,10 @@ def render_detail_pages(c, params_list, start_index=1, progress_cb=None,
             # è una raccolta singola ma un prodotto di Kronecker P3×P2×P1.
             # Scrivere «M[SCD×SCD×SCD]» era falso: l'argomento di M è per
             # definizione un numero, e chi legge il PDF si aspetta l'indice.
-            Tt("raccolte (P₂×P₁×P₀):", xm2, Y_MOLT, size=7, col=GRAY)
+            Tt(tr("export.document.pdf.collections") + " (P₂×P₁×P₀):", xm2, Y_MOLT, size=7, col=GRAY)
             Tt_fit("[" + "]x[".join(mesc) + "]",
                    xm2, Y_MOLT - 11, W_MOLT, size=8, bold=True)
-            Tt_fit("indici M[...] non definiti: fuori dalle 1728 del gioco",
+            Tt_fit(tr("export.document.pdf.undefined_indices"),
                    xm2, Y_MOLT - 21, W_MOLT, size=6, col=GRAY)
 
         # POSIZIONE ASSO #1/#2/#3 — celle bordate come nel C
@@ -588,7 +591,7 @@ def render_detail_pages(c, params_list, start_index=1, progress_cb=None,
             cell(xm2, yy - 4, 104, 12)
             cell(xm2 + 104, yy - 4, 22, 12)
             cell(xm2 + 126, yy - 4, 30, 12)
-            Tt(f"POSIZIONE ASSO #{ai}", xm2 + 3, yy, size=8)
+            Tt(tr("export.document.pdf.ace_position", number=ai), xm2 + 3, yy, size=8)
             Tt(f"{mpos:2d}", xm2 + 108, yy, size=8, bold=True)
             Tt(sect, xm2 + 130, yy, size=8, bold=True)
             yy -= 13
@@ -709,22 +712,22 @@ def render_detail_pages(c, params_list, start_index=1, progress_cb=None,
 
         # Matrice 27x27 con intestazione stile C e info sotto
         xM = xm2 + 260
-        Tt(f"Matrice: {label}", xM, yB + 8, size=10, bold=True)
+        Tt(tr("export.document.pdf.matrix", label=label), xM, yB + 8, size=10, bold=True)
         tot = draw_matrix(d["T_matrix"], xM, yB - 4)
 
         yU = yB - 4 - tot - 12
         # `tot` è la larghezza della matrice: oltre comincia l'elenco delle
         # trasposte, e con le etichette lunghe delle combinazioni fuori dal
         # gioco la scritta ci finiva sopra.
-        Tt_fit(("Mescolamenti " if ci is not None else "Raccolte ")
+        Tt_fit((tr("export.document.pdf.shuffles") + " " if ci is not None else tr("export.document.pdf.collections") + " ")
                + " x ".join(mesc), xM, yU, tot, size=8, bold=True)
-        Tt(f"Periodo: {d['period']:3d}", xM, yU - 11, size=8)
+        Tt(tr("export.document.pdf.period", value=d['period']), xM, yU - 11, size=8)
 
         # Elenco matrici trasposte — a destra della matrice, su più colonne
         # (così il blocco resta dentro mezza pagina).
         xT = xM + tot + 16
         yT0 = yB - 8
-        Tt("Elenco matrici trasposte", xT, yT0, size=8)
+        Tt(tr("export.document.pdf.transpose_list"), xT, yT0, size=8)
         Tt("------------------------", xT, yT0 - 8, size=8)
         if trans:
             ROWS, COL_W, N_COLS = 20, 82, 3
@@ -737,7 +740,7 @@ def render_detail_pages(c, params_list, start_index=1, progress_cb=None,
                 Tt(f"... (+{len(trans) - max_shown} altre)",
                    xT, yT0 - 19 - ROWS * 9.5, size=7.5, col=GRAY)
         else:
-            Tt("Trasposta non trovata.", xT, yT0 - 19, size=7.5)
+            Tt(tr("export.document.pdf.transpose_not_found"), xT, yT0 - 19, size=7.5)
 
     slot = 0
     idx = start_index - 1
@@ -828,10 +831,11 @@ def generate_detail_pdf(path, filters, progress_cb=None, annullato=None):
 def _detail_chunk_to_bytes(task):
     """
     Worker top-level (picklable): rende un blocco su PDF in memoria.
-    `task` = (start_index, params, labels, transposes).
+    `task` = (start_index, params, labels, transposes, language).
     """
     import io
-    start_index, params_chunk, labels_chunk, trans_chunk = task
+    start_index, params_chunk, labels_chunk, trans_chunk, language = task
+    set_language(language)
     buf = io.BytesIO()
     c, painter = _new_detail_canvas(buf)
     render_detail_pages(c, params_chunk, start_index,
@@ -880,7 +884,8 @@ def generate_detail_pdf_parallel(path, filters, n_workers=None,
         while s < total:
             _check_cancelled(annullato)
             e = min(s + size, total)
-            yield (s + 1, all_params[s:e], labels[s:e], transposes[s:e])
+            yield (s + 1, all_params[s:e], labels[s:e], transposes[s:e],
+                   get_language())
             s = e
 
     try:

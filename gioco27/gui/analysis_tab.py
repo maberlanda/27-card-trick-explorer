@@ -15,6 +15,7 @@ from ..core.combinations import iter_combinations_ex, count_combinations_ex
 from ..core.permutations import make_csv_row
 from .common import configure_matrix_tags, insert_colored, EtaEstimator, run_in_thread
 from .i18n import tr
+from .i18n import get_language
 
 
 class AnalysisTabMixin:
@@ -540,15 +541,14 @@ class AnalysisTabMixin:
             n_perm = len(self._analisi_risultati)
             n_tot  = sum(r["n_sim"] for r in self._analisi_risultati)
             html_str = (
-                f"<!DOCTYPE html><html lang='it'><head><meta charset='UTF-8'>"
-                f"<title>Analisi molteplicità</title>"
+                f"<!DOCTYPE html><html lang='{get_language()}'><head><meta charset='UTF-8'>"
+                f"<title>{tr('export.document.analysis.title')}</title>"
                 f"<style>{css}</style></head><body>"
-                f"<h2>Analisi molteplicità permutazioni</h2>"
-                f"<p><b>{n_tot:,}</b> combinazioni → "
-                f"<b>{n_perm:,}</b> permutazioni distinte</p>"
+                f"<h2>{tr('export.document.analysis.heading')}</h2>"
+                f"<p>{tr('export.document.analysis.summary', combinations=n_tot, permutations=n_perm)}</p>"
                 f"<table><thead><tr>"
-                f"<th>Molt.</th><th>T_permutazione [0..26]</th>"
-                f"<th>Sequenze Stage distinte</th>"
+                f"<th>{tr('export.document.analysis.multiplicity')}</th><th>T_permutazione [0..26]</th>"
+                f"<th>{tr('export.document.analysis.distinct_stages')}</th>"
                 f"</tr></thead><tbody>"
                 f"{rows}</tbody></table></body></html>"
             )

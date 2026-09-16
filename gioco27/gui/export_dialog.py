@@ -132,9 +132,9 @@ class ExportDialog(tk.Toplevel):
                     f"\\bottomrule\n"
                     f"\\end{{tabular}}\n"
                     "\\end{center}\n")
-        return ("% Richiede: \\usepackage{booktabs}\n\n"
+        return ("% " + tr("export.document.latex.requires_booktabs") + "\n\n"
                 + tbl(perm, lb) + "\n" + tbl(inv, lb + "^{-1}") + "\n"
-                + "% Notazione ciclica:\n"
+                + "% " + tr("export.document.cycle_notation") + ":\n"
                 + f"% ${lb} = {self._cyclenot(perm)}$\n"
                 + f"% ${lb}^{{-1}} = {self._cyclenot(inv)}$\n"
                 + f"% $\\mathrm{{ord}}({lb}) = {order_of(perm)}$\n")
@@ -148,16 +148,16 @@ class ExportDialog(tk.Toplevel):
         rows = []
         for i, c in enumerate(cycs, 1):
             inner = " \\to ".join(str(x) for x in c)
-            suffix = "  [fisso]" if len(c) == 1 else ""
+            suffix = "  [" + tr("export.document.fixed") + "]" if len(c) == 1 else ""
             rows.append(f"  {i} & {len(c)} & $({inner})${suffix} \\\\")
-        return (f"% Richiede: \\usepackage{{booktabs, amsmath}}\n\n"
+        return ("% " + tr("export.document.latex.requires_booktabs_amsmath") + "\n\n"
                 f"$\\mathrm{{ord}}({lb}) = {ord_}$\n\n"
-                f"Tipo: {type_str}\n\n"
+                f"{tr('export.document.cycle_type', value=type_str)}\n\n"
                 f"$${lb} = {self._cyclenot(perm)}$$\n\n"
                 "\\begin{center}\n"
                 "\\begin{tabular}{rrl}\n"
                 "\\toprule\n"
-                "  \\# & len & ciclo \\\\\n"
+                "  \\# & " + tr("export.document.length") + " & " + tr("export.document.cycle") + " \\\\\n"
                 "\\midrule\n"
                 + "\n".join(rows) + "\n"
                 "\\bottomrule\n"
@@ -185,7 +185,7 @@ class ExportDialog(tk.Toplevel):
                f'<rect width="{W}" height="{H}" fill="#FAFBFC"/>',
                f'<text x="{W//2}" y="20" text-anchor="middle" '
                f'font-family="Segoe UI,Arial" font-size="13" font-weight="bold" '
-               f'fill="#1a3a5c">Permutazione {lb} — diagramma freccia</text>']
+               f'fill="#1a3a5c">{tr("export.document.svg.arrow_title", label=lb)}</text>']
 
         for i in range(N):
             x = M + i*step; col = c4card.get(i, "#999")
@@ -207,21 +207,22 @@ class ExportDialog(tk.Toplevel):
                         f'fill="none" opacity="0.65"/>')
 
         svg.append(f'<text x="{M}" y="{YTOP-16}" font-family="Segoe UI,Arial" '
-                    f'font-size="10" fill="#555">posizione iniziale i</text>')
+                    f'font-size="10" fill="#555">{tr("export.document.svg.initial_position")}</text>')
         svg.append(f'<text x="{M}" y="{YBOT+26}" font-family="Segoe UI,Arial" '
-                    f'font-size="10" fill="#555">posizione finale {lb}(i)</text>')
+                    f'font-size="10" fill="#555">{tr("export.document.svg.final_position", label=lb)}</text>')
         svg.append('</svg>')
         return "\n".join(svg)
 
     def _latex_decomp(self, lb):
         if not self._decomps:
-            return ("% Nessuna decomposizione disponibile.\n"
-                    "% Aprire prima 'Tutte le decomposizioni' nell'Explorer.")
+            return ("% " + tr("export.document.no_decompositions") + "\n"
+                    "% " + tr("export.document.open_decompositions"))
         exponent = "^{-1}" if self._decomposition_context["inverse"] else ""
         lines = [
-            f"% Decomposizioni $\\mathrm{{{lb}}}{exponent}$ — prime "
-            f"{min(len(self._decomps),200)}",
-            "% Richiede: \\usepackage{booktabs, longtable}",
+            "% " + tr("export.document.latex.decompositions",
+                        target=f"$\\mathrm{{{lb}}}{exponent}$",
+                        count=min(len(self._decomps), 200)),
+            "% " + tr("export.document.latex.requires_booktabs_longtable"),
             "",
             "\\begin{longtable}{r l l l}",
             "\\toprule",
@@ -241,8 +242,8 @@ class ExportDialog(tk.Toplevel):
                          f"& $\\scriptscriptstyle {fmt(a3)}$ \\\\")
         if len(self._decomps) > 200:
             lines.append(f"  \\multicolumn{{4}}{{c}}"
-                         f"{{\\emph{{... e altre "
-                         f"{len(self._decomps)-200} decomposizioni}}}} \\\\")
+                         f"{{\\emph{{" + tr("export.document.more_decompositions",
+                                               count=len(self._decomps) - 200) + "}}} \\\\")
         lines.append("\\end{longtable}")
         return "\n".join(lines)
 
@@ -254,27 +255,28 @@ class ExportDialog(tk.Toplevel):
         p_s  = "  " + "  ".join(f"{v:2d}" for v in perm)
         iv_s = "  " + "  ".join(f"{v:2d}" for v in inv)
         lines = [
-            f"PERMUTAZIONE {lb}  —  generato da gioco27",
+            tr("export.document.txt.permutation", label=lb),
             "=" * 64, "",
-            f"Indici:{idx}",
+            f"{tr('export.document.txt.indices')}:{idx}",
             f"{lb}:     {p_s}",
             f"{lb}^-1:  {iv_s}", "",
-            f"Ordine di {lb}: {ord_}",
-            "Tipo di ciclo: " +
+            tr("export.document.txt.order", label=lb, order=ord_),
+            tr("export.document.cycle_type", value="") + " " +
                 "  ".join(f"{cnt}×(len {l})" for l,cnt in sorted(ct.items())), "",
-            "Notazione ciclica:",
+            tr("export.document.cycle_notation") + ":",
             f"  {lb}     = {self._cyclenot(perm)}",
             f"  {lb}^-1 = {self._cyclenot(inv)}", "",
-            "Cicli disgiunti:",
+            tr("export.document.txt.disjoint_cycles") + ":",
         ]
         for i, c in enumerate(cycs, 1):
             s = " → ".join(f"C{x:02d}" for x in c)
-            suf = "  [fisso]" if len(c)==1 else ""
+            suf = "  [" + tr("export.document.fixed") + "]" if len(c)==1 else ""
             lines.append(f"  {i:3d}.  ({s}){suf}")
         if self._decomps:
             target_label = lb + ("^-1" if self._decomposition_context["inverse"] else "")
-            lines += ["", f"Decomposizioni Kronecker di {target_label}: {len(self._decomps)}",
-                       "(prime 10)", ""]
+            lines += ["", tr("export.document.txt.decompositions", label=target_label,
+                                count=len(self._decomps)),
+                       tr("export.document.first_items", count=10), ""]
             for i,(a1,a2,a3) in enumerate(self._decomps[:10],1):
                 a1s="({} x {} x {})".format(*a1)
                 a2s="({} x {} x {})".format(*a2)

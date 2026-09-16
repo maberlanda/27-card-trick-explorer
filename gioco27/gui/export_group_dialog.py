@@ -229,8 +229,7 @@ class CayleyExportDialog(_PreviewExportDialog):
             f'<rect width="{W}" height="{H}" fill="#FFFFFF"/>',
             f'<text x="{W/2:.0f}" y="22" text-anchor="middle" '
             f'font-family="Segoe UI,Arial" font-size="15" font-weight="bold" '
-            f'fill="#1a3a5c">Tavola di Cayley {n}×{n} — '
-            f'colore = elemento risultante A∘B</text>',
+            f'fill="#1a3a5c">{tr("export.document.cayley.svg_title", size=n)}</text>',
         ]
         x0 = M
         y0 = M + 6
@@ -252,10 +251,10 @@ class CayleyExportDialog(_PreviewExportDialog):
         out.append(f'<rect x="{x0}" y="{y0}" width="{n*cell}" height="{n*cell}" '
                    f'fill="none" stroke="#333" stroke-width="1"/>')
         out.append(f'<text x="{x0}" y="{y0 - 4}" font-family="Segoe UI,Arial" '
-                   f'font-size="11" fill="#555">B  (colonna j) →</text>')
+                   f'font-size="11" fill="#555">{tr("export.document.cayley.column_axis")}</text>')
         out.append(f'<text x="{x0}" y="{y0 + n*cell + 18}" '
                    f'font-family="Segoe UI,Arial" font-size="11" fill="#555">'
-                   f'A  (riga i) ↓ — |G| = {n}, struttura S₃³</text>')
+                   f'{tr("export.document.cayley.row_axis", size=n)}</text>')
         out.append('</svg>')
         return "\n".join(out)
 
@@ -265,11 +264,11 @@ class CayleyExportDialog(_PreviewExportDialog):
         cay = gd.cayley
         n = len(gd.kron_arr)
         lines = [
-            "% Tavola di Cayley di G = GEN3^3 come griglia colorata.",
-            "% Richiede: \\usepackage{tikz}",
-            f"% NOTA: figura grande ({n}x{n} = {n*n} celle); la compilazione",
-            "% puo' richiedere qualche secondo e \\usepackage{tikz} aggiornato.",
-            "% Ogni cella (i,j) e' colorata in base all'indice dell'elemento A o B.",
+            "% " + tr("export.document.cayley.latex.grid"),
+            "% " + tr("export.document.latex.requires_tikz"),
+            "% " + tr("export.document.cayley.latex.large_figure", size=n, cells=n * n),
+            "% " + tr("export.document.cayley.latex.compile_note"),
+            "% " + tr("export.document.cayley.latex.cell_color"),
             "",
             "\\begin{center}",
             "\\begin{tikzpicture}[x=2.2pt,y=2.2pt]",
@@ -341,11 +340,11 @@ class CayleyExportDialog(_PreviewExportDialog):
         k = len(d["sub_list"])
         commute = d["ab"] == d["ba"]
         rel = "=" if commute else r"\neq"
-        comm_tail = " (identità)." if d["comm"] == d["iden"] else "."
+        comm_tail = tr("export.document.cayley.identity_tail") if d["comm"] == d["iden"] else "."
         lines = [
-            "% Calcolo prodotti in G = GEN3^3.",
-            "% Richiede: \\usepackage{amsmath}",
-            "% A o B = esegui prima B, poi A (composizione da destra a sinistra).",
+            "% " + tr("export.document.cayley.latex.calculation"),
+            "% " + tr("export.document.latex.requires_amsmath"),
+            "% " + tr("export.document.cayley.latex.composition_note"),
             "",
             "\\begin{align*}",
             f"  A      &= {_tex_name(nm(d['ia']))} "
@@ -360,26 +359,25 @@ class CayleyExportDialog(_PreviewExportDialog):
             f"& B^{{-1}} &= {_tex_name(nm(d['inv_b']))} \\\\",
             "\\end{align*}",
             "",
-            f"Commutano: \\textbf{{{'sì' if commute else 'no'}}} "
+            f"{tr('export.document.cayley.commute')}: \\textbf{{{tr('common.yes') if commute else tr('common.no')}}} "
             f"($A\\circ B {rel} B\\circ A$). "
             f"Commutatore $[A,B]=A^{{-1}}\\circ B^{{-1}}\\circ A\\circ B = "
             f"{_tex_name(nm(d['comm']))}$" + comm_tail,
             "",
-            "Potenze di $A$:",
+            tr("export.document.cayley.powers"),
             "\\[ " + r" \;\to\; ".join(
                 (r"\mathrm{e}" if p == "e" else _tex_name(p)) for p in d["pows"])
             + " \\]",
             "",
-            f"Sottogruppo $\\langle A,B\\rangle$ di ordine $\\mathbf{{{k}}}$, "
-            f"indice $[G:\\langle A,B\\rangle]={n // k}$, "
-            f"{'abeliano' if d['abelian'] else 'non abeliano'}"
-            f"{', genera tutto $G$' if k == n else ''} "
-            f"(Lagrange: ${k}$ divide $|G|={n}$).",
+            tr("export.document.cayley.subgroup", order=k, index=n // k,
+               abelian=tr("export.document.cayley.abelian") if d['abelian'] else tr("export.document.cayley.non_abelian"),
+               generates=tr("export.document.cayley.generates_group") if k == n else "",
+               size=n),
             "",
             "\\begin{center}\\small",
             "\\begin{tabular}{r l}",
             "\\hline",
-            "  \\# & elemento di $\\langle A,B\\rangle$ \\\\",
+            "  \\# & " + tr("export.document.cayley.subgroup_element") + " \\\\",
             "\\hline",
         ]
         for j, idx in enumerate(d["sub_list"], 1):
@@ -411,17 +409,17 @@ class ConjugacyExportDialog(_PreviewExportDialog):
         orders = gd.orders
         center = set(gd.center)
         lines = [
-            "% Classi di coniugio di G = GEN3^3 (|G| = 216, G = S3^3).",
-            "% Richiede: \\usepackage{booktabs, longtable}",
+            "% " + tr("export.document.conjugacy.latex.classes"),
+            "% " + tr("export.document.latex.requires_booktabs_longtable"),
             "",
-            f"$|G| = {len(gd.kron_arr)}$, \\quad classi di coniugio: "
+            f"$|G| = {len(gd.kron_arr)}$, \\quad {tr('export.document.conjugacy.class_count')}: "
             f"${len(classes)}$, \\quad $|Z(G)| = {len(gd.center)}$.",
             "",
-            "% --- Riepilogo delle classi ---",
+            "% --- " + tr("export.document.conjugacy.summary") + " ---",
             "\\begin{center}",
             "\\begin{tabular}{r r r l l}",
             "\\toprule",
-            "  \\# & dim & ord & tipo $(f_3,f_2,f_1)$ & rappresentante \\\\",
+            "  \\# & " + tr("export.document.dimension") + " & " + tr("export.document.order") + " & " + tr("export.document.type") + " $(f_3,f_2,f_1)$ & " + tr("export.document.representative") + " \\\\",
             "\\midrule",
         ]
         for i, c in enumerate(classes, 1):
@@ -435,15 +433,15 @@ class ConjugacyExportDialog(_PreviewExportDialog):
             "\\bottomrule",
             "\\end{tabular}",
             "\\end{center}",
-            "% $\\star$ = classe contenuta nel centro Z(G).",
+            "% $\\star$ = " + tr("export.document.conjugacy.center_class"),
             "",
-            "% --- Elementi di ciascuna classe ---",
+            "% --- " + tr("export.document.conjugacy.class_elements") + " ---",
             "\\begin{longtable}{r r l}",
             "\\toprule",
-            "  classe & \\# & elemento \\\\",
+            "  " + tr("export.document.conjugacy.class") + " & \\# & " + tr("export.document.element") + " \\\\",
             "\\midrule\\endfirsthead",
             "\\midrule",
-            "  classe & \\# & elemento \\\\",
+            "  " + tr("export.document.conjugacy.class") + " & \\# & " + tr("export.document.element") + " \\\\",
             "\\midrule\\endhead",
             "\\bottomrule\\endlastfoot",
         ]
@@ -480,8 +478,7 @@ class ConjugacyExportDialog(_PreviewExportDialog):
             f'<rect width="{W}" height="{H}" fill="#FFFFFF"/>',
             f'<text x="{W/2:.0f}" y="26" text-anchor="middle" '
             f'font-family="Segoe UI,Arial" font-size="15" font-weight="bold" '
-            f'fill="#1a3a5c">216 elementi di G — colore = classe di coniugio '
-            f'({ncls} classi)</text>',
+            f'fill="#1a3a5c">{tr("export.document.conjugacy.svg_grid_title", count=ncls)}</text>',
         ]
         for pos, e in enumerate(order):
             r = pos // cols
@@ -497,12 +494,9 @@ class ConjugacyExportDialog(_PreviewExportDialog):
         eq = " + ".join(f"{sz}·{cnt}" for sz, cnt in sorted(size_counts.items()))
         yb = M + 14 + rows * cell + 24
         out.append(f'<text x="{M}" y="{yb}" font-family="Segoe UI,Arial" '
-                   f'font-size="12" fill="#444">Equazione delle classi:  '
-                   f'216 = {eq}</text>')
+                   f'font-size="12" fill="#444">{tr("export.document.conjugacy.class_equation", equation=eq)}</text>')
         out.append(f'<text x="{M}" y="{yb + 20}" font-family="Segoe UI,Arial" '
-                   f'font-size="11" fill="#666">Celle dello stesso colore = '
-                   f'elementi coniugati (stessa struttura a meno di rinominare '
-                   f'le posizioni).</text>')
+                   f'font-size="11" fill="#666">{tr("export.document.conjugacy.svg_grid_note")}</text>')
         out.append('</svg>')
         return "\n".join(out)
 
@@ -526,7 +520,7 @@ class ConjugacyExportDialog(_PreviewExportDialog):
             f'<rect width="{W}" height="{H}" fill="#FFFFFF"/>',
             f'<text x="{W/2:.0f}" y="30" text-anchor="middle" '
             f'font-family="Segoe UI,Arial" font-size="15" font-weight="bold" '
-            f'fill="#1a3a5c">Dimensioni delle classi di coniugio</text>',
+            f'fill="#1a3a5c">{tr("export.document.conjugacy.svg_hist_title")}</text>',
         ]
         base_y = M_T + plot_h
         # assi
@@ -559,13 +553,13 @@ class ConjugacyExportDialog(_PreviewExportDialog):
                        f'{cnt}</text>')
             out.append(f'<text x="{x+bw/2:.1f}" y="{base_y+20:.1f}" '
                        f'text-anchor="middle" font-family="Segoe UI,Arial" '
-                       f'font-size="12" fill="#333">dim {sz}</text>')
+                       f'font-size="12" fill="#333">{tr("export.document.dimension")} {sz}</text>')
         out.append(f'<text x="{M_L+plot_w/2:.0f}" y="{H-14}" '
                    f'text-anchor="middle" font-family="Segoe UI,Arial" '
-                   f'font-size="12" fill="#555">dimensione della classe</text>')
+                   f'font-size="12" fill="#555">{tr("export.document.conjugacy.class_dimension")}</text>')
         out.append(f'<text x="16" y="{M_T+plot_h/2:.0f}" '
                    f'transform="rotate(-90 16 {M_T+plot_h/2:.0f})" '
                    f'text-anchor="middle" font-family="Segoe UI,Arial" '
-                   f'font-size="12" fill="#555">numero di classi</text>')
+                   f'font-size="12" fill="#555">{tr("export.document.conjugacy.number_of_classes")}</text>')
         out.append('</svg>')
         return "\n".join(out)

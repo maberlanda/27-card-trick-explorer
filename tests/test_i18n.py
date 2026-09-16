@@ -878,7 +878,12 @@ def test_tenth_block_protocol_preserves_codes_and_generated_content():
     italian_html = generate_protocol_html(data)
     set_language("en")
     english_html = generate_protocol_html(data)
-    assert english_html == italian_html
+    assert "<html lang='it'>" in italian_html
+    assert "<html lang='en'>" in english_html
+    assert "Protocollo — Gioco delle 27 Carte" in italian_html
+    assert "Protocol — 27-Card Trick" in english_html
+    for formula in ("MSC ∘ MSC ∘ MSC  =  I", "SCD_U", "T⁻¹"):
+        assert formula in italian_html and formula in english_html
     for identifier in ("GEN3", "T", "T⁻¹", "27×27"):
         assert identifier in " ".join(
             tr(label_key) for _, label_key in ProtocolDialog._SECTIONS
@@ -1167,7 +1172,7 @@ def test_twelfth_block_catalog_additions_are_symmetric_and_counted():
     assert len([k for k in i18n.CATALOGS["it"] if k.startswith("glossary.long.")]) == 14
     assert len([k for k in i18n.CATALOGS["it"] if k.startswith("help.tab.")]) == 16
     assert len([k for k in i18n.CATALOGS["it"] if k.startswith("filter.")]) == 17
-    assert len(i18n.CATALOGS["it"]) == 662
+    assert len(i18n.CATALOGS["it"]) == 820
 
 
 def _use_config_file(monkeypatch, tmp_path):
@@ -1240,3 +1245,76 @@ def test_configuration_round_trip_preserves_language_and_other_options(
     assert reloaded.get("use_parallel") is False
     assert reloaded.get("decomp_mode") == "T"
     assert reloaded.get("help_font_scale") == 1.3
+
+
+def test_thirteenth_block_exported_document_texts_switch_language_and_keep_symbols():
+    from gioco27.gui.export_dialog import ExportDialog
+    from gioco27.gui.i18n import set_language
+
+    dialog = object.__new__(ExportDialog)
+    dialog._decomps = []
+    dialog._decomposition_context = {"inverse": False}
+    perm = list(range(27))
+
+    italian = dialog._txt_summary(perm, perm, "T")
+    latex_it = dialog._latex_decomp("T")
+    assert "PERMUTAZIONE T" in italian
+    assert "Cicli disgiunti" in italian
+    assert "Nessuna decomposizione disponibile" in latex_it
+
+    set_language("en")
+    english = dialog._txt_summary(perm, perm, "T")
+    latex_en = dialog._latex_decomp("T")
+    assert "PERMUTATION T" in english
+    assert "Disjoint cycles" in english
+    assert "No decomposition available" in latex_en
+    for symbol in ("T", "T^-1", "C00", "0", "26"):
+        assert symbol in italian and symbol in english
+
+
+def test_thirteenth_block_protocol_export_follows_language_and_keeps_formulas():
+    from gioco27.gui.i18n import set_language
+    from gioco27.gui.protocol_dialog import generate_protocol_html
+
+    data = {"perm": list(range(27)), "inverse_perm": list(range(27)),
+            "label": "T", "period": 1, "decompositions": []}
+    italian = generate_protocol_html(data)
+    assert "<html lang='it'>" in italian
+    assert "Protocollo — Gioco delle 27 Carte" in italian
+    assert "MSC ∘ MSC ∘ MSC  =  I" in italian
+    assert "SCD_U" in italian
+
+    set_language("en")
+    english = generate_protocol_html(data)
+    assert "<html lang='en'>" in english
+    assert "Protocol — 27-Card Trick" in english
+    assert "MSC ∘ MSC ∘ MSC  =  I" in english
+    assert "SCD_U" in english
+    assert len(italian) > 1000 and len(english) > 1000
+
+
+def test_thirteenth_block_catalog_fallback_and_export_data_schema_are_stable(monkeypatch):
+    from gioco27.gui import i18n
+    from gioco27.gui.analysis_tab import AnalysisTabMixin
+
+    monkeypatch.delitem(i18n.CATALOGS["en"], "export.document.cycle", raising=False)
+    i18n.set_language("en")
+    assert i18n.tr("export.document.cycle") == "ciclo"
+    assert "T_permutazione" in AnalysisTabMixin._export_analisi_raw_csv.__code__.co_consts
+    assert "Stage0" in AnalysisTabMixin._export_analisi_raw_csv.__code__.co_consts
+
+
+def test_thirteenth_block_parallel_pdf_worker_receives_active_language(monkeypatch):
+    from gioco27.core import combinations
+    from gioco27.gui.i18n import get_language
+
+    seen = []
+    canvas = SimpleNamespace(save=lambda: None)
+    monkeypatch.setattr(combinations, "_new_canvas", lambda target, ex=False: (canvas, None))
+    monkeypatch.setattr(
+        combinations, "_render_combinations",
+        lambda *args, **kwargs: seen.append(get_language()) or 0,
+    )
+
+    combinations._render_chunk_to_bytes(1, [], language="en")
+    assert seen == ["en"]

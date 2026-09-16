@@ -9,6 +9,7 @@ from ..core.group_theory import get_group_data
 from .common import run_in_thread, ui_call
 from .tooltip import attach as _tip
 from .i18n import tr
+from .i18n import get_language
 
 
 class CayleyDialog(tk.Toplevel):
@@ -327,13 +328,13 @@ class CayleyDialog(tk.Toplevel):
             for i in range(n):
                 cells = "".join(f"<td>{_h.escape(names[int(cay[i,j])])}</td>" for j in range(n))
                 rows += f"<tr><th>{_h.escape(names[i])}</th>{cells}</tr>\n"
-            html_str = f"""<!DOCTYPE html><html lang='it'><head><meta charset='UTF-8'>
-<title>Tavola di Cayley GEN3³</title>
+            html_str = f"""<!DOCTYPE html><html lang='{get_language()}'><head><meta charset='UTF-8'>
+<title>{tr('export.document.cayley.html_title')}</title>
 <style>body{{font-family:monospace;font-size:0.7em;padding:10px}}
 table{{border-collapse:collapse}}
 th,td{{border:1px solid #ddd;padding:2px 5px;white-space:nowrap;font-family:'Courier New',monospace;font-size:0.78em}}
 th{{background:#f0f4f0;font-weight:bold}}</style></head>
-<body><h3>Tavola di Cayley — GEN3³ ({n}×{n})</h3>
+<body><h3>{tr('export.document.cayley.html_heading', size=n)}</h3>
 <table><tr><th></th>{hdr}</tr>{rows}</table></body></html>"""
             with open(path, "w", encoding="utf-8") as f:
                 f.write(html_str)

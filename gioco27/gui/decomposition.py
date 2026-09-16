@@ -13,6 +13,7 @@ import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 from .help_banner import HelpBanner
 from .i18n import tr
+from .i18n import get_language
 import queue
 import threading
 from collections import defaultdict
@@ -485,7 +486,7 @@ class DecompositionDialog(tk.Toplevel):
         target = context["target"]
         lines = [
             f"{lbl} = [" + ", ".join(str(x) for x in target) + "]",
-            "Decomposizioni trovate: {:,}".format(len(results)),
+            tr("export.document.decomposition.found", count=len(results)),
             "",
             "  {:>6}   {:<{w}}  {:<{w}}  A2".format("#", "A0", "A1", w=W),
             "-" * (14 + 3 * W + 6),
@@ -556,20 +557,20 @@ class DecompositionDialog(tk.Toplevel):
                      f"<td><code>{_h.escape(_disp(a1))}</code></td>"
                      f"<td><code>{_h.escape(_disp(a2))}</code></td>"
                      f"<td><code>{_h.escape(_disp(a3))}</code></td></tr>\n")
-        html_str = f"""<!DOCTYPE html><html lang='it'><head><meta charset='UTF-8'>
-<title>Decomposizioni {_h.escape(lbl)}</title>
+        html_str = f"""<!DOCTYPE html><html lang='{get_language()}'><head><meta charset='UTF-8'>
+<title>{tr('export.document.decomposition.title', label=_h.escape(lbl))}</title>
 <style>body{{font-family:sans-serif;padding:20px;max-width:900px;margin:auto}}
 table{{border-collapse:collapse;width:100%}}
 th,td{{border:1px solid #ccc;padding:4px 10px;font-family:'Courier New',monospace;font-size:0.84em}}
 th{{background:#f0f4f0}}tr:nth-child(even){{background:#fafafa}}
 code{{font-family:'Courier New',monospace;font-size:0.9em}}</style></head>
 <body>
-<h2>Decomposizioni — {_h.escape(lbl)}</h2>
+<h2>{tr('export.document.decomposition.title', label=_h.escape(lbl))}</h2>
 <p><code>{_h.escape(target_str)}</code></p>
-<p>Trovate: <strong>{len(results):,}</strong></p>
+<p>{tr('export.document.decomposition.found', count=len(results))}</p>
 <table><tr><th>#</th><th>A0</th><th>A1</th><th>A2</th></tr>
 {rows}</table>
-<p style='color:#888;font-size:0.85em'>Generato da Gioco delle 27 Carte</p>
+<p style='color:#888;font-size:0.85em'>{tr('export.document.generated_by')}</p>
 </body></html>"""
         try:
             with open(path, "w", encoding="utf-8") as f:

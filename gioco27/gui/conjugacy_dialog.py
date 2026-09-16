@@ -14,6 +14,7 @@ from ..core.group_theory import get_group_data
 from ..core.log import get_logger
 from .common import run_in_thread, ui_call
 from .i18n import tr
+from .i18n import get_language
 
 _log = get_logger(__name__)
 from .tooltip import attach as _tip
@@ -290,21 +291,23 @@ class ConjugacyDialog(tk.Toplevel):
         ord_arr = gd.orders
         center = gd.center
         lines = [
-            "CLASSI DI CONIUGIO  G = GEN3^3",
-            f"|G| = {len(gd.kron_arr)},  classi: {len(cls)},  |Z(G)| = {len(center)}",
+            tr("export.document.conjugacy.txt_title"),
+            tr("export.document.conjugacy.txt_summary", size=len(gd.kron_arr),
+               classes=len(cls), center=len(center)),
             "=" * 60,
         ]
         for i, c in enumerate(cls):
-            lines.append(f"\nClasse {i+1}  (dim={len(c)}, ord={int(ord_arr[c[0]])})")
+            lines.append("\n" + tr("export.document.conjugacy.txt_class", number=i + 1,
+                                   dimension=len(c), order=int(ord_arr[c[0]])))
             lines.append("-" * 40)
             for j, idx in enumerate(c):
                 lines.append(f"  {j+1:>3}. {gd.name(idx)}")
-        lines += ["", "CENTRO Z(G)", "-" * 40]
+        lines += ["", tr("export.document.conjugacy.center_heading"), "-" * 40]
         if center:
             for idx in center:
                 lines.append(f"  {gd.name(idx)}")
         else:
-            lines.append("  {e}  (centro triviale)")
+            lines.append("  {e}  " + tr("export.document.conjugacy.trivial_center"))
         try:
             with open(path, "w", encoding="utf-8") as f:
                 f.write("\n".join(lines))
@@ -347,16 +350,16 @@ class ConjugacyDialog(tk.Toplevel):
             rows += (f"<tr><td>{i}</td><td><code>{_h.escape(rep)}</code></td>"
                      f"<td>{len(cls)}</td><td style='font-size:0.85em'>{_h.escape(elts)}</td></tr>\n")
         center_str = ", ".join(gd.name(e) for e in center)
-        html = f"""<!DOCTYPE html><html lang='it'><head><meta charset='UTF-8'>
-<title>Classi di coniugio GEN3³</title>
+        html = f"""<!DOCTYPE html><html lang='{get_language()}'><head><meta charset='UTF-8'>
+<title>{tr('export.document.conjugacy.html_title')}</title>
 <style>body{{font-family:sans-serif;padding:20px}}
 table{{border-collapse:collapse;width:100%}}
 th,td{{border:1px solid #ccc;padding:4px 8px;text-align:left;font-family:'Courier New',monospace;font-size:0.85em}}
 th{{background:#f0f4f0}}tr:nth-child(even){{background:#fafafa}}</style></head>
-<body><h2>Classi di coniugio — GEN3³ (216 elementi)</h2>
-<p>Numero di classi: <strong>{len(classes)}</strong> &nbsp;|&nbsp;
-   Centro: <em>{_h.escape(center_str)}</em></p>
-<table><tr><th>#</th><th>Rappresentante</th><th>Dim.</th><th>Elementi</th></tr>
+<body><h2>{tr('export.document.conjugacy.html_heading')}</h2>
+<p>{tr('export.document.conjugacy.number_of_classes')}: <strong>{len(classes)}</strong> &nbsp;|&nbsp;
+   {tr('export.document.conjugacy.center')}: <em>{_h.escape(center_str)}</em></p>
+<table><tr><th>#</th><th>{tr('export.document.representative')}</th><th>{tr('export.document.dimension')}</th><th>{tr('export.document.element_plural')}</th></tr>
 {rows}</table></body></html>"""
         try:
             with open(path, "w", encoding="utf-8") as f:
