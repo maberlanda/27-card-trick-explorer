@@ -485,7 +485,7 @@ def test_seventh_block_explorer_catalogs_have_matching_keys():
     english = {key for key in i18n.CATALOGS["en"]
                if key.startswith("explorer.")}
     assert italian == english
-    assert len(italian) == 113  # 91 + 22 (traccia, legenda e passi parziali)
+    assert len(italian) == 131  # 91 + 22 (traccia, legenda, passi parziali) + 18 (errori e tipo, audit finale)
 
 
 def test_eighth_block_simulator_controls_are_localized():
@@ -1171,8 +1171,8 @@ def test_twelfth_block_catalog_additions_are_symmetric_and_counted():
     assert set(i18n.CATALOGS["it"]) == set(i18n.CATALOGS["en"])
     assert len([k for k in i18n.CATALOGS["it"] if k.startswith("glossary.long.")]) == 14
     assert len([k for k in i18n.CATALOGS["it"] if k.startswith("help.tab.")]) == 16
-    assert len([k for k in i18n.CATALOGS["it"] if k.startswith("filter.")]) == 17
-    assert len(i18n.CATALOGS["it"]) == 1206  # 820 + 354 guide.* (Blocco 14) + 32 anomalie UI
+    assert len([k for k in i18n.CATALOGS["it"] if k.startswith("filter.")]) == 24  # +7 audit finale
+    assert len(i18n.CATALOGS["it"]) == 1288  # 820 + 354 guide.* + 32 anomalie UI + 82 audit finale
 
 
 def _use_config_file(monkeypatch, tmp_path):

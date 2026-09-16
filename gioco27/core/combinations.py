@@ -125,7 +125,7 @@ def _new_canvas(target, ex=False):
     from reportlab.pdfgen import canvas as rl_canvas
     from reportlab.lib.pagesizes import A3, landscape
     c = rl_canvas.Canvas(target, pagesize=landscape(A3))
-    c.setTitle("Gioco delle 27 carte")
+    c.setTitle(tr("presentation.title"))
     if ex:
         painter = _make_painter(c, 7.5, 4.4, thin3=0.25, thin27=0.12,
                                thick27=0.75)

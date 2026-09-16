@@ -8,7 +8,8 @@ Estratto da app.py (v2.8.0) senza modifiche funzionali.
 import tkinter as tk
 from tkinter import ttk, messagebox
 
-from ..core.algebra import AlgebraEngine, Controller, CanonicalForm
+from ..core.algebra import (AlgebraEngine, Controller, CanonicalForm,
+                            display_normal_form_kind)
 from ..core.constants import PERM3
 from ..core.kronecker import try_kron_decompose, decomposition_context
 from .common import configure_matrix_tags, insert_colored
@@ -671,7 +672,7 @@ class ExplorerTabMixin:
         # Forma algebrica
         nf = r.get("normal_form")
         if nf:
-            self._exp_set(self._exp_nf_kind, nf.kind)
+            self._exp_set(self._exp_nf_kind, display_normal_form_kind(nf.kind))
             msc_str = (f"MSC^{nf.msc_exponent}" if nf.msc_exponent > 0
                        else tr("explorer.no_msc_exponent"))
             self._exp_set(self._exp_nf_msc, msc_str)
@@ -686,7 +687,8 @@ class ExplorerTabMixin:
                 tr("explorer.normal_form_state",
                    value=tr("explorer.value.yes") if nf.already_normal
                    else tr("explorer.value.no")),
-                tr("explorer.normal_form_kind", kind=nf.kind),
+                tr("explorer.normal_form_kind",
+                   kind=display_normal_form_kind(nf.kind)),
             ]
             actual_perm = r.get("perm")
             if (actual_perm is not None

@@ -267,11 +267,7 @@ class DistributionFrame(ttk.Frame):
                        "row")
 
         txt.insert("end", "\n", "sep")
-        txt.insert("end",
-                   "  Nota: k-decomp = numero di decomposizioni A2∘MSC∘A1∘MSC∘A0∘MSC\n"
-                   "  per quella specifica T. T con k=0 non sono raggiungibili\n"
-                   "  dal meccanismo Kronecker.\n",
-                   "note")
+        txt.insert("end", tr("distribution.note"), "note")
         txt.configure(state="disabled")
 
     # ─── Helper ───────────────────────────────────────────────────────────────

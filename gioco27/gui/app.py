@@ -50,6 +50,28 @@ def _window_title(version):
     return tr("app.title", version=version)
 
 
+# Etichette e valori del rapporto di `selftest()`: il dizionario restituito dal
+# core resta un dato (chiavi e valori invariati, usati anche da riga di
+# comando e dai test); la GUI lo mostra nella lingua attiva.
+_SELFTEST_VALUE_KEYS = {
+    "saltato (numpy assente)": "verify.value.skipped_numpy",
+    "TUTTO OK": "verify.value.all_ok",
+}
+
+
+def format_selftest_report(rapporto):
+    """Testo del rapporto di verifica, una riga per controllo, localizzato."""
+    from .i18n import CATALOGS
+    righe = []
+    for key, value in rapporto.items():
+        label_key = f"verify.label.{key}"
+        label = tr(label_key) if label_key in CATALOGS["it"] else key
+        value_key = _SELFTEST_VALUE_KEYS.get(value)
+        shown = tr(value_key) if value_key else value
+        righe.append(f"{label:26s} {shown}")
+    return "\n".join(righe)
+
+
 def _shell_tab_text(key, icon="", **values):
     """Return a localized main-notebook label while preserving its icon."""
 
@@ -261,10 +283,7 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
             variable=self._beginner_var, command=self._toggle_livello)
         self._beginner_chk.configure(text=f"🎓  {tr('button.beginner_mode')}")
         self._beginner_chk.pack(side="left", padx=4)
-        _tooltip.attach(self._beginner_chk,
-            "In modalità principiante restano visibili solo le schede "
-            "essenziali. Disattivala per sbloccare Explorer, Cicli e "
-            "Distribuzione.")
+        _tooltip.attach(self._beginner_chk, tr("tooltip.beginner_mode"))
 
         ttk.Separator(inner, orient="vertical").pack(
             side="left", fill="y", padx=10)
@@ -302,9 +321,7 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
                    command=self._run_selftest)
         _b.configure(text=f"✔  {tr('button.verify')}")
         _b.pack(side="right", padx=2)
-        _tooltip.attach(_b, "Verifica di integrità: simulazione fisica vs modello "
-                        "matriciale (1728 combinazioni), ancore del libro, "
-                        "statistiche del capitolo 100.")
+        _tooltip.attach(_b, tr("tooltip.verify"))
         _b = ttk.Button(inner, text=f"🖥️  {tr('button.presentation')}",
                    command=self._open_presentation)
         _b.pack(side="right", padx=2)
@@ -605,21 +622,22 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
 
         # ogni tab torna allo stato iniziale; ogni reset è indipendente:
         # un errore in uno non deve bloccare gli altri
+        # (nome per il log, chiave i18n del nome mostrato all'utente, reset)
         resets = [
-            ("Anteprima",      self._reset_anteprima),
-            ("Analisi",        self._reset_analisi),
-            ("Explorer",       self._explorer_clear),
-            ("Cicli",          lambda: self._cycles_frame.reset()),
-            ("Simulatore",     lambda: self._simulator_frame.reset()),
-            ("Mescolamento",   lambda: self._shuffle_viewer.clear_all()),
+            ("Anteprima",    "tab.preview",          self._reset_anteprima),
+            ("Analisi",      "tab.analysis",         self._reset_analisi),
+            ("Explorer",     "tab.explorer",         self._explorer_clear),
+            ("Cicli",        "tab.cycles",           lambda: self._cycles_frame.reset()),
+            ("Simulatore",   "tab.simulator",        lambda: self._simulator_frame.reset()),
+            ("Mescolamento", "explorer.tab.shuffle", lambda: self._shuffle_viewer.clear_all()),
         ]
         falliti = []
-        for nome, fn in resets:
+        for nome, label_key, fn in resets:
             try:
                 fn()
             except Exception:
                 _log.exception("Reset del tab %s fallito", nome)
-                falliti.append(nome)
+                falliti.append(tr(label_key))
 
         # anche lo stato "ultima T" viene dimenticato
         self._last_T_perm = None
@@ -651,17 +669,15 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
         if getattr(self, "_closing", False):
             return
         if self._export_busy:
-            messagebox.showinfo(
-                "Export in corso",
-                "C'e' gia' un export in corso.\n"
-                "Attendi che finisca prima di avviarne un altro.")
+            messagebox.showinfo(tr("export.busy.title"),
+                                tr("export.busy.message"))
             return
 
         filters = self._get_filters()
         n = count_combinations_ex(filters)
         if n == 0:
-            messagebox.showwarning("Nessuna combinazione",
-                                   "I filtri attuali non producono combinazioni.")
+            messagebox.showwarning(tr("analysis.no_combinations_title"),
+                                   tr("analysis.no_combinations"))
             return
 
         # Limite di sicurezza: con i filtri di default le combinazioni sono
@@ -669,11 +685,18 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
         # che avviare un export che non finira' mai.
         limit = max_items if max_items is not None else MAX_EXPORT_ITEMS
         if n > limit:
-            messagebox.showerror("Export troppo grande", str(ExportTooLarge(n, limit)))
+            # Il messaggio dell'eccezione del core resta per il log; qui si
+            # mostra il testo localizzato con gli stessi numeri.
+            exc = ExportTooLarge(n, limit)
+            messagebox.showerror(
+                tr("export.too_large.title"),
+                tr("export.too_large.message", requested=f"{exc.requested:,}",
+                   limit=f"{exc.limit:,}"))
             return
 
         if confirm_threshold is not None and n > confirm_threshold:
-            if not messagebox.askyesno("Conferma", confirm_msg.format(n=n)):
+            if not messagebox.askyesno(tr("export.confirm.title"),
+                                       tr(confirm_msg, count=f"{n:,}")):
                 return
 
         path = filedialog.asksaveasfilename(**dialog_kw)
@@ -688,8 +711,9 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
         self._btn_annulla.configure(state="normal")
         self.progress["maximum"] = n
         self.progress["value"]   = 0
-        _par = f", {_nw} processi" if _nw > 1 else ""
-        self.status_var.set(f"Generazione {kind} in corso... (0/{n:,}{_par})")
+        _par = tr("status.generation_workers", count=_nw) if _nw > 1 else ""
+        self.status_var.set(tr("status.generation_started", kind=kind,
+                               total=f"{n:,}", workers=_par))
         self.update_idletasks()
 
         def job():
@@ -708,8 +732,9 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
                                annullato=self._export_stop.is_set)
                 _log.info("%s generato: %s (%s %s)", kind, path, tot, unit_plural)
                 self._ui(lambda t=tot: self.status_var.set(
-                    f"✓ {kind} salvato: {os.path.basename(path)}  "
-                    f"({t:,} {unit_plural})"))
+                    tr("status.generation_saved", kind=kind,
+                       filename=os.path.basename(path), count=f"{t:,}",
+                       unit=unit_plural)))
             except ExportAnnullato as exc:
                 # Non e' un errore: nessun messaggio di guasto, solo la barra
                 # di stato. Il file non e' stato creato (scrittura atomica).
@@ -717,8 +742,8 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
                 self._ui(lambda e=exc: (
                     self.progress.__setitem__("value", 0),
                     self.status_var.set(
-                        f"✕ {kind} annullato — nessun file creato "
-                        f"({e.fatti:,} {unit_plural} calcolate)")))
+                        tr("status.generation_cancelled", kind=kind,
+                           count=f"{e.fatti:,}", unit=unit_plural))))
             finally:
                 # Il flag va rilasciato anche se l'export solleva: altrimenti
                 # un errore bloccherebbe per sempre tutti gli export
@@ -727,9 +752,10 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
 
         def on_error(_exc):
             self._fine_export()
-            self.status_var.set(f"✗ {kind} non completato.")
+            self.status_var.set(tr("status.generation_failed", kind=kind))
 
-        run_in_thread(self, job, error_title=f"Errore {kind}", on_error=on_error)
+        run_in_thread(self, job, error_title=tr("error.with_kind", kind=kind),
+                      on_error=on_error)
 
     def _annulla_export(self):
         """Chiede l'interruzione dell'export in corso."""
@@ -737,7 +763,7 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
             return
         self._export_stop.set()
         self._btn_annulla.configure(state="disabled")
-        self.status_var.set("Annullamento in corso…")
+        self.status_var.set(tr("status.cancelling"))
 
     def _fine_export(self):
         """Ripristina lo stato dei controlli a export concluso o annullato."""
@@ -764,43 +790,40 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
     def _gen_pdf(self):
         self._run_generation(
             gen_func=generate_pdf_ex_parallel,
-            kind="PDF", unit="pagina", unit_plural="pagine", step=10,
+            kind="PDF", unit=tr("export.unit.page"),
+            unit_plural=tr("export.unit.pages"), step=10,
             confirm_threshold=500,
-            confirm_msg=("Verranno generate {n:,} pagine PDF.\n"
-                         "Potrebbe richiedere molto tempo.\n\nProcedere?"),
+            confirm_msg="export.confirm.pdf",
             dialog_kw=dict(defaultextension=".pdf",
                            filetypes=[("PDF", "*.pdf")],
-                           title="Salva PDF"))
+                           title=tr("export.save.pdf")))
 
     def _gen_pdf_detail(self):
         """Export PDF dettagliato: due combinazioni per pagina con disposizioni
         del mazzo, posizioni dei marcatori, settori, periodo e matrici."""
         self._run_generation(
             gen_func=generate_detail_pdf_parallel,
-            kind="PDF dettagliato", unit="combinazione",
-            unit_plural="combinazioni", step=5,
+            kind=tr("export.kind.pdf_detailed"),
+            unit=tr("export.unit.combination"),
+            unit_plural=tr("export.unit.combinations"), step=5,
             max_items=MAX_DETAIL_COMBOS,
             confirm_threshold=300,
-            confirm_msg=("Verranno esportate {n:,} combinazioni dettagliate "
-                         "(2 per pagina).\nOgni pagina e' ricca (matrici + "
-                         "carte): puo' richiedere tempo.\n\nProcedere?"),
+            confirm_msg="export.confirm.pdf_detailed",
             dialog_kw=dict(defaultextension=".pdf",
                            filetypes=[("PDF", "*.pdf")],
                            initialfile="dettaglio_disposizioni.pdf",
-                           title="Salva PDF dettagliato"))
+                           title=tr("export.save.pdf_detailed")))
 
     def _gen_csv(self):
         self._run_generation(
             gen_func=write_csv_parallel,
-            kind="CSV", unit="riga", unit_plural="righe", step=100,
+            kind="CSV", unit=tr("export.unit.row"),
+            unit_plural=tr("export.unit.rows"), step=100,
             confirm_threshold=100_000,
-            confirm_msg=("Verranno scritte {n:,} righe CSV "
-                         "(circa {n:,} x 400 byte).\n"
-                         "Potrebbe richiedere molto tempo e molto spazio su "
-                         "disco.\n\nProcedere?"),
+            confirm_msg="export.confirm.csv",
             dialog_kw=dict(defaultextension=".csv",
                            filetypes=[("CSV", "*.csv")],
-                           title="Salva CSV"))
+                           title=tr("export.save.csv")))
 
 
     # ── Tab Guida ─────────────────────────────────────────────────────────────
@@ -938,10 +961,10 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
             try:
                 from ..core.gioco_reale import selftest
                 rapporto = selftest()
-                testo = "\n".join(f"{k:26s} {v}" for k, v in rapporto.items())
+                testo = format_selftest_report(rapporto)
                 ok = True
             except AssertionError as e:
-                testo, ok = f"INCOERENZA RILEVATA:\n{e}", False
+                testo, ok = tr("verify.inconsistency", detail=e), False
             def mostra():
                 self.status_var.set(
                     tr("status.integrity_completed" if ok
@@ -1067,7 +1090,7 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
                     messagebox.showinfo(tr("dialog.cache.title"),
                                         tr("status.cache_cleared"), parent=dlg)
                 except Exception as e:
-                    messagebox.showerror("Errore", str(e), parent=dlg)
+                    messagebox.showerror(tr("error.generic"), str(e), parent=dlg)
 
         ttk.Button(fr, text=f"🗑️  {tr('settings.clear_cache')}",
                    command=do_clear_cache).grid(

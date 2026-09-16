@@ -41,9 +41,23 @@ _S3_CLASS = {
 }
 
 
+# Etichetta visibile del tipo di classe: i valori di _S3_CLASS restano gli
+# identificatori interni; la resa segue la lingua attiva.
+_KIND_KEYS = {
+    "id": "conjugacy.type.identity",
+    "trasp.": "conjugacy.type.transposition",
+    "3-ciclo": "conjugacy.type.three_cycle",
+}
+
+
+def _localized_kind(kind):
+    key = _KIND_KEYS.get(kind)
+    return tr(key) if key else kind
+
+
 def _class_type(triple):
     """(f3,f2,f1) → ('(id, trasp., 3-ciclo)', dimensione_attesa)."""
-    kinds = [_S3_CLASS.get(f, ("?", 1))[0] for f in triple]
+    kinds = [_localized_kind(_S3_CLASS.get(f, ("?", 1))[0]) for f in triple]
     size = 1
     for f in triple:
         size *= _S3_CLASS.get(f, ("?", 1))[1]
@@ -148,7 +162,7 @@ class _PreviewExportDialog(tk.Toplevel):
             try:
                 self._cache[key] = gen()
             except Exception as exc:   # pragma: no cover - difensivo
-                self._cache[key] = f"% Errore nella generazione: {exc}"
+                self._cache[key] = tr("export.generation_error", detail=exc)
         return self._cache[key]
 
     def _refresh_preview(self):
@@ -159,8 +173,7 @@ class _PreviewExportDialog(tk.Toplevel):
             t.delete("1.0", "end")
             if len(content) > self._PREVIEW_MAX:
                 t.insert("end", content[:self._PREVIEW_MAX])
-                t.insert("end", "\n\n… [anteprima troncata — "
-                                "l'export salverà il file completo] …\n")
+                t.insert("end", f"\n\n{tr('export.preview_truncated')}\n")
             else:
                 t.insert("end", content)
             t.configure(state="disabled")

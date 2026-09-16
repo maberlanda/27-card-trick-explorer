@@ -48,7 +48,7 @@ class FilterFrame(ttk.LabelFrame):
 
     def __init__(self, parent, stage_num, on_change=None, **kw):
         super().__init__(parent,
-                         text=f"  Stadio {stage_num}  ",
+                         text=f"  {tr('tab.stage', number=stage_num)}  ",
                          padding=10, **kw)
         self.stage_num = stage_num
         self._on_change = on_change   # callback per aggiornamento live
@@ -69,13 +69,13 @@ class FilterFrame(ttk.LabelFrame):
 
         # ── Due sezioni affiancate ─────────────────────────────────────────
         p_frame = ttk.LabelFrame(self,
-                                  text="  📐  Permutazioni  P  ",
+                                  text=f"  📐  {tr('filter.section.p')}  ",
                                   padding=(10, 6),
                                   style="PSection.TLabelframe")
         p_frame.pack(side="left", fill="both", expand=True, padx=(0, 10))
 
         j_frame = ttk.LabelFrame(self,
-                                  text="  🔀  Permutazioni  J  ",
+                                  text=f"  🔀  {tr('filter.section.j')}  ",
                                   padding=(10, 6),
                                   style="JSection.TLabelframe")
         j_frame.pack(side="left", fill="y", padx=(10, 0))
@@ -83,9 +83,9 @@ class FilterFrame(ttk.LabelFrame):
         # ── Intestazione colonne P ─────────────────────────────────────────
         hdr = ("Segoe UI", 9, "bold")
         ttk.Label(p_frame, text="",      width=4).grid(row=0, column=0)
-        ttk.Label(p_frame, text="Fissa", font=hdr,
+        ttk.Label(p_frame, text=tr("filter.fixed"), font=hdr,
                   width=13, anchor="center").grid(row=0, column=1, padx=6)
-        ttk.Label(p_frame, text="oppure seleziona uno o più valori:",
+        ttk.Label(p_frame, text=tr("filter.or_select"),
                   font=hdr).grid(row=0, column=2, columnspan=7,
                   padx=4, sticky="w")
 
@@ -110,7 +110,7 @@ class FilterFrame(ttk.LabelFrame):
 
         self._j_uniform_chk = ttk.Checkbutton(
             j_unif_frame,
-            text="  ⚡  J UNIFORMI  —  J0 = J1 = J2",
+            text=f"  ⚡  {tr('filter.uniform_j')}",
             variable=self._j_uniform_var,
             command=self._on_j_uniform_toggle,
             style="JUniform.TCheckbutton",
@@ -118,7 +118,7 @@ class FilterFrame(ttk.LabelFrame):
         self._j_uniform_chk.pack(fill="x", padx=6, pady=5)
 
         ttk.Label(j_unif_frame,
-                  text="     2 combinazioni J invece di 8",
+                  text=f"     {tr('filter.uniform_j_note')}",
                   font=("Segoe UI", 9, "italic"),
                   foreground="#BF360C",
                   background="#FFF3E0").pack(anchor="w", padx=6, pady=(0, 4))
@@ -128,9 +128,9 @@ class FilterFrame(ttk.LabelFrame):
 
         # ── Intestazione colonne J ─────────────────────────────────────────
         ttk.Label(j_frame, text="",      width=4).grid(row=2, column=0)
-        ttk.Label(j_frame, text="Fissa", font=hdr,
+        ttk.Label(j_frame, text=tr("filter.fixed"), font=hdr,
                   width=10, anchor="center").grid(row=2, column=1, padx=6)
-        ttk.Label(j_frame, text="Valori:",
+        ttk.Label(j_frame, text=tr("filter.values"),
                   font=hdr).grid(row=2, column=2, columnspan=3,
                   padx=4, sticky="w")
 

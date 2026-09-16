@@ -165,7 +165,7 @@ class PreviewTabMixin:
             return
         import numpy as np
         inv = list(np.argsort(perm))
-        self._open_export_dialog(perm=perm, inv_perm=inv, title_label="T (Anteprima)")
+        self._open_export_dialog(perm=perm, inv_perm=inv, title_label=f"T ({tr('tab.preview')})")
 
     def _calcola_anteprima(self):
         params = []

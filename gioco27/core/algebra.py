@@ -12,6 +12,16 @@ from typing import Optional, List, Tuple
 from ..gui.i18n import tr
 
 
+def display_normal_form_kind(kind: str) -> str:
+    """Resa visibile di NormalFormInfo.kind.
+
+    `kind` resta un dato ('I', 'MSC', 'K o MSC', 'composta', ...): solo il
+    valore descrittivo 'composta' ha una resa localizzata; gli altri sono
+    notazione e restano invariati.
+    """
+    return tr("explorer.normal_form.composite") if kind == 'composta' else kind
+
+
 # =============================================================================
 # MOTORE ALGEBRICO E SIMBOLICO  (da gioco27_parser_explorer.py)
 # =============================================================================
@@ -942,7 +952,8 @@ class Rewriter:
             rule=tr("explorer.trace.rule.final"),
             expr_before=current_str,
             expr_after=nf_info.symbolic,
-            detail=tr("explorer.trace.detail.final", kind=nf_info.kind,
+            detail=tr("explorer.trace.detail.final",
+                      kind=display_normal_form_kind(nf_info.kind),
                       exponent=nf_info.msc_exponent, exponents="{0,1,2}"),
             state_after=nf_info.symbolic,
         ))
@@ -1139,14 +1150,13 @@ class Lexer:
                 elif word in self.VALID_ATOMS:
                     tokens.append(Token('ATOM', word))
                 else:
-                    raise ParseError(
-                        f"Simbolo sconosciuto: '{word}'\n"
-                        f"Simboli validi: {sorted(self.VALID_ATOMS)}"
-                    )
+                    raise ParseError(tr("explorer.parse.unknown_symbol",
+                                        symbol=word,
+                                        valid=sorted(self.VALID_ATOMS)))
                 i = j
                 continue
 
-            raise ParseError(f"Carattere non riconosciuto: '{c}' (posizione {i})")
+            raise ParseError(tr("explorer.parse.unknown_char", char=c, position=i))
 
         tokens.append(Token('EOF', ''))
         return tokens
@@ -1174,10 +1184,8 @@ class Parser:
         self.pos = 0
         result = self._parse_expr()
         if self._current().kind != 'EOF':
-            raise ParseError(
-                f"Token inatteso dopo la fine dell'espressione: "
-                f"'{self._current().value}'"
-            )
+            raise ParseError(tr("explorer.parse.trailing_token",
+                                token=self._current().value))
         return result
 
     # -------------------------------------------------------------------------
@@ -1190,9 +1198,8 @@ class Parser:
     def _consume(self, kind: str = None) -> Token:
         tok = self._current()
         if kind and tok.kind != kind:
-            raise ParseError(
-                f"Atteso '{kind}', trovato '{tok.kind}' ('{tok.value}')"
-            )
+            raise ParseError(tr("explorer.parse.expected", expected=kind,
+                                kind=tok.kind, value=tok.value))
         self.pos += 1
         return tok
 
@@ -1242,11 +1249,8 @@ class Parser:
             right = self._parse_kron()
             # Controllo di tipo
             if terms[-1].ptype != right.ptype:
-                raise ParseError(
-                    f"Composizione tra oggetti di tipo diverso: "
-                    f"tipo {terms[-1].ptype} ∘ tipo {right.ptype}\n"
-                    f"La composizione richiede oggetti dello stesso tipo."
-                )
+                raise ParseError(tr("explorer.parse.type_mismatch",
+                                    left=terms[-1].ptype, right=right.ptype))
             terms.append(right)
         if len(terms) == 1:
             return terms[0]
@@ -1260,10 +1264,9 @@ class Parser:
             self._consume('KRON')
             right = self._parse_factor()
             if right.ptype != 3:
-                raise ParseError(
-                    f"Il prodotto di Kronecker richiede oggetti di tipo 3, "
-                    f"ma '{right.name or repr(right)}' è di tipo {right.ptype}."
-                )
+                raise ParseError(tr("explorer.parse.kron_type",
+                                    name=right.name or repr(right),
+                                    ptype=right.ptype))
             factors.append(right)
 
         if len(factors) == 1:
@@ -1271,17 +1274,12 @@ class Parser:
 
         # Validazione: esattamente 3 fattori
         if len(factors) != 3:
-            raise ParseError(
-                f"Il prodotto di Kronecker richiede esattamente 3 fattori, "
-                f"trovati {len(factors)}."
-            )
+            raise ParseError(tr("explorer.parse.kron_count", count=len(factors)))
         # Tutti di tipo 3
         for f in factors:
             if f.ptype != 3:
-                raise ParseError(
-                    f"Tutti i fattori del Kronecker devono essere di tipo 3, "
-                    f"ma '{f.name}' è di tipo {f.ptype}."
-                )
+                raise ParseError(tr("explorer.parse.kron_factor_type",
+                                    name=f.name, ptype=f.ptype))
         return SymbolicExpr('kron', children=factors, ptype=27)
 
     def _parse_factor(self) -> SymbolicExpr:
@@ -1294,16 +1292,13 @@ class Parser:
             self._consume('LPAREN')
             expr = self._parse_expr()
             if self._current().kind != 'RPAREN':
-                raise ParseError(
-                    "Parentesi non chiusa: manca ')' dopo l'espressione."
-                )
+                raise ParseError(tr("explorer.parse.unclosed"))
             self._consume('RPAREN')
             return expr
         if tok.kind == 'EOF':
-            raise ParseError("Espressione incompleta: atteso un termine.")
-        raise ParseError(
-            f"Token inatteso: '{tok.value}' (tipo: {tok.kind})"
-        )
+            raise ParseError(tr("explorer.parse.incomplete"))
+        raise ParseError(tr("explorer.parse.unexpected_token",
+                            token=tok.value, kind=tok.kind))
 
 
 # =============================================================================
@@ -1515,9 +1510,9 @@ class Controller:
             else:
                 result['canonical_available'] = False
                 result['canonical_symbolic']  = (
-                    "Non disponibile (espressione contiene J o non riducibile)"
+                    tr("explorer.canonical.symbolic_unavailable_j")
                     if nf_info.kind in ('J', 'composta')
-                    else "Non disponibile"
+                    else tr("explorer.canonical.symbolic_unavailable")
                 )
 
             # 3. Valutazione con traccia dei passi parziali
@@ -1530,10 +1525,7 @@ class Controller:
             if len(perm) not in (3, 27):
                 raise ValueError(f"Permutazione di dimensione inattesa: {len(perm)}")
             if len(perm) == 3:
-                raise ValueError(
-                    "Il risultato è di tipo 3. "
-                    "Usare un prodotto di Kronecker per ottenere una "
-                    "trasformazione di tipo 27.")
+                raise ValueError(tr("explorer.error.type3_result"))
 
             result['partial_perms']         = [s.perm for s in eval_steps]
             result['partial_signatures']    = [s.signature for s in eval_steps]
@@ -1553,11 +1545,12 @@ class Controller:
             result['ok'] = True
 
         except ParseError as e:
-            result['error'] = f"Errore di parsing:\n{e}"
+            result['error'] = tr("explorer.error.parsing", detail=e)
         except ValueError as e:
-            result['error'] = f"Errore di valutazione:\n{e}"
+            result['error'] = tr("explorer.error.evaluation", detail=e)
         except Exception as e:
-            result['error'] = f"Errore interno:\n{type(e).__name__}: {e}"
+            result['error'] = tr("explorer.error.internal",
+                                 detail=f"{type(e).__name__}: {e}")
 
         return result
 
@@ -1717,9 +1710,8 @@ def scrivi_excel(risultati, output_path):
     for i, r in enumerate(risultati, 1):
         summary = " , ".join(r["simboliche"])
         if len(summary) > 32767:
-            summary = ("Riepilogo oltre il limite di 32767 caratteri per cella. "
-                       f"Tutte le {len(r['simboliche'])} formule sono disponibili "
-                       "nel foglio 'Simbolica -> Perm', associate a questa permutazione.")
+            summary = tr("export.excel.summary_overflow",
+                         count=len(r["simboliche"]))
         ws1.append([r["perm_str"], summary, r["n_sim"]])
         _fmt(ws1, i, 3)
     ws1.column_dimensions["A"].width = 40

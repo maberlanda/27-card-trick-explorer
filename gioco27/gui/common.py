@@ -13,7 +13,7 @@ from .i18n import tr
 _log = get_logger(__name__)
 
 
-def run_in_thread(widget, job, error_title="Errore", on_error=None):
+def run_in_thread(widget, job, error_title=None, on_error=None):
     """
     Esegue `job()` in un thread demone, con gestione errori standard.
 
@@ -26,6 +26,10 @@ def run_in_thread(widget, job, error_title="Errore", on_error=None):
     Il job resta responsabile di marshallare i propri aggiornamenti GUI
     con widget.after(0, ...): Tk non e' thread-safe.
     """
+    if error_title is None:
+        # Risolto alla chiamata, non alla definizione: segue la lingua attiva.
+        error_title = tr("error.generic")
+
     def runner():
         if getattr(widget, "_closing", False):
             return

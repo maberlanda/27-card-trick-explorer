@@ -394,7 +394,7 @@ def _new_detail_canvas(target):
     from reportlab.pdfgen import canvas as rl_canvas
     from reportlab.lib.pagesizes import A3, landscape
     c = rl_canvas.Canvas(target, pagesize=landscape(A3))
-    c.setTitle("Gioco delle 27 carte — dettaglio disposizioni")
+    c.setTitle(tr("export.document.pdf.detail_title"))
     return c, _detail_painter(c)
 
 

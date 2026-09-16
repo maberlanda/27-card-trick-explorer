@@ -23,6 +23,10 @@ mescolamenti cronologici nell'ordine SCD,SDC,CSD,DSC,CDS,DCS.
 from __future__ import annotations
 import itertools
 
+# Messaggi mostrati nella GUI (Tavola 216, pulsante Verifica): seguono la
+# lingua attiva. I dati restituiti (rapporto, tabelle) restano invariati.
+from ..gui.i18n import tr
+
 # ─── Sigle ────────────────────────────────────────────────────────────────────
 
 #: ordine canonico delle sigle (stesso del programma C e della tavola)
@@ -154,15 +158,14 @@ def tabellone_da_assi(pos_AS: int, pos_AC: int, pos_AH: int):
     pos = (pos_AS, pos_AC, pos_AH)
     for p in pos:
         if not 0 <= p <= 26:
-            raise ValueError("le posizioni devono essere in 0..26")
+            raise ValueError(tr("table.error.positions_range"))
     cols = [digits3(p) for p in pos]           # cols[t] = (B2(t), B1(t), B0(t))
     righe = []
     for liv in (2, 1, 0):                      # B2, B1, B0
         riga = tuple(cols[t][2 - liv] for t in range(3))
         if sorted(riga) != [0, 1, 2]:
-            raise ValueError(
-                "posizioni incompatibili: nessuna disposizione semplice "
-                f"produce questi Assi (riga livello {liv} = {riga})")
+            raise ValueError(tr("table.error.incompatible", level=liv,
+                                row=riga))
         righe.append(riga)
     B2, B1, B0 = righe
     mesc = (_sigla_of(B0), _sigla_of(B1), _sigla_of(B2))
@@ -336,7 +339,7 @@ def selftest(completo: bool = True) -> dict:
     # 1a. fisica vs algebra, 216 semplici
     for n in range(216):
         mesc = mescolamenti_da_numero(n)
-        assert T_da_partita(mesc) == T_da_tabellone(mesc), f"riga {n}"
+        assert T_da_partita(mesc) == T_da_tabellone(mesc), tr("verify.fail.row", row=n)
     rapporto["fisica_vs_algebra_216"] = "ok"
     # 1b. con rovesciamenti, vs modello matriciale (P3 = raccolta,
     #     rovesciamento inglobato nei P della fase)
@@ -366,9 +369,9 @@ def selftest(completo: bool = True) -> dict:
         except ImportError:
             rapporto["fisica_vs_matrici_1728"] = "saltato (numpy assente)"
     # 2. ancore
-    assert riga_tavola(100)["assi"] == (13, 8, 18), "ancora #100"
+    assert riga_tavola(100)["assi"] == (13, 8, 18), tr("verify.fail.anchor", number=100)
     assert riga_tavola(100)["mescolamenti"] == ("CDS", "CDS", "CSD")
-    assert riga_tavola(82)["assi"] == (10, 8, 21), "ancora #82"
+    assert riga_tavola(82)["assi"] == (10, 8, 21), tr("verify.fail.anchor", number=82)
     assert riga_tavola(82)["mescolamenti"] == ("CDS", "SDC", "CSD")
     rapporto["ancore_libro"] = "ok (#100, #82)"
     # 3. statistiche
@@ -381,7 +384,7 @@ def selftest(completo: bool = True) -> dict:
     for n in range(216):
         r = riga_tavola(n)
         mesc, num = tabellone_da_assi(*r["assi"])
-        assert num == n and mesc == r["mescolamenti"], f"assi riga {n}"
+        assert num == n and mesc == r["mescolamenti"], tr("verify.fail.axes_row", row=n)
     rapporto["ricostruzione_assi"] = "ok (216/216)"
     # 5. trucco
     for c in range(27):

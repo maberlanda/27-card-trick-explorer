@@ -190,21 +190,20 @@ class TavolaFrame(ttk.Frame):
             return f"{nome}\n   n  {testa}\n      {corpo}\n\n"
 
         mesc, imp = r["mescolamenti"], r["impilamenti"]
+        inversa = tr("table.detail.self_inverse" if r["autoinversa"]
+                     else "table.detail.not_self_inverse")
         txt.insert("end",
-            f"Disposizione semplice #{r['numero']}\n"
+            f"{tr('table.detail.heading', number=r['numero'])}\n"
             f"{'='*60}\n"
-            f"Mescolamenti (righe del tabellone, prima in basso): "
-            f"{' '.join(mesc)}\n"
-            f"Impilamenti (gesto fisico, mazzetti dal dorso):     "
-            f"{' '.join(imp)}\n"
-            f"Assi: A♠→{r['assi'][0]}  A♣→{r['assi'][1]}  A♥→{r['assi'][2]}\n"
-            f"Periodo {r['periodo']}   punti fissi {r['punti_fissi']}   "
-            f"{'auto-inversa' if r['autoinversa'] else 'non auto-inversa'}\n\n")
-        txt.insert("end", riga27("T (posizione finale della carta n):", r["T"]))
-        txt.insert("end", riga27("T⁻¹ (carta che finisce in posizione k):", r["T_inv"]))
+            f"{tr('table.detail.shuffles', codes=' '.join(mesc))}\n"
+            f"{tr('table.detail.stackings', codes=' '.join(imp))}\n"
+            f"{tr('table.detail.aces', spades=r['assi'][0], clubs=r['assi'][1], hearts=r['assi'][2])}\n"
+            f"{tr('table.detail.period', period=r['periodo'], fixed=r['punti_fissi'], inverse=inversa)}\n\n")
+        txt.insert("end", riga27(tr("table.detail.t"), r["T"]))
+        txt.insert("end", riga27(tr("table.detail.t_inverse"), r["T_inv"]))
         txt.insert("end",
-            "Tabellone (dal basso verso l'alto):\n" +
-            "".join(f"   riga {i}:  {m}   (impila: {p})\n"
+            tr("table.detail.board") + "\n" +
+            "".join(tr("table.detail.board_row", row=i, shuffle=m, stacking=p) + "\n"
                     for i, (m, p) in enumerate(zip(mesc, imp), 1)))
         txt.configure(state="disabled")
 
