@@ -47,9 +47,10 @@ def _localized_literal(node):
 
 @pytest.fixture
 def guide():
-    tree = _tree("gioco27/gui/guide.py")
-    return _norm("\n".join(n.value for n in ast.walk(tree)
-                           if isinstance(n, ast.Constant) and isinstance(n.value, str)))
+    # Dal Blocco i18n 14 i testi della Guida stanno nei cataloghi: si confronta
+    # la Guida renderizzata in italiano, non le costanti del sorgente.
+    from gioco27.gui.guide import render_guide_segments
+    return _norm("\n".join(text for _tag, text in render_guide_segments("it")))
 
 
 def test_d4_ordine_sottotab_come_costruiti_dalla_gui(guide):

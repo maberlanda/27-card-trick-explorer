@@ -1172,7 +1172,7 @@ def test_twelfth_block_catalog_additions_are_symmetric_and_counted():
     assert len([k for k in i18n.CATALOGS["it"] if k.startswith("glossary.long.")]) == 14
     assert len([k for k in i18n.CATALOGS["it"] if k.startswith("help.tab.")]) == 16
     assert len([k for k in i18n.CATALOGS["it"] if k.startswith("filter.")]) == 17
-    assert len(i18n.CATALOGS["it"]) == 820
+    assert len(i18n.CATALOGS["it"]) == 1174  # 820 + 354 chiavi guide.* (Blocco 14)
 
 
 def _use_config_file(monkeypatch, tmp_path):

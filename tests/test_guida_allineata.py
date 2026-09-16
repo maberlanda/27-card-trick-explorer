@@ -28,14 +28,40 @@ def _norm(t):
     return re.sub(r"\s+", " ", t).strip()
 
 
+def _testo_guida(lingua):
+    """
+    Testo della Guida così come viene mostrato, nella lingua indicata.
+
+    Dal Blocco i18n 14 i testi stanno nei cataloghi di i18n.py: la Guida va
+    quindi letta RENDERIZZATA, non nel sorgente di guide.py.
+    """
+    from gioco27.gui.guide import render_guide_segments
+    return "".join(testo for _tag, testo in render_guide_segments(lingua))
+
+
+@pytest.fixture(scope="module")
+def guida_src():
+    return GUIDE.read_text(encoding="utf-8")
+
+
 @pytest.fixture(scope="module")
 def guida():
-    return GUIDE.read_text(encoding="utf-8")
+    return _testo_guida("it")
+
+
+@pytest.fixture(scope="module")
+def guida_en():
+    return _testo_guida("en")
 
 
 @pytest.fixture(scope="module")
 def guida_norm(guida):
     return _norm(guida)
+
+
+@pytest.fixture(scope="module")
+def guida_en_norm(guida_en):
+    return _norm(guida_en)
 
 
 @pytest.fixture(scope="module")
@@ -45,24 +71,37 @@ def app_src():
 
 # ───────────────────────────── indice e sezioni ────────────────────────────
 
-def _voci_indice(guida):
-    """[(numero, titolo)] dall'elenco `toc` della Guida."""
-    blocco = guida.split("toc = [", 1)[1].split("]", 1)[0]
-    return [(int(n), t) for n, t in re.findall(r'\("(\d+)",\s*"([^"]*)"\)', blocco)]
+def _segmenti(lingua):
+    from gioco27.gui.guide import render_guide_segments
+    return render_guide_segments(lingua)
 
 
-def _intestazioni(guida):
-    """[(numero, titolo)] dalle intestazioni h2."""
+def _voci_indice(lingua="it"):
+    """[(numero, titolo)] dalle righe dell'indice (tag «toc»)."""
     out = []
-    for n, resto in re.findall(r'ins\("h2", "(\d+)\.\s+([^"\\]*)', guida):
-        out.append((int(n), resto.strip()))
+    for tag, testo in _segmenti(lingua):
+        if tag == "toc":
+            m = re.match(r"\s*(\d+)\.\s+(.*)", testo)
+            out.append((int(m.group(1)), m.group(2).strip()))
     return out
 
 
-def test_indice_e_intestazioni_coincidono(guida):
+def _intestazioni(lingua="it"):
+    """[(numero, titolo)] dalle intestazioni h2 (le stesse lette da app.py)."""
+    out = []
+    for tag, testo in _segmenti(lingua):
+        if tag == "h2":
+            m = re.match(r"(\d+)\.\s+(.*)", testo)
+            out.append((int(m.group(1)), m.group(2).strip()))
+    return out
+
+
+@pytest.mark.parametrize("lingua", ["it", "en"])
+def test_indice_e_intestazioni_coincidono(lingua):
     """Ogni voce dell'indice deve avere la sua sezione, e viceversa."""
-    toc = _voci_indice(guida)
-    heads = _intestazioni(guida)
+    toc = _voci_indice(lingua)
+    heads = _intestazioni(lingua)
+    assert len(toc) == 33
     assert [n for n, _ in toc] == [n for n, _ in heads], (
         "numeri di sezione disallineati fra indice e intestazioni")
     for (n1, t1), (n2, t2) in zip(toc, heads):
@@ -70,25 +109,38 @@ def test_indice_e_intestazioni_coincidono(guida):
             f"sezione {n1}: indice «{t1}» ≠ intestazione «{t2}»"
 
 
-def test_sezioni_numerate_senza_buchi(guida):
-    numeri = [n for n, _ in _intestazioni(guida)]
+@pytest.mark.parametrize("lingua", ["it", "en"])
+def test_sezioni_numerate_senza_buchi(lingua):
+    numeri = [n for n, _ in _intestazioni(lingua)]
     assert numeri == list(range(1, len(numeri) + 1)), \
         f"numerazione non consecutiva: {numeri}"
 
 
-def test_riferimenti_incrociati_puntano_a_sezioni_esistenti(guida):
+def test_riferimenti_incrociati_puntano_a_sezioni_esistenti(guida, guida_en):
     """«vedi sezione N» deve riferirsi a una sezione che esiste davvero."""
-    esistenti = {n for n, _ in _intestazioni(guida)}
-    for n in re.findall(r'\bsezion[ei]\s+(\d+)\b', guida):
-        assert int(n) in esistenti, f"riferimento a una sezione inesistente: {n}"
+    esistenti = {n for n, _ in _intestazioni()}
+    riferimenti = re.findall(r'\bsezion[ei]\s+(\d+)(?:\s+e\s+(\d+))?\b', guida)
+    riferimenti += re.findall(r'\bsections?\s+(\d+)(?:\s+and\s+(\d+))?\b', guida_en)
+    assert riferimenti
+    for coppia in riferimenti:
+        for n in filter(None, coppia):
+            assert int(n) in esistenti, f"riferimento a una sezione inesistente: {n}"
 
 
-def test_banner_puntano_a_sezioni_esistenti(guida, app_src):
+def test_riferimenti_incrociati_uguali_nelle_due_lingue(guida, guida_en):
+    it = [n for c in re.findall(r'\bsezion[ei]\s+(\d+)(?:\s+e\s+(\d+))?\b', guida)
+          for n in c if n]
+    en = [n for c in re.findall(r'\bsections?\s+(\d+)(?:\s+and\s+(\d+))?\b', guida_en)
+          for n in c if n]
+    assert sorted(it) == sorted(en)
+
+
+def test_banner_puntano_a_sezioni_esistenti(app_src):
     """
     I `section=` passati ai banner d'aiuto devono esistere nella Guida:
     altrimenti «Apri Guida» non porta da nessuna parte.
     """
-    esistenti = {str(n) for n, _ in _intestazioni(guida)}
+    esistenti = {str(n) for n, _ in _intestazioni()}
     usate = set(re.findall(r'section="(\d+)"', app_src))
     usate |= {m for m in re.findall(r'_wrap_tab\([^)]*?,\s*"(\d+)"\)', app_src)}
     assert usate, "nessun riferimento di sezione trovato in app.py"
@@ -117,12 +169,18 @@ def test_open_guide_usa_davvero_il_parametro_section(app_src):
 
 # ──────────────────────── coerenza con il programma ────────────────────────
 
-def test_versione_nel_pie_di_pagina_e_quella_reale(guida):
+def test_versione_nel_pie_di_pagina_e_quella_reale(guida_src, guida, guida_en):
     """Il piè di pagina citava «v2.7.2» con il programma alla 3.x."""
-    assert "__version__ as _ver" in guida, \
+    from gioco27 import __version__
+    from gioco27.gui.i18n import CATALOGS
+    assert "__version__ as _ver" in guida_src, \
         "la versione nel piè di pagina dev'essere presa da gioco27.__version__"
-    assert not re.search(r"gioco27 v\d+\.\d+\.\d+", guida), \
-        "versione scritta a mano nel testo della Guida"
+    for lingua in ("it", "en"):
+        footer = CATALOGS[lingua]["guide.footer"]
+        assert "{version}" in footer
+        assert not re.search(r"gioco27 v\d+\.\d+\.\d+", footer), \
+            "versione scritta a mano nel testo della Guida"
+    assert f"gioco27 v{__version__}" in guida and f"gioco27 v{__version__}" in guida_en
 
 
 def test_versione_minima_di_python_coerente_con_pyproject(guida):
@@ -134,6 +192,12 @@ def test_versione_minima_di_python_coerente_con_pyproject(guida):
         f"la Guida non dichiara Python {attesa} (valore di pyproject.toml)"
     assert not re.search(r"Python\s+3\.8\s+o superiore", guida), \
         "la Guida conserva anche il vecchio requisito Python 3.8"
+
+
+def test_versione_minima_di_python_anche_in_inglese(guida_en):
+    pyproject = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
+    attesa = re.search(r'requires-python\s*=\s*">=(\d+\.\d+)"', pyproject).group(1)
+    assert f"Python {attesa} or later" in guida_en
 
 
 def test_requisito_python_rifiuta_formulazioni_contraddittorie(guida):

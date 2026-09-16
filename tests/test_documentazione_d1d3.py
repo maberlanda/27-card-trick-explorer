@@ -1,5 +1,4 @@
 """D1-D3: ambito dei gruppi, conteggi e indici tecnici, senza correggere D4."""
-import ast
 import math
 from pathlib import Path
 import re
@@ -12,11 +11,15 @@ from gioco27.gui.protocol_dialog import _ai_phase_html, generate_protocol_html
 GUIDE = Path(__file__).resolve().parents[1] / "gioco27" / "gui" / "guide.py"
 
 
+def _guide_text(language="it"):
+    """Guida renderizzata: dal Blocco i18n 14 i testi stanno nei cataloghi."""
+    from gioco27.gui.guide import render_guide_segments
+    return "".join(text for _tag, text in render_guide_segments(language))
+
+
 @pytest.fixture
 def text():
-    tree = ast.parse(GUIDE.read_text(encoding="utf-8"))
-    return "\n".join(node.value for node in ast.walk(tree)
-                     if isinstance(node, ast.Constant) and isinstance(node.value, str))
+    return _guide_text("it")
 
 
 def _check_groups(text):
@@ -59,14 +62,14 @@ def _check_counts(text):
 
 def test_d2_conteggi_indipendenti_e_conseguenza_sul_limite(text):
     _check_counts(text)
-    tree = ast.parse(GUIDE.read_text(encoding="utf-8"))
-    rows = [ast.literal_eval(node) for node in ast.walk(tree)
-            if isinstance(node, ast.Tuple) and len(node.elts) == 4
-            and all(isinstance(e, ast.Constant) and isinstance(e.value, str) for e in node.elts)
-            and node.elts[0].value.startswith("Un livello P fissato")]
+    from gioco27.gui.guide import render_guide_segments
+    segments = render_guide_segments("it")
+    rows = [i for i, (tag, line) in enumerate(segments)
+            if tag == "bullet" and line.strip().startswith("•  Un livello P fissato")]
     assert len(rows) == 1
-    assert rows[0][1].strip() == "23 887 872"
-    assert rows[0][3] == "RIFIUTATO: oltre il limite"
+    line = segments[rows[0]][1]
+    assert line.split("→", 1)[1].split("(", 1)[0].strip() == "23 887 872"
+    assert segments[rows[0] + 1] == ("bullet2", "     RIFIUTATO: oltre il limite\n")
 
 
 @pytest.mark.parametrize("obsolete", ["373 248", "373.248", "19 683 000", "19.683.000"])

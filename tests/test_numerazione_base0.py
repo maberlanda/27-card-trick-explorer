@@ -142,7 +142,10 @@ def test_guida_descrive_il_preset_come_il_codice():
     libero = ({"P0", "P1", "P2"} - fissati).pop()
     assert libero == "P2"
 
-    guida = (radice / "gioco27" / "gui" / "guide.py").read_text(encoding="utf-8")
+    # Dal Blocco i18n 14 il testo della Guida sta nei cataloghi: si legge la
+    # Guida renderizzata (in italiano), non il sorgente di guide.py.
+    from gioco27.gui.guide import render_guide_segments
+    guida = "".join(testo for _tag, testo in render_guide_segments("it"))
     assert f"{libero} varia" in guida or f"{libero} libero" in guida, \
         f"la Guida non dice che {libero} è il fattore libero"
     for f in sorted(fissati):
