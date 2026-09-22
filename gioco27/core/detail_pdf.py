@@ -45,7 +45,7 @@ from .parallel import (COSTO_COMBO_DETTAGLIO, ExportAnnullato, ExportTooLarge,
                        atomic_write, cronometro, imap_ordered, plan_workers,
                        _check_cancelled)
 from .permutations import compute_stage, mat_to_perm27
-from ..gui.i18n import get_language, set_language, tr
+from ..i18n import get_language, set_language, tr
 
 _log = get_logger(__name__)
 

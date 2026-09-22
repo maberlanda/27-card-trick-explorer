@@ -25,7 +25,7 @@ import itertools
 
 # Messaggi mostrati nella GUI (Tavola 216, pulsante Verifica): seguono la
 # lingua attiva. I dati restituiti (rapporto, tabelle) restano invariati.
-from ..gui.i18n import tr
+from ..i18n import tr
 
 # ─── Sigle ────────────────────────────────────────────────────────────────────
 

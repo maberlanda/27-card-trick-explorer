@@ -9,7 +9,7 @@ from typing import Optional, List, Tuple
 
 # Etichette leggibili della traccia e dei passi parziali: seguono la lingua
 # attiva (stesso schema di combinations.py / detail_pdf.py).
-from ..gui.i18n import tr
+from ..i18n import tr
 
 
 def display_normal_form_kind(kind: str) -> str:

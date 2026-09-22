@@ -10,7 +10,7 @@ from .parallel import (COSTO_PAGINA_PDF, ExportAnnullato, check_export_size,
                        run_export, _check_cancelled)
 from .permutations import (compute_stage, compute_R, kron_label, stage_label,
                             R_label, MAT3_P, MAT3_J)
-from ..gui.i18n import get_language, set_language, tr
+from ..i18n import get_language, set_language, tr
 
 _log = get_logger(__name__)
 
