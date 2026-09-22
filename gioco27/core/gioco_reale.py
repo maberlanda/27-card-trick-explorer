@@ -27,6 +27,17 @@ import itertools
 # lingua attiva. I dati restituiti (rapporto, tabelle) restano invariati.
 from ..i18n import tr
 
+
+class VerificaFallita(AssertionError):
+    """Incoerenza rilevata da una verifica diagnostica del dominio.
+
+    E' sottoclasse di `AssertionError` per non cambiare il contratto verso i
+    chiamanti esistenti (la GUI intercetta `AssertionError`), ma viene sollevata
+    da un `if` esplicito: a differenza di `assert` NON scompare quando Python
+    gira con `-O` / `PYTHONOPTIMIZE`. Vedi B09.
+    """
+
+
 # ─── Sigle ────────────────────────────────────────────────────────────────────
 
 #: ordine canonico delle sigle (stesso del programma C e della tavola)
@@ -311,7 +322,7 @@ def risolvi_trucco(carta: int, bersaglio: int, preferisci_semplici: bool = True)
         deck = raccogli(cols, scelto)
     finale = deck.index(carta)
     if finale != bersaglio:      # non deve mai accadere
-        raise AssertionError("soluzione errata: bug in risolvi_trucco")
+        raise VerificaFallita("soluzione errata: bug in risolvi_trucco")
     return {
         "mescolamenti": tuple(mesc),
         "impilamenti": tuple(IMPILAMENTO_DI[s] for s in mesc),
@@ -339,7 +350,8 @@ def selftest(completo: bool = True) -> dict:
     # 1a. fisica vs algebra, 216 semplici
     for n in range(216):
         mesc = mescolamenti_da_numero(n)
-        assert T_da_partita(mesc) == T_da_tabellone(mesc), tr("verify.fail.row", row=n)
+        if T_da_partita(mesc) != T_da_tabellone(mesc):
+            raise VerificaFallita(tr("verify.fail.row", row=n))
     rapporto["fisica_vs_algebra_216"] = "ok"
     # 1b. con rovesciamenti, vs modello matriciale (P3 = raccolta,
     #     rovesciamento inglobato nei P della fase)
@@ -363,28 +375,37 @@ def selftest(completo: bool = True) -> dict:
                                        name_of[p3], "I_3", "I_3", "I_3"))
                     _, _, Tp, _ = compute_T_full(params)
                     Tf = T_da_partita(mesc, rov)
-                    assert list(Tp) == Tf, f"{mesc} {rov}"
+                    if list(Tp) != Tf:
+                        raise VerificaFallita(f"{mesc} {rov}")
                     n_check += 1
             rapporto["fisica_vs_matrici_1728"] = f"ok ({n_check})"
         except ImportError:
             rapporto["fisica_vs_matrici_1728"] = "saltato (numpy assente)"
     # 2. ancore
-    assert riga_tavola(100)["assi"] == (13, 8, 18), tr("verify.fail.anchor", number=100)
-    assert riga_tavola(100)["mescolamenti"] == ("CDS", "CDS", "CSD")
-    assert riga_tavola(82)["assi"] == (10, 8, 21), tr("verify.fail.anchor", number=82)
-    assert riga_tavola(82)["mescolamenti"] == ("CDS", "SDC", "CSD")
+    if riga_tavola(100)["assi"] != (13, 8, 18):
+        raise VerificaFallita(tr("verify.fail.anchor", number=100))
+    if riga_tavola(100)["mescolamenti"] != ("CDS", "CDS", "CSD"):
+        raise VerificaFallita(tr("verify.fail.anchor", number=100))
+    if riga_tavola(82)["assi"] != (10, 8, 21):
+        raise VerificaFallita(tr("verify.fail.anchor", number=82))
+    if riga_tavola(82)["mescolamenti"] != ("CDS", "SDC", "CSD"):
+        raise VerificaFallita(tr("verify.fail.anchor", number=82))
     rapporto["ancore_libro"] = "ok (#100, #82)"
     # 3. statistiche
     st = statistiche_tavola()
-    assert st["periodi"] == {1: 1, 2: 63, 3: 26, 6: 126}, st["periodi"]
-    assert st["autoinverse"] == 64
-    assert len(st["tipi_ciclo"]) == 7
+    if st["periodi"] != {1: 1, 2: 63, 3: 26, 6: 126}:
+        raise VerificaFallita(st["periodi"])
+    if st["autoinverse"] != 64:
+        raise VerificaFallita(st["autoinverse"])
+    if len(st["tipi_ciclo"]) != 7:
+        raise VerificaFallita(st["tipi_ciclo"])
     rapporto["statistiche_cap100"] = "ok"
     # 4. assi → tabellone
     for n in range(216):
         r = riga_tavola(n)
         mesc, num = tabellone_da_assi(*r["assi"])
-        assert num == n and mesc == r["mescolamenti"], tr("verify.fail.axes_row", row=n)
+        if num != n or mesc != r["mescolamenti"]:
+            raise VerificaFallita(tr("verify.fail.axes_row", row=n))
     rapporto["ricostruzione_assi"] = "ok (216/216)"
     # 5. trucco
     for c in range(27):
