@@ -17,6 +17,7 @@ import urllib.request
 import pytest
 
 from gioco27.core.algebra import EXCEL_MAX_CELL_CHARS, scrivi_excel
+from gioco27.core.parallel import ExportTooLarge
 from gioco27.gui import analysis_tab as at
 from gioco27.gui import export_group_dialog as egd
 
@@ -275,6 +276,53 @@ def test_b10_processo_appena_avviato(rompi, atteso, tmp_path):
 
 class _Sentinella(Exception):
     """Se viene sollevata, l'enumerazione e' partita: il preflight e' mancato."""
+
+
+def test_b11_write_csv_rifiuta_prima_di_enumerare(tmp_path, monkeypatch):
+    from gioco27.core import combinations, permutations
+
+    def mai(_filters):
+        raise _Sentinella("iter_combinations_ex non doveva essere chiamata")
+
+    monkeypatch.setattr(combinations, "iter_combinations_ex", mai)
+    liberi = [{"p0": "*", "p1": "*", "p2": "*",
+               "j0": "*", "j1": "*", "j2": "*"} for _ in range(3)]
+    assert combinations.count_combinations_ex(liberi) == 5_159_780_352
+    dest = tmp_path / "enorme.csv"
+    with pytest.raises(ExportTooLarge):
+        permutations.write_csv(str(dest), liberi)
+    assert not dest.exists(), "nessun file, nemmeno con la sola intestazione"
+    assert list(tmp_path.iterdir()) == [], "nessun temporaneo lasciato in giro"
+
+
+def test_b11_export_piccolo_resta_possibile(tmp_path):
+    from gioco27.core.permutations import write_csv
+
+    fissi = [{"p0": "SCD_U", "p1": "SCD_U", "p2": "SCD_U",
+              "j0": "I_3", "j1": "I_3", "j2": "*"} for _ in range(3)]
+    dest = tmp_path / "piccolo.csv"
+    n = write_csv(str(dest), fissi)
+    assert n == 8 and dest.exists()
+    assert len(dest.read_text(encoding="utf-8").strip().splitlines()) == n + 1
+
+
+def test_b11_tutte_le_rotte_pubbliche_hanno_il_preflight():
+    """Nessun entry point di export massivo senza check_export_size."""
+    import ast
+
+    rotte = {
+        "gioco27/core/permutations.py": ["write_csv", "write_csv_parallel"],
+        "gioco27/core/combinations.py": ["generate_pdf", "generate_pdf_ex",
+                                         "_pdf_parallel"],
+    }
+    for rel, funzioni in rotte.items():
+        albero = ast.parse((RADICE / rel).read_text(encoding="utf-8"))
+        for nome in funzioni:
+            fn = next(n for n in ast.walk(albero)
+                      if isinstance(n, ast.FunctionDef) and n.name == nome)
+            chiamate = {n.func.id for n in ast.walk(fn)
+                        if isinstance(n, ast.Call) and isinstance(n.func, ast.Name)}
+            assert "check_export_size" in chiamate, f"{rel}:{nome}"
 
 
 # ─────────────────────────────── B12 ────────────────────────────────────────

@@ -414,12 +414,21 @@ def write_csv(path, filters, progress_cb=None, annullato=None):
 
     `annullato()` viene interrogata ogni 200 righe: se vera, solleva
     ExportAnnullato e — grazie alla scrittura atomica — non lascia alcun file.
+
+    Solleva ExportTooLarge se il numero di righe supera il limite di sicurezza
+    (B11): la stessa policy di `write_csv_parallel` e delle rotte della GUI,
+    applicata con lo stesso `check_export_size` e PRIMA di aprire il file o di
+    avviare l'enumerazione. Con i filtri tutti liberi sarebbero 5.159.780.352
+    righe, e questo percorso ci entrava dentro senza alcun preflight.
     """
     # Import locale per evitare un import circolare con combinations.py
-    from .combinations import iter_combinations_ex
-    from .parallel import ExportAnnullato, atomic_write, mai_annullato, _check_cancelled
+    from .combinations import count_combinations_ex, iter_combinations_ex
+    from .parallel import (ExportAnnullato, atomic_write, check_export_size,
+                           mai_annullato, _check_cancelled)
     if annullato is None:
         annullato = mai_annullato
+    # Preflight: nessun file aperto, nessun elemento enumerato se e' troppo.
+    check_export_size(count_combinations_ex(filters))
     count = 0
     with atomic_write(path, "w", annullato=annullato,
                       newline="", encoding="utf-8") as f:
