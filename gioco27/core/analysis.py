@@ -3,6 +3,7 @@ Analisi matematica del gruppo: cicli, ordine, orbite, distribuzione.
 """
 import numpy as np
 from .constants import PERM3, _MSC_PERM
+from .dominio import PermutazioneNonValida, valida_indice, valida_permutazione
 from .log import get_logger
 
 _log = get_logger(__name__)
@@ -18,16 +19,22 @@ def cycle_decomposition(perm):
 
     Parameters
     ----------
-    perm : array-like of int, length 27
-        perm[i] = posizione in cui va la carta i
+    perm : array-like of int
+        perm[i] = posizione in cui va la carta i. Deve essere una permutazione
+        valida di `len(perm)` elementi (si veda `core.dominio`).
 
     Returns
     -------
     list of list of int
         Ogni sotto-lista è un ciclo; i punti fissi (cicli di lunghezza 1)
         sono inclusi.  I cicli sono ordinati per elemento minimo.
+
+    Raises
+    ------
+    PermutazioneNonValida
+        Se `perm` non e' una permutazione (lunghezza, tipi, dominio, bigezione).
     """
-    perm = list(perm)
+    perm = valida_permutazione(perm, nome="cycle_decomposition")
     n = len(perm)
     visited = [False] * n
     cycles = []
@@ -50,6 +57,8 @@ def order_of(perm):
     Ordine di una permutazione nel gruppo S_27:
     minimo n > 0 tale che perm^n = identità.
     Equivalente a mcm delle lunghezze dei cicli.
+
+    L'ingresso e' validato una sola volta, da `cycle_decomposition`.
     """
     from math import gcd
     cycles = cycle_decomposition(perm)
@@ -64,12 +73,28 @@ def orbit_of(perm, card):
     """
     Sequenza di posizioni percorse dalla carta `card` sotto iterazione di perm.
     Termina quando si ritorna al punto di partenza.
+
+    Su una permutazione valida l'orbita ha al piu' `len(perm)` elementi: il
+    controllo sui visitati e' una difesa strutturale, non il modo normale di
+    terminare. Prima di R04 un ingresso non bigettivo (ad esempio `[1, 1]`)
+    faceva ciclare la funzione all'infinito.
+
+    Raises
+    ------
+    PermutazioneNonValida
+        Se `perm` non e' una permutazione o `card` non e' un indice valido.
     """
-    perm = list(perm)
+    perm = valida_permutazione(perm, nome="orbit_of")
+    card = valida_indice(card, len(perm), nome="orbit_of: card")
     orbit = [card]
+    visitati = {card}
     cur = perm[card]
     while cur != card:
+        if cur in visitati:          # irraggiungibile su una permutazione valida
+            raise PermutazioneNonValida(
+                f"orbit_of: orbita non chiusa su {card} (rivisitato {cur})")
         orbit.append(cur)
+        visitati.add(cur)
         cur = perm[cur]
     return orbit
 
@@ -78,6 +103,8 @@ def cycle_type(perm):
     """
     Tipo di ciclo: dizionario {lunghezza: conteggio}.
     Es. {1: 3, 2: 6, 3: 6} per una permutazione in S_27.
+
+    L'ingresso e' validato una sola volta, da `cycle_decomposition`.
     """
     from collections import Counter
     cycles = cycle_decomposition(perm)

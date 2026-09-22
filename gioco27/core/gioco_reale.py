@@ -23,6 +23,8 @@ mescolamenti cronologici nell'ordine SCD,SDC,CSD,DSC,CDS,DCS.
 from __future__ import annotations
 import itertools
 
+from .dominio import valida_permutazione
+
 # Messaggi mostrati nella GUI (Tavola 216, pulsante Verifica): seguono la
 # lingua attiva. I dati restituiti (rapporto, tabelle) restano invariati.
 from ..i18n import tr
@@ -185,8 +187,13 @@ def tabellone_da_assi(pos_AS: int, pos_AC: int, pos_AH: int):
 # ─── Statistiche ──────────────────────────────────────────────────────────────
 
 def periodo(T):
-    """Ordine della permutazione (lcm delle lunghezze dei cicli)."""
+    """Ordine della permutazione (lcm delle lunghezze dei cicli).
+
+    `T` deve essere una permutazione valida (R04): con un ingresso non bigettivo
+    il risultato sarebbe un numero privo di significato.
+    """
     from math import gcd
+    T = valida_permutazione(T, nome="periodo")
     seen = [False] * len(T)
     out = 1
     for i in range(len(T)):
@@ -202,6 +209,7 @@ def periodo(T):
 
 def tipo_ciclo(T):
     """Tipo ciclico come tupla ordinata di lunghezze, es. (1,1,1,3,3,...)."""
+    T = valida_permutazione(T, nome="tipo_ciclo")
     seen = [False] * len(T)
     lens = []
     for i in range(len(T)):
@@ -216,10 +224,13 @@ def tipo_ciclo(T):
     return tuple(sorted(lens))
 
 def punti_fissi(T):
+    """Numero di carte che restano al loro posto."""
+    T = valida_permutazione(T, nome="punti_fissi")
     return sum(1 for i, v in enumerate(T) if i == v)
 
 def parita(T):
     """+1 pari, -1 dispari."""
+    T = valida_permutazione(T, nome="parita")
     seen = [False] * len(T)
     sign = 1
     for i in range(len(T)):

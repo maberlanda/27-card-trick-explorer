@@ -25,6 +25,7 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 import numpy as np
 
 from .constants import PERM3, _MSC_PERM
+from .dominio import valida_permutazione
 from .log import get_logger
 
 _log = get_logger(__name__)
@@ -153,7 +154,11 @@ def find_all_kron_decompositions(target_perm_27, progress_cb=None):
 
     Restituisce lista di tuple:
         ( (f3_1,f2_1,f1_1), (f3_2,f2_2,f1_2), (f3_3,f2_3,f1_3) )
+
+    `target_perm_27` deve essere una permutazione valida di 27 elementi (R04).
     """
+    target_perm_27 = valida_permutazione(target_perm_27, 27,
+                                         nome="find_all_kron_decompositions")
     kron_arr, kron_names, kron_lookup = _get_kron_table()
     msc    = np.array(_MSC_PERM, dtype=np.int32)
     target = np.array(target_perm_27, dtype=np.int32)
@@ -308,9 +313,12 @@ def try_kron_decompose(perm27):
       4. Verifica che la formula sia rispettata per tutti i 27 coloni.
 
     Ritorna (f3_name, f2_name, f1_name) se la permutazione e' un prodotto
-    di Kronecker GEN3^3, altrimenti None.
+    di Kronecker GEN3^3 (cioe' se appartiene a G), altrimenti None.
+
+    `perm27` deve essere una permutazione valida di 27 elementi (R04): None
+    significa "permutazione valida ma non in G", non "ingresso irriconoscibile".
     """
-    p = list(perm27)
+    p = list(valida_permutazione(perm27, 27, nome="try_kron_decompose"))
 
     # Estrai i tre fattori candidati
     f3 = [p[9 * c3] // 9           for c3 in range(3)]
@@ -332,3 +340,37 @@ def try_kron_decompose(perm27):
         return None
 
     return n3, n2, n1
+
+
+# ───────────────────────────── appartenenza a G e H ──────────────────────────
+#
+# G = GEN3^3           i 216 prodotti di Kronecker di tre permutazioni di S3
+# H = G semidiretto C3 le 648 forme canoniche K o MSC^k, k in {0,1,2}
+#
+# Sono insiemi propri di S27 (27! elementi): nessuna proprieta' di G o di H vale
+# "per tutte le permutazioni di 27 elementi". Queste due funzioni rendono
+# esplicito un test di appartenenza che altrimenti resterebbe implicito nel
+# codice chiamante.
+
+def appartiene_a_G(perm27):
+    """True se `perm27` e' un prodotto di Kronecker GEN3^3 (|G| = 216)."""
+    return try_kron_decompose(perm27) is not None
+
+
+def appartiene_a_H(perm27):
+    """True se `perm27` e' della forma K o MSC^k con K in G (|H| = 648).
+
+    Equivale a: esiste k in {0,1,2} tale che perm o MSC^(-k) appartenga a G.
+    """
+    perm = valida_permutazione(perm27, 27, nome="appartiene_a_H")
+    msc_k = tuple(range(27))
+    for _ in range(3):
+        # perm o (MSC^k)^-1 : si toglie la potenza di MSC e si guarda se resta in G
+        inversa = [0] * 27
+        for posizione, valore in enumerate(msc_k):
+            inversa[valore] = posizione
+        candidata = [perm[inversa[i]] for i in range(27)]
+        if try_kron_decompose(candidata) is not None:
+            return True
+        msc_k = tuple(_MSC_PERM[x] for x in msc_k)
+    return False
