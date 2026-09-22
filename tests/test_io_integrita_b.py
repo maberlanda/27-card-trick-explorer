@@ -16,6 +16,7 @@ import urllib.request
 
 import pytest
 
+from gioco27.core import pdfmerge
 from gioco27.core.algebra import EXCEL_MAX_CELL_CHARS, scrivi_excel
 from gioco27.core.parallel import ExportTooLarge
 from gioco27.gui import analysis_tab as at
@@ -496,6 +497,59 @@ def _pdf_di_prova(path, pagine=2):
         c.showPage()
     c.save()
     return path
+
+
+def test_r03_temporanei_distinti_nella_cartella_di_destinazione(tmp_path):
+    dest = tmp_path / "out.pdf"
+    dest.write_bytes(b"%PDF-1.4\n")
+    a = pdfmerge._temporaneo(str(dest))
+    b = pdfmerge._temporaneo(str(dest))
+    try:
+        assert a != b
+        assert pathlib.Path(a).parent == pathlib.Path(b).parent == tmp_path
+        pdfmerge._pulisci(a)
+        assert pathlib.Path(b).exists(), "la pulizia di uno non tocca l'altro"
+    finally:
+        pdfmerge._pulisci(a)
+        pdfmerge._pulisci(b)
+
+
+def test_r03_due_deduplicazioni_sulla_stessa_destinazione(tmp_path, monkeypatch):
+    """Concorrenza simulata in modo deterministico: la seconda parte dentro la prima."""
+    pytest.importorskip("pypdf")
+    dest = _pdf_di_prova(tmp_path / "out.pdf")
+    temporanei = []
+    originale_temp = pdfmerge._temporaneo
+    originale_sost = pdfmerge._sostituisci
+    annidata = {"fatta": False, "esito": None}
+
+    def spia_temp(path):
+        t = originale_temp(path)
+        temporanei.append(t)
+        return t
+
+    def sostituisci_intrecciato(tmp, path):
+        # mentre la prima deduplicazione ha il suo temporaneo pronto ma non
+        # ancora pubblicato, ne parte una seconda sulla stessa destinazione
+        if not annidata["fatta"]:
+            annidata["fatta"] = True
+            assert pathlib.Path(tmp).exists()
+            annidata["esito"] = pdfmerge._dedup_pypdf(str(path))
+            assert pathlib.Path(tmp).exists(), \
+                "la seconda deduplicazione ha distrutto il temporaneo della prima"
+        return originale_sost(tmp, path)
+
+    monkeypatch.setattr(pdfmerge, "_temporaneo", spia_temp)
+    monkeypatch.setattr(pdfmerge, "_sostituisci", sostituisci_intrecciato)
+
+    assert pdfmerge._dedup_pypdf(str(dest)) is True
+    assert annidata["esito"] is True
+    assert len(set(temporanei)) == len(temporanei) == 2
+
+    from pypdf import PdfReader
+    assert len(PdfReader(str(dest)).pages) == 2
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["out.pdf"], \
+        "nessun temporaneo sopravvissuto"
 
 
 # ─────────────────────────────── M05 ────────────────────────────────────────

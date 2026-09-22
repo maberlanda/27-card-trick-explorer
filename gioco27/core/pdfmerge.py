@@ -35,11 +35,28 @@ Nessuno dei tre e' obbligatorio: la fusione funziona comunque.
 import hashlib
 import io
 import os
+import tempfile
 
 from .log import get_logger
 from .parallel import atomic_write  # noqa: F401 — usato da unisci()
 
 _log = get_logger(__name__)
+
+
+def _temporaneo(path):
+    """Percorso temporaneo UNIVOCO accanto a `path`, gia' creato e vuoto.
+
+    R03: prima il temporaneo era il nome fisso `<path>.dedup`. Due
+    deduplicazioni sulla stessa destinazione — due istanze del programma, o un
+    export ritentato — si sovrascrivevano il file a vicenda, e il `_pulisci` di
+    una cancellava il lavoro dell'altra. Con `mkstemp` ogni deduplicazione ha il
+    suo file, nella stessa directory della destinazione (quindi `os.replace`
+    resta atomico, senza attraversare filesystem diversi).
+    """
+    fd, tmp = tempfile.mkstemp(prefix=".gioco27-dedup-", suffix=".pdf",
+                               dir=os.path.dirname(os.path.abspath(path)))
+    os.close(fd)
+    return tmp
 
 
 def _sostituisci(tmp, path):
@@ -70,7 +87,7 @@ def _dedup_pikepdf(path):
     except ImportError:
         return False
 
-    tmp = f"{path}.dedup"
+    tmp = _temporaneo(path)
     try:
         prima = os.path.getsize(path)
         # `allow_overwriting_input` fa leggere pikepdf in memoria invece di
@@ -148,7 +165,7 @@ def _dedup_pypdf(path):
                   prima / 1e6, MAX_MB_RIPIEGO_PYPDF)
         return False
 
-    tmp = f"{path}.dedup"
+    tmp = _temporaneo(path)
     try:
         # Il file viene letto INTERAMENTE in memoria e chiuso subito: tenere
         # aperto `path` impedirebbe di sostituirlo su Windows.
@@ -160,6 +177,7 @@ def _dedup_pypdf(path):
         for pagina in lettore.pages:
             scrittore.add_page(pagina)
         if not hasattr(scrittore, "compress_identical_objects"):
+            _pulisci(tmp)
             return False
         scrittore.compress_identical_objects()
 
