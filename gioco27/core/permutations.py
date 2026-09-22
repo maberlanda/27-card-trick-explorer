@@ -57,26 +57,34 @@ for _col, _row in enumerate(_MSC_PERM):
 # CALCOLO MATRICI
 # ─────────────────────────────────────────────────────────────────────────────
 
-def build_P27(p1n, p2n, p3n):
+def build_P27(p0n, p1n, p2n):
     """
-    Costruisce P = P3 ⊗ P2 ⊗ P1 come matrice 27×27.
-    np.kron applicato due volte: kron(kron(P3,P2),P1) → 27×27.
-    Multi-indice: (i₂,i₁,i₀) codificato come 9·i₂ + 3·i₁ + i₀.
+    Costruisce P = P₂ ⊗ P₁ ⊗ P₀ come matrice 27×27.
+
+    Gli argomenti sono in ordine di `digit_index` crescente: `p0n` agisce sulla
+    cifra MENO significativa (i₀), `p2n` sulla PIÙ significativa (i₂), con il
+    multi-indice (i₂,i₁,i₀) codificato come 9·i₂ + 3·i₁ + i₀. È lo stesso ordine
+    delle chiavi di filtro p0/p1/p2, che arrivano qui posizionalmente.
+    Attenzione: np.kron vuole il fattore più significativo per primo, quindi
+    l'ordine degli argomenti è l'inverso di quello della scrittura P₂⊗P₁⊗P₀.
     """
-    return np.kron(np.kron(MAT3_P[p3n], MAT3_P[p2n]), MAT3_P[p1n])
+    return np.kron(np.kron(MAT3_P[p2n], MAT3_P[p1n]), MAT3_P[p0n])
 
-def build_J27(j1n, j2n, j3n):
-    """Costruisce J = J3 ⊗ J2 ⊗ J1 come matrice 27×27. Stesso schema di build_P27."""
-    return np.kron(np.kron(MAT3_J[j3n], MAT3_J[j2n]), MAT3_J[j1n])
+def build_J27(j0n, j1n, j2n):
+    """Costruisce J = J₂ ⊗ J₁ ⊗ J₀ come matrice 27×27. Stesso schema di build_P27."""
+    return np.kron(np.kron(MAT3_J[j2n], MAT3_J[j1n]), MAT3_J[j0n])
 
-def compute_stage(p1n, p2n, p3n, j1n, j2n, j3n):
+def compute_stage(p0n, p1n, p2n, j0n, j1n, j2n):
     """
     Calcola Stage = P ∘ MSC ∘ J  =  P @ MSC @ J.
     A @ B = composizione A ∘ B (prima B, poi A).
     Ritorna (P_27, J_27, Stage_27).
+
+    Argomenti in ordine di `digit_index` crescente: sono esattamente i sei
+    valori delle chiavi di filtro (p0, p1, p2, j0, j1, j2) di UNO stadio.
     """
-    P = build_P27(p1n, p2n, p3n)
-    J = build_J27(j1n, j2n, j3n)
+    P = build_P27(p0n, p1n, p2n)
+    J = build_J27(j0n, j1n, j2n)
     S = P @ MSC @ J
     return P, J, S
 
@@ -95,16 +103,22 @@ def compute_R(stages):
 def kron_label(a, b, c):
     return f"({a} x {b} x {c})"
 
-def stage_label(i, p1, p2, p3, j1, j2, j3):
-    lp = kron_label(p3, p2, p1)
-    lj = kron_label(j3, j2, j1)
-    return f"Stage{i} = {lp} o MSC o {lj}"
+def stage_label(stage_index, p0, p1, p2, j0, j1, j2):
+    """Etichetta di uno stadio. `stage_index` è in base 0, come nei PDF esportati.
+
+    I fattori arrivano in ordine di cifra crescente e vengono scritti nell'ordine
+    Kronecker (cifra più significativa per prima): (p2 x p1 x p0).
+    """
+    lp = kron_label(p2, p1, p0)
+    lj = kron_label(j2, j1, j0)
+    return f"Stage{stage_index} = {lp} o MSC o {lj}"
 
 def R_label(params):
+    """Etichetta di T. `params` è la lista dei tre stadi, ciascuno (p0,p1,p2,j0,j1,j2)."""
     parts = []
-    for i, (p1,p2,p3,j1,j2,j3) in enumerate(params):
-        lp = kron_label(p3, p2, p1)
-        lj = kron_label(j3, j2, j1)
+    for _stage_index, (p0, p1, p2, j0, j1, j2) in enumerate(params):
+        lp = kron_label(p2, p1, p0)
+        lj = kron_label(j2, j1, j0)
         parts.append(f"[{lp} o MSC o {lj}]")
     return "T = " + " o ".join(reversed(parts))
 
@@ -215,7 +229,7 @@ def compose3(an, bn):
 # separati (P3←J1, P2←J3, P1←J2): era la numerazione a nasconderla.
 # ─────────────────────────────────────────────────────────────────────────────
 
-def compute_Ai_symbolic(p1n, p2n, p3n, j1n, j2n, j3n):
+def compute_Ai_symbolic(p0n, p1n, p2n, j0n, j1n, j2n):
     """
     Calcola i tre fattori simbolici di A_i, in numerazione a BASE 0:
 
@@ -232,27 +246,25 @@ def compute_Ai_symbolic(p1n, p2n, p3n, j1n, j2n, j3n):
     Gli indici sono INCROCIATI per effetto della commutazione con MSC: la
     rotazione (i₂,i₁,i₀) -> (i₀,i₂,i₁) porta la cifra k+1 al posto k.
 
-    NB: i nomi dei parametri (p1n, p2n, p3n) sono rimasti a base 1 per non
-    toccare le firme interne; posizionalmente p1n è P₀, p2n è P₁, p3n è P₂.
+    Argomenti e valori di ritorno usano la stessa numerazione base 0 delle
+    chiavi di filtro (compartimento D, M02: prima i parametri si chiamavano
+    p1n/p2n/p3n pur essendo posizionalmente P₀/P₁/P₂).
     """
-    f3 = compose3(p3n, j1n)   # f₂ = P₂ ∘ J₀
-    f2 = compose3(p2n, j3n)   # f₁ = P₁ ∘ J₂
-    f1 = compose3(p1n, j2n)   # f₀ = P₀ ∘ J₁
-    return f3, f2, f1
+    f2 = compose3(p2n, j0n)   # f₂ = P₂ ∘ J₀
+    f1 = compose3(p1n, j2n)   # f₁ = P₁ ∘ J₂
+    f0 = compose3(p0n, j1n)   # f₀ = P₀ ∘ J₁
+    return f2, f1, f0
 
-def Ai_label(f3, f2, f1):
-    """Etichetta simbolica di A_i = f3 ⊗ f2 ⊗ f1."""
-    return f"({f3} x {f2} x {f1})"
+def Ai_label(f2, f1, f0):
+    """Etichetta simbolica di A_i = f₂ ⊗ f₁ ⊗ f₀ (cifra più significativa per prima)."""
+    return f"({f2} x {f1} x {f0})"
 
-def build_Ai_matrix(f3, f2, f1):
-    """Matrice 27×27 di A_i = f3 ⊗ f2 ⊗ f1."""
-    m3 = _ALL3[f3]
-    m2 = _ALL3[f2]
-    m1 = _ALL3[f1]
-    M3 = perm_to_mat3(m3)
-    M2 = perm_to_mat3(m2)
-    M1 = perm_to_mat3(m1)
-    return np.kron(np.kron(M3, M2), M1)
+def build_Ai_matrix(f2, f1, f0):
+    """Matrice 27×27 di A_i = f₂ ⊗ f₁ ⊗ f₀ (cifra più significativa per prima)."""
+    M2 = perm_to_mat3(_ALL3[f2])
+    M1 = perm_to_mat3(_ALL3[f1])
+    M0 = perm_to_mat3(_ALL3[f0])
+    return np.kron(np.kron(M2, M1), M0)
 
 # ─────────────────────────────────────────────────────────────────────────────
 # PERMUTAZIONE FINALE T = A2∘MSC∘A1∘MSC∘A0∘MSC  come lista {0..26}
@@ -297,9 +309,9 @@ def _compose_vec(a, b):
     return [a[x] for x in b]
 
 
-def _kron_vec(f3, f2, f1):
-    """Vettore di permutazione di f3 ⊗ f2 ⊗ f1 con l'indice 9·i₂+3·i₁+i₀."""
-    a, b, c = _ALL3[f3], _ALL3[f2], _ALL3[f1]
+def _kron_vec(f2, f1, f0):
+    """Vettore di permutazione di f₂ ⊗ f₁ ⊗ f₀ con l'indice 9·i₂+3·i₁+i₀."""
+    a, b, c = _ALL3[f2], _ALL3[f1], _ALL3[f0]
     return [9 * a[i // 9] + 3 * b[(i % 9) // 3] + c[i % 3] for i in range(27)]
 
 
@@ -307,8 +319,8 @@ def _stage_Ai(params_stage):
     """(etichetta, permutazione) di A_i per uno stadio, memoizzati."""
     hit = _STAGE_CACHE.get(params_stage)
     if hit is None:
-        f3, f2, f1 = compute_Ai_symbolic(*params_stage)
-        hit = (Ai_label(f3, f2, f1), _kron_vec(f3, f2, f1))
+        f2, f1, f0 = compute_Ai_symbolic(*params_stage)
+        hit = (Ai_label(f2, f1, f0), _kron_vec(f2, f1, f0))
         _STAGE_CACHE[params_stage] = hit
     return hit
 
@@ -334,8 +346,8 @@ def compute_T_perm(params):
     T = _compose_vec(_MSC_VEC, T)
     T = _compose_vec(ai_perms[2], T)
 
-    a1l, a2l, a3l = ai_labels
-    T_label = f"T = {a3l} o MSC o {a2l} o MSC o {a1l} o MSC"
+    a0l, a1l, a2l = ai_labels          # stage_index 0, 1, 2
+    T_label = f"T = {a2l} o MSC o {a1l} o MSC o {a0l} o MSC"
     return ai_labels, T_label, T
 
 def compute_T_full(params):

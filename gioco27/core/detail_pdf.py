@@ -198,7 +198,11 @@ def _reversed_stage(p):
 
 def _r_index(params):
     """Indice R[m] nella convenzione del C: stadio 1 = bit più significativo
-    (m = r1*4 + r2*2 + r3)."""
+    (m = r1*4 + r2*2 + r3).
+
+    "stadio 1/2/3" e' qui la numerazione STORICA a base 1 del programma C
+    (stadio_storico = stage_index + 1): `params` resta invece nell'ordine del
+    dominio, con `params[0]` = stage_index 0. Vedi `core/dominio.py` (M02)."""
     return sum((1 << (2 - k)) for k, p in enumerate(params) if _reversed_stage(p))
 
 
@@ -215,8 +219,13 @@ def _c_indices(params):
 # Ordinamento di stampa identico al programma C: cicli annidati i, j, k, m con
 #   stadio 3 = i (esterno), stadio 2 = j, stadio 1 = k, inversioni = m,
 # dove i, j, k sono indici della tabella M (mescolamenti) del C. Si
-# generalizza a parametri più ampi usando le triple complete (P3,P2,P1) e
-# (J1,J2,J3) per ogni stadio.
+# generalizza a parametri più ampi usando le triple complete di ogni stadio.
+#
+# NUMERAZIONE (M02): "stadio 1/2/3" e' la numerazione STORICA del C, a base 1
+# (stadio_storico = stage_index + 1). L'ordine di stampa e' quindi dallo stadio
+# con stage_index 2 (il piu' esterno) allo stage_index 0. Le triple di ogni
+# stadio restano nell'ordine del dominio, a cifra crescente: (p0,p1,p2) e
+# (j0,j1,j2). Vedi il glossario in `core/dominio.py`.
 # ─────────────────────────────────────────────────────────────────────────────
 
 def _p_key(s):

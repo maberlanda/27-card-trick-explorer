@@ -5,6 +5,12 @@ Per ogni combinazione calcola, oltre alle matrici gia' note:
   - la disposizione fisica del mazzo dopo ogni mescolamento (iniziale, dopo
     stadio 1, dopo stadio 2, finale), usando la stessa codifica del programma C
     ("ABCDEFGHIJKLMNOPQRSTUVWXYZ0");
+
+NUMERAZIONE (M02). In questo modulo "stadio 1/2/3" e' la numerazione STORICA a
+base 1 del programma C, conservata perche' il formato esportato la usa: vale
+stadio_storico = stage_index + 1, dove `stage_index` (0, 1, 2) e' la numerazione
+del dominio, definita in `core/dominio.py`. Non va "corretta": e' un formato.
+
   - le posizioni dei 3 marcatori (Asso picche='A' pos 0, Asso fiori='N' pos 13,
     Asso cuori='0' pos 26) con il settore ternario (s/c/d);
   - il periodo della permutazione (minimo n con T^n = I);
