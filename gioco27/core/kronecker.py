@@ -97,8 +97,36 @@ def decomposition_perm(decomposition):
     return perm.tolist()
 
 
+#: Decomposizioni di un bersaglio che appartiene a G: 216 scelte per A1 x 216
+#: per A2, con A3 determinata. Verificato esaustivamente dalla baseline
+#: matematica (`tests/test_baseline_matematica.py`).
+DECOMPOSIZIONI_PER_TARGET_IN_G = 216 ** 2          # 46.656
+
+
+class DecomposizioniIncomplete(ValueError):
+    """L'elenco e' internamente valido ma NON e' l'insieme completo atteso."""
+
+
+def cardinalita_attesa(target):
+    """Quante decomposizioni esistono per `target`: 46.656 se e' in G, 0 fuori.
+
+    E' un fatto matematico, non un'euristica: si decide con `appartiene_a_G`,
+    non contando i risultati gia' presenti in un elenco.
+    """
+    return DECOMPOSIZIONI_PER_TARGET_IN_G if appartiene_a_G(target) else 0
+
+
 def validate_decompositions(target, results):
-    """Valida struttura e bersaglio; restituisce triple immutabili di nomi."""
+    """Valida struttura e bersaglio; restituisce triple immutabili di nomi.
+
+    Controlla SOLO la validita' interna: ogni decomposizione presente ricostruisce
+    il bersaglio. NON controlla la completezza, quindi un elenco parziale — o
+    vuoto — e' legittimo qui: e' il contratto di una vista filtrata o di un
+    contesto deliberatamente parziale.
+
+    Per decidere se un elenco e' l'insieme COMPLETO (il caso della cache) si usa
+    `validate_complete_decompositions`. Vedi B08.
+    """
     target = tuple(target)
     if len(target) != 27 or sorted(target) != list(range(27)):
         raise ValueError("Bersaglio non valido")
@@ -109,6 +137,34 @@ def validate_decompositions(target, results):
         if tuple(decomposition_perm(decomposition)) != target:
             raise ValueError("Decomposizione incompatibile con il bersaglio")
         checked.append(tuple(tuple(stage) for stage in decomposition))
+    return checked
+
+
+def validate_complete_decompositions(target, results):
+    """Valida un elenco che pretende di essere COMPLETO (cache su disco).
+
+    Oltre alla validita' interna di `validate_decompositions` pretende:
+
+    * bersaglio che e' una permutazione valida di 27 elementi;
+    * cardinalita' pari a quella matematicamente attesa per quel bersaglio
+      (46.656 se il bersaglio e' in G, 0 se ne sta fuori);
+    * unicita': nessuna decomposizione ripetuta.
+
+    Solleva `DecomposizioniIncomplete` (sottoclasse di ValueError) se l'elenco e'
+    internamente valido ma incompleto o con duplicati. E' quello che distingue
+    «insieme parziale ma valido» da «cache completa e affidabile»: prima un
+    elenco vuoto veniva accettato come risposta definitiva anche per un
+    bersaglio che di decomposizioni ne ha 46.656 (B08).
+    """
+    checked = validate_decompositions(target, results)
+    attese = cardinalita_attesa(target)
+    if len(checked) != attese:
+        raise DecomposizioniIncomplete(
+            f"elenco incompleto: {len(checked)} decomposizioni su {attese} "
+            f"attese per questo bersaglio")
+    if len(set(checked)) != len(checked):
+        raise DecomposizioniIncomplete(
+            f"elenco con duplicati: {len(checked) - len(set(checked))} ripetizioni")
     return checked
 
 

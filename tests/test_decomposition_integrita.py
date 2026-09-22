@@ -337,13 +337,73 @@ def test_b11_cache_semanticamente_invalida_rifiutata(bad, tmp_path, monkeypatch)
     assert cache.load_decompositions(target) is None
 
 
-@pytest.mark.parametrize("results", [[], [D], [DI]])
-def test_b11_cache_json_v2_valida_accettata(results, tmp_path, monkeypatch):
+# ─────────────────────────── B08 / N06 ──────────────────────────────────────
+#
+# Qui stava `test_b11_cache_json_v2_valida_accettata`, che con
+# @parametrize("results", [[], [D], [DI]]) pretendeva che una cache contenente
+# ZERO oppure UNA decomposizione fosse riletta tale e quale. Quel test
+# DESCRIVEVA IL BUG B08: per un bersaglio in G le decomposizioni sono 46.656, e
+# un elenco piu' corto non e' una risposta ma una cache danneggiata.
+#
+# Viene sostituito, non rimosso: la specifica corretta distingue la validita'
+# interna (ogni decomposizione presente ricostruisce il bersaglio — contratto di
+# `validate_decompositions`, invariato) dalla completezza preteso dalla cache
+# (`validate_complete_decompositions`). Il formato su disco resta la versione 2.
+
+@pytest.mark.parametrize("parziale", [[], [D], [DI], [D, D]])
+def test_b08_cache_parziale_non_e_accettata_come_completa(parziale, tmp_path, monkeypatch):
+    """Elenco internamente valido ma incompleto -> cache miss, non risposta."""
     monkeypatch.setattr(cache, "_CACHE_DIR", tmp_path)
-    target = evaluate(results[0]) if results else list(range(27))
-    cache.save_decompositions(target, results)
+    target = evaluate(parziale[0]) if parziale else list(range(27))
+    # l'elenco e' internamente valido: ogni decomposizione ricostruisce il target
+    if parziale:
+        assert kronecker.validate_decompositions(target, parziale)
+    # ...ma non e' completo: alla lettura viene invalidato, non restituito.
+    cache.save_decompositions(target, parziale)
+    assert cache._cache_path(target).exists()
+    assert cache.load_decompositions(target) is None
+    assert not cache._cache_path(target).exists(), "la cache danneggiata va rimossa"
+    # e lo stesso vale se ce lo mette qualcun altro, a mano
+    cache._cache_path(target).write_text(
+        json.dumps({"version": 2,
+                    "results": [[list(f) for f in t] for t in parziale]}),
+        encoding="utf-8")
+    assert cache.load_decompositions(target) is None
+
+
+def test_b08_cache_completa_accettata(tmp_path, monkeypatch):
+    """L'insieme completo (46.656) viene scritto in formato 2 e riletto uguale."""
+    monkeypatch.setattr(cache, "_CACHE_DIR", tmp_path)
+    target = evaluate(D)
+    completo = kronecker.find_all_kron_decompositions(target)
+    assert len(completo) == kronecker.DECOMPOSIZIONI_PER_TARGET_IN_G
+    cache.save_decompositions(target, completo)
     assert json.loads(cache._cache_path(target).read_text(encoding="utf-8"))["version"] == 2
-    assert cache.load_decompositions(target) == results
+    assert cache.load_decompositions(target) == kronecker.validate_decompositions(
+        target, completo)
+
+
+def test_b08_fuori_da_G_zero_e_completo(tmp_path, monkeypatch):
+    """Per un bersaglio fuori da G l'elenco vuoto E' la risposta completa."""
+    from gioco27.core.constants import _MSC_PERM
+
+    monkeypatch.setattr(cache, "_CACHE_DIR", tmp_path)
+    fuori = list(_MSC_PERM)
+    assert not kronecker.appartiene_a_G(fuori)
+    assert kronecker.cardinalita_attesa(fuori) == 0
+    assert kronecker.find_all_kron_decompositions(fuori) == []
+    cache.save_decompositions(fuori, [])
+    assert cache._cache_path(fuori).exists()
+    assert cache.load_decompositions(fuori) == []
+
+
+def test_b08_validate_decompositions_resta_parziale():
+    """Il contratto parziale non cambia: serve alle viste filtrate."""
+    target = evaluate(D)
+    assert kronecker.validate_decompositions(target, []) == []
+    assert len(kronecker.validate_decompositions(target, [D])) == 1
+    with pytest.raises(kronecker.DecomposizioniIncomplete):
+        kronecker.validate_complete_decompositions(target, [D])
 
 
 def test_b11_cache_risultati_motore_reale(tmp_path, monkeypatch):

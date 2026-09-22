@@ -33,7 +33,7 @@ from typing import Optional
 
 from .log import get_logger
 from .parallel import atomic_write
-from .kronecker import validate_decompositions
+from .kronecker import validate_complete_decompositions
 
 _log = get_logger(__name__)
 
@@ -66,7 +66,13 @@ def _cache_path(perm) -> pathlib.Path:
 def load_decompositions(perm) -> "Optional[list]":
     """
     Restituisce i risultati cached per `perm`, oppure None se non presenti,
-    troppo vecchi, corrotti o con versione di formato diversa da quella corrente.
+    troppo vecchi, corrotti, con versione di formato diversa da quella corrente
+    oppure **incompleti**.
+
+    La cache contiene per contratto l'insieme COMPLETO delle decomposizioni di
+    `perm`: 46.656 per un bersaglio in G, nessuna per un bersaglio fuori da G.
+    Un elenco piu' corto e' una cache danneggiata, non una risposta: viene
+    invalidata (il file e' rimosso) e il chiamante ricalcola. Vedi B08.
     """
     path = _cache_path(perm)
     try:
@@ -95,14 +101,26 @@ def load_decompositions(perm) -> "Optional[list]":
             return None
         # JSON non ha tuple: ricostruiamo la struttura attesa dal chiamante
         # (lista di triple di triple di stringhe).
-        return validate_decompositions(perm, data)
+        try:
+            return validate_complete_decompositions(perm, data)
+        except ValueError as exc:
+            _log.info("Cache %s invalidata: %s", path.name, exc)
+            path.unlink(missing_ok=True)
+            return None
     except Exception:
         _log.exception("Errore in lettura cache %s", path)
         return None
 
 
 def save_decompositions(perm, results: list) -> None:
-    """Salva `results` su disco per la chiave `perm` (col formato corrente)."""
+    """Salva `results` su disco per la chiave `perm` (col formato corrente).
+
+    Qui non si controlla la completezza: l'unico produttore e' la ricerca
+    completa, e il controllo che conta e' quello in lettura — un elenco
+    incompleto finito comunque su disco non verra' mai restituito come
+    risposta, ma invalidato (B08). Scrivere resta quindi un'operazione
+    semplice e non distruttiva.
+    """
     try:
         _CACHE_DIR.mkdir(parents=True, exist_ok=True)
         path = _cache_path(perm)

@@ -333,8 +333,11 @@ def test_r2_due_istanze_scrivono_senza_collisioni(kind, tmp_path, monkeypatch):
             expected = dict(config._DEFAULTS)
             assert payload == dict(expected, last_expression="B")
         else:
-            monkeypatch.setattr(cache, "_CACHE_DIR", shared / "cache")
-            assert cache.load_decompositions(list(range(27))) == [(("SCD_U",) * 3,) * 3]
+            # B08: il file e' scritto per intero da una sola istanza; la
+            # completezza semantica non riguarda questo test, quindi si
+            # controlla il JSON pubblicato.
+            assert payload["version"] == cache.CACHE_FORMAT_VERSION
+            assert payload["results"] == [[["SCD_U"] * 3] * 3]
         assert [p for p in shared.rglob("*") if p.is_file()] == [path]
     finally:
         for process in processes:
@@ -381,7 +384,8 @@ def test_r2_salvataggio_preserva_file_e_rimuove_solo_il_proprio_temporaneo(kind,
     elif kind == "config":
         assert json.loads(path.read_text(encoding="utf-8"))["last_expression"] == "nuova"
     else:
-        assert cache.load_decompositions(perm) == [identity]
+        pubblicato = json.loads(path.read_text(encoding="utf-8"))
+        assert pubblicato["results"] == [[list(f) for f in identity]]
     assert neighbor.read_bytes() == b"file preesistente\x00\xff"
     assert set(tmp_path.iterdir()) == {path, neighbor}
 
@@ -411,5 +415,6 @@ def test_r2_cache_accesso_temporaneamente_negato(persistent, tmp_path, monkeypat
     if persistent:
         assert path.read_bytes() == b"precedente"
     else:
-        assert cache.load_decompositions(perm) == [identity]
+        pubblicato = json.loads(path.read_text(encoding="utf-8"))
+        assert pubblicato["results"] == [[list(f) for f in identity]]
     assert set(tmp_path.iterdir()) == {path}

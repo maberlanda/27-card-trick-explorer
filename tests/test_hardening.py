@@ -330,12 +330,17 @@ def test_cache_round_trip_json(tmp_path, monkeypatch):
     assert perm is not None and perm != list(range(27))
     cache.save_decompositions(perm, dati)
     assert cache.cache_entries() == 1
-    assert cache.load_decompositions(perm) == dati
     files = list(tmp_path.glob("dec_*.json"))
     assert len(files) == 1
     payload = json.loads(files[0].read_text(encoding="utf-8"))
     assert payload["version"] == cache.CACHE_FORMAT_VERSION
-    assert cache.clear_cache() == 1
+    # Il round trip si verifica sul JSON scritto: `dati` e' un elenco parziale
+    # (una decomposizione su 46.656) e dopo B08 la cache non restituisce elenchi
+    # incompleti, li invalida. La completezza ha i suoi test in
+    # tests/test_decomposition_integrita.py.
+    assert payload["results"] == [[list(f) for f in triple] for triple in dati]
+    assert cache.load_decompositions(perm) is None
+    assert cache.clear_cache() in (0, 1)
 
 
 def test_cache_scarta_le_versioni_vecchie(tmp_path, monkeypatch):
