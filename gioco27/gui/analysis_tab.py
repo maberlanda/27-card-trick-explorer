@@ -6,12 +6,14 @@ gli export (CSV, Excel, HTML, dati grezzi).
 Estratto da app.py (v2.8.0) senza modifiche funzionali.
 """
 import os
+import pathlib
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
 
-from ..core.algebra import (analizza_righe, analizza_csv, _prep_explorer_expr,
-                             scrivi_output, scrivi_excel)
+from ..core.algebra import (EXCEL_MAX_CELL_CHARS, analizza_righe, analizza_csv,
+                             _prep_explorer_expr, scrivi_output, scrivi_excel)
 from ..core.combinations import iter_combinations_ex, count_combinations_ex
+from ..core.parallel import atomic_write
 from ..core.permutations import make_csv_row
 from .common import configure_matrix_tags, insert_colored, EtaEstimator, run_in_thread
 from .i18n import tr
@@ -552,13 +554,15 @@ class AnalysisTabMixin:
                 f"</tr></thead><tbody>"
                 f"{rows}</tbody></table></body></html>"
             )
-            with open(path, "w", encoding="utf-8") as f:
+            with atomic_write(path, "w", encoding="utf-8") as f:
                 f.write(html_str)
             self._analisi_status.set("✓  " + tr(
                 "analysis.status.exported", format="HTML",
                 filename=os.path.basename(path)))
             import webbrowser
-            webbrowser.open(f"file://{path}")
+            # Path.as_uri() codifica spazi, accenti e '#': "file://" + path
+            # produceva URL rotti proprio sui percorsi piu' comuni (M05).
+            webbrowser.open(pathlib.Path(path).resolve().as_uri())
         except Exception as e:
             messagebox.showerror(tr("error.generic"), str(e))
 
@@ -577,7 +581,7 @@ class AnalysisTabMixin:
             import csv as _csv
             cols = ["#", "Stage0", "Stage1", "Stage2",
                     "A0", "A1", "A2", "T_simbolica", "T_permutazione"]
-            with open(path, "w", newline="", encoding="utf-8-sig") as f:
+            with atomic_write(path, "w", newline="", encoding="utf-8-sig") as f:
                 w = _csv.writer(f, delimiter=";", quotechar='"',
                                 quoting=_csv.QUOTE_ALL)
                 w.writerow(cols)
@@ -650,7 +654,15 @@ class AnalysisTabMixin:
                 cell.font = hdr_font
                 cell.alignment = Alignment(horizontal="center", vertical="center")
             for ri, r in enumerate(self._analisi_risultati, 2):
-                syms = "\n".join(r.get("simboliche", []))
+                sequenze = r.get("simboliche", [])
+                syms = "\n".join(sequenze)
+                if len(syms) > EXCEL_MAX_CELL_CHARS:
+                    # B01: oltre il limite Excel troncava la cella alla
+                    # riapertura e le ultime sequenze sparivano senza un
+                    # errore. Qui il riepilogo diventa esplicito e il dettaglio
+                    # completo sta nel foglio «Simbolica -> Perm».
+                    syms = tr("export.excel.summary_overflow",
+                              count=len(sequenze))
                 ws2.cell(row=ri, column=1, value=r["n_sim"]).font = Font(bold=True, size=10)
                 cell_p = ws2.cell(row=ri, column=2, value=r["perm_str"])
                 cell_p.font = Font(name="Courier New", size=9)
@@ -663,7 +675,34 @@ class AnalysisTabMixin:
                     openpyxl.utils.get_column_letter(ci)].width = w
             ws2.freeze_panes = "A2"
 
-            wb.save(path)
+            # ── Foglio 3: dettaglio completo, una sequenza per riga ────────
+            # Aggiunta compatibile (B01): i due fogli storici restano
+            # identici, e qui ogni sequenza ha la sua riga — nessuna
+            # concatenazione, quindi nessun troncamento possibile. Stesso
+            # nome e stesse colonne del foglio di dettaglio prodotto da
+            # core.algebra.scrivi_excel.
+            ws3 = wb.create_sheet("Simbolica -> Perm")
+            h3 = ["T_simbolica", "T_permutazione", "n_sim_distinte"]
+            for ci, col in enumerate(h3, 1):
+                cell = ws3.cell(row=1, column=ci, value=col)
+                cell.fill = hdr_fill
+                cell.font = hdr_font
+                cell.alignment = Alignment(horizontal="center", vertical="center")
+            ri = 1
+            for r in self._analisi_risultati:
+                for sim in r.get("simboliche", []):
+                    ri += 1
+                    ws3.cell(row=ri, column=1, value=sim).font = data_font
+                    ws3.cell(row=ri, column=2, value=r["perm_str"]).font = data_font
+                    ws3.cell(row=ri, column=3, value=r["n_sim"]).font = data_font
+            for ci, w in enumerate([120, 40, 14], 1):
+                ws3.column_dimensions[
+                    openpyxl.utils.get_column_letter(ci)].width = w
+            ws3.freeze_panes = "A2"
+
+            # Pubblicazione atomica (R02).
+            with atomic_write(path, "wb") as f:
+                wb.save(f)
             self._analisi_status.set("✓  " + tr(
                 "analysis.status.raw_exported", format="Excel",
                 filename=os.path.basename(path)))

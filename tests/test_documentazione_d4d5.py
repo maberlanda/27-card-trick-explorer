@@ -118,8 +118,12 @@ def test_d4_fogli_excel_grezzi_distinti(guide):
              and any(isinstance(t, ast.Attribute) and t.attr == "title" for t in n.targets)]
     names += [n.args[0].value for n in ast.walk(function) if isinstance(n, ast.Call)
               and isinstance(n.func, ast.Attribute) and n.func.attr == "create_sheet"]
-    assert names == ["Dati grezzi", "Analisi molteplicità"]
-    assert "Due fogli: «Dati grezzi» (combinazioni) e «Analisi molteplicità» (riepilogo)" in guide
+    # B01: al formato e' stato AGGIUNTO un terzo foglio di dettaglio (una
+    # sequenza per riga). I due fogli storici restano identici e al loro posto;
+    # la Guida descrive i tre fogli.
+    assert names == ["Dati grezzi", "Analisi molteplicità", "Simbolica -> Perm"]
+    assert ("Tre fogli: «Dati grezzi» (combinazioni), «Analisi molteplicità» "
+            "(riepilogo) e «Simbolica -> Perm» (una riga per sequenza") in guide
 
 
 def test_d4_paginazione_dettagliata_non_contraddittoria(guide):

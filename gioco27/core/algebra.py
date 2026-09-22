@@ -1682,6 +1682,13 @@ def scrivi_output(risultati, output_path):
             w.writerow([r["perm_str"], " , ".join(r["simboliche"]), str(r["n_sim"])])
 
 
+#: Limite di caratteri di UNA cella Excel. Oltre questa soglia openpyxl scrive
+#: il valore, ma Excel lo tronca alla riapertura: il dato sparisce senza che
+#: nessuno se ne accorga. Chi concatena piu' valori in una cella deve tenerne
+#: conto ed esporre altrove il dettaglio completo (B01).
+EXCEL_MAX_CELL_CHARS = 32767
+
+
 def scrivi_excel(risultati, output_path):
     from openpyxl import Workbook
     from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
@@ -1709,7 +1716,7 @@ def scrivi_excel(risultati, output_path):
     _hdr(ws1, ["T_permutazione", "T_simboliche_distinte", "n_sim_distinte"])
     for i, r in enumerate(risultati, 1):
         summary = " , ".join(r["simboliche"])
-        if len(summary) > 32767:
+        if len(summary) > EXCEL_MAX_CELL_CHARS:
             summary = tr("export.excel.summary_overflow",
                          count=len(r["simboliche"]))
         ws1.append([r["perm_str"], summary, r["n_sim"]])
@@ -1732,4 +1739,8 @@ def scrivi_excel(risultati, output_path):
     ws2.column_dimensions["C"].width = 14
     ws2.freeze_panes = "A2"
     ws2.auto_filter.ref = f"A1:C{len(righe_inv)+1}"
-    wb.save(output_path)
+    # Pubblicazione atomica (R02): finche' il nuovo file non e' completo, al suo
+    # posto resta quello precedente, non un .xlsx troncato che Excel rifiuta.
+    from .parallel import atomic_write
+    with atomic_write(output_path, "wb") as f:
+        wb.save(f)
