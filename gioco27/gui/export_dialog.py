@@ -241,9 +241,9 @@ class ExportDialog(tk.Toplevel):
                          f"& $\\scriptscriptstyle {fmt(a2)}$ "
                          f"& $\\scriptscriptstyle {fmt(a3)}$ \\\\")
         if len(self._decomps) > 200:
-            lines.append(f"  \\multicolumn{{4}}{{c}}"
-                         f"{{\\emph{{" + tr("export.document.more_decompositions",
-                                               count=len(self._decomps) - 200) + "}}} \\\\")
+            lines.append("  \\multicolumn{4}{c}"
+                         "{\\emph{" + tr("export.document.more_decompositions",
+                                         count=len(self._decomps) - 200) + "}}} \\\\")
         lines.append("\\end{longtable}")
         return "\n".join(lines)
 

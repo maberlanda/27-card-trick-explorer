@@ -9,7 +9,7 @@ from tkinter import ttk
 
 from .tooltip import attach as _tip
 from .help_banner import HelpBanner
-from .glossary import GLOSSARY, ONBOARD_STEPS, ONBOARD_INTRO
+from .glossary import GLOSSARY, ONBOARD_STEPS
 from .i18n import tr
 
 
