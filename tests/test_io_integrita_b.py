@@ -6,7 +6,10 @@ Copre B01, B10, B11, B12, R02, R03 e M05. B08/N06 stanno in
 Regola dei test di questo file: dove il contratto riguarda un file, il controllo
 si fa sul FILE RILETTO da disco, non sull'oggetto in memoria.
 """
+import os
 import pathlib
+import subprocess
+import sys
 import types
 import urllib.parse
 import urllib.request
@@ -173,6 +176,52 @@ def _fonts_puliti(monkeypatch):
     return detail_pdf
 
 
+def test_b10_registrazione_fallita_da_fallback_reale(monkeypatch):
+    pytest.importorskip("reportlab")
+    from reportlab.pdfbase import pdfmetrics
+    dp = _fonts_puliti(monkeypatch)
+
+    def esplode(*a, **k):
+        raise ValueError("registrazione impossibile")
+
+    monkeypatch.setattr(pdfmetrics, "registerFont", esplode)
+    assert dp._ensure_fonts() == ("Helvetica", "Helvetica-Bold")
+
+
+def test_b10_registrazione_parziale_non_mischia_i_font(monkeypatch):
+    """Il primo font passa, il secondo no: non si restituisce una coppia mista."""
+    pytest.importorskip("reportlab")
+    from reportlab.pdfbase import pdfmetrics
+    dp = _fonts_puliti(monkeypatch)
+    chiamate = {"n": 0}
+    originale = pdfmetrics.registerFont
+
+    def a_meta(font):
+        chiamate["n"] += 1
+        if chiamate["n"] == 1:
+            return originale(font)
+        raise ValueError("secondo font non registrabile")
+
+    monkeypatch.setattr(pdfmetrics, "registerFont", a_meta)
+    assert dp._ensure_fonts() == ("Helvetica", "Helvetica-Bold")
+
+
+def test_b10_font_mancanti(monkeypatch, tmp_path):
+    pytest.importorskip("reportlab")
+    dp = _fonts_puliti(monkeypatch)
+    monkeypatch.setattr(dp, "_ASSETS", str(tmp_path))
+    assert dp._ensure_fonts() == ("Helvetica", "Helvetica-Bold")
+
+
+def test_b10_font_corrotti(monkeypatch, tmp_path):
+    pytest.importorskip("reportlab")
+    dp = _fonts_puliti(monkeypatch)
+    for nome in ("DejaVuSans.ttf", "DejaVuSans-Bold.ttf"):
+        (tmp_path / nome).write_bytes(b"non sono un font")
+    monkeypatch.setattr(dp, "_ASSETS", str(tmp_path))
+    assert dp._ensure_fonts() == ("Helvetica", "Helvetica-Bold")
+
+
 PROGRAMMA_FONT = """
 import sys
 sys.path.insert(0, {radice!r})
@@ -199,6 +248,27 @@ for nome in (regular, bold):
 c.save()
 print("PDF OK")
 """
+
+
+@pytest.mark.parametrize("rompi, atteso", [(False, "DV DVB"),
+                                           (True, "Helvetica Helvetica-Bold")])
+def test_b10_processo_appena_avviato(rompi, atteso, tmp_path):
+    """In un processo NUOVO: nessun font gia' registrato da un test precedente.
+
+    Il PDF viene davvero disegnato con i nomi restituiti: un fallback che non
+    si puo' usare farebbe fallire `setFont`.
+    """
+    pytest.importorskip("reportlab")
+    pdf = tmp_path / "prova.pdf"
+    res = subprocess.run(
+        [sys.executable, "-c", PROGRAMMA_FONT.format(
+            radice=str(RADICE), rompi=rompi, pdf=str(pdf))],
+        capture_output=True, text=True, timeout=120,
+        env=dict(os.environ, PYTHONDONTWRITEBYTECODE="1"))
+    assert res.returncode == 0, res.stderr
+    assert f"FONT {atteso}" in res.stdout
+    assert "PDF OK" in res.stdout
+    assert pdf.exists() and pdf.stat().st_size > 0
 
 
 # ─────────────────────────────── B11 ────────────────────────────────────────

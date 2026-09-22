@@ -312,9 +312,21 @@ _FONTS_READY = None   # ("DV","DVB")  oppure  ("Helvetica","Helvetica-Bold")
 RANKS = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "X", "J", "Q", "K"]
 
 
+#: Fallback sempre disponibile: i font base sono incorporati in ReportLab.
+_FONTS_FALLBACK = ("Helvetica", "Helvetica-Bold")
+
+
 def _ensure_fonts():
     """Registra (una volta per processo) il font DejaVu coi glifi dei semi.
-    Ritorna (font_regular, font_bold). Fallback a Helvetica se il font manca."""
+
+    Ritorna (font_regular, font_bold): i nomi DejaVu SOLO se la registrazione e'
+    davvero riuscita, altrimenti il fallback Helvetica.
+
+    B10: prima l'eccezione di `registerFont` veniva ingoiata e i nomi DV/DVB
+    erano restituiti comunque. Il chiamante li passava a `setFont` e l'export
+    moriva molto piu' tardi, con un errore che non parlava di font. Un fallback
+    che non e' realmente utilizzabile non e' un fallback.
+    """
     global _FONTS_READY
     if _FONTS_READY is not None:
         return _FONTS_READY
@@ -323,17 +335,25 @@ def _ensure_fonts():
         from reportlab.pdfbase.ttfonts import TTFont
         reg = os.path.join(_ASSETS, "DejaVuSans.ttf")
         bold = os.path.join(_ASSETS, "DejaVuSans-Bold.ttf")
-        if os.path.exists(reg) and os.path.exists(bold):
-            try:
-                pdfmetrics.registerFont(TTFont("DV", reg))
-                pdfmetrics.registerFont(TTFont("DVB", bold))
-            except Exception:
-                pass
-            _FONTS_READY = ("DV", "DVB")
-        else:
-            _FONTS_READY = ("Helvetica", "Helvetica-Bold")
+        if not (os.path.exists(reg) and os.path.exists(bold)):
+            _log.info("Font DejaVu non presenti negli asset: uso %s",
+                      _FONTS_FALLBACK[0])
+            _FONTS_READY = _FONTS_FALLBACK
+            return _FONTS_READY
+        try:
+            pdfmetrics.registerFont(TTFont("DV", reg))
+            pdfmetrics.registerFont(TTFont("DVB", bold))
+        except Exception:
+            # Anche una registrazione PARZIALE (il primo font passa, il secondo
+            # no) finisce qui: non si mescolano i due insiemi.
+            _log.exception("Registrazione dei font DejaVu fallita: uso %s",
+                           _FONTS_FALLBACK[0])
+            _FONTS_READY = _FONTS_FALLBACK
+            return _FONTS_READY
+        _FONTS_READY = ("DV", "DVB")
     except Exception:
-        _FONTS_READY = ("Helvetica", "Helvetica-Bold")
+        _log.exception("Font DejaVu non utilizzabili: uso %s", _FONTS_FALLBACK[0])
+        _FONTS_READY = _FONTS_FALLBACK
     return _FONTS_READY
 
 
