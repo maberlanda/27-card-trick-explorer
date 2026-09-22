@@ -582,7 +582,12 @@ def test_anteprima_troncata_ed_errore_generazione():
         fake._content = lambda key, gen: Dialog._content(fake, key, gen)
         Dialog._refresh_preview(fake)
         assert tab.text.startswith("01234") and marker in tab.text
-        assert fake._cache["b"] == error
+        # B12: l'errore resta localizzato, ma vive nell'anteprima e non nella
+        # cache del contenuto. In cache c'e' un esito tipizzato fallito, con il
+        # messaggio grezzo dell'eccezione: nessun file potra' mai contenerlo.
+        esito = fake._cache["b"]
+        assert esito.ok is False and esito.testo == "" and esito.errore == "x"
+        assert fake._tabs["b"].text == error
 
 
 def test_riepilogo_excel_troppo_lungo(tmp_path):

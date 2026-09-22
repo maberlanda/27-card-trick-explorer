@@ -371,6 +371,63 @@ def dialogo_senza_finestre(monkeypatch, tmp_path):
     return mostrati
 
 
+def test_b12_generatore_fallito_non_produce_file(tmp_path, dialogo_senza_finestre):
+    items = [("buono", "", "buono.svg", lambda: "<svg/>"),
+             ("rotto", "", "rotto.svg", lambda: (_ for _ in ()).throw(
+                 RuntimeError("generatore guasto")))]
+    d = _FintoDialogo(items, tmp_path)
+    d._export_all()
+
+    assert (tmp_path / "buono.svg").read_text(encoding="utf-8") == "<svg/>"
+    assert not (tmp_path / "rotto.svg").exists(), "nessun .svg falso"
+    tipi = [t for t, *_ in dialogo_senza_finestre]
+    assert "error" in tipi and "info" in tipi
+    completato = [m for t, _ti, m in dialogo_senza_finestre if t == "info"][0]
+    assert "buono.svg" in completato and "rotto.svg" not in completato
+
+
+def test_b12_errore_non_e_contenuto():
+    items = [("rotto", "", "rotto.tex", lambda: (_ for _ in ()).throw(
+        ValueError("boom")))]
+    d = _FintoDialogo(items, None)
+    esito = d._content("rotto", items[0][3])
+    assert esito.ok is False and esito.testo == "" and esito.errore == "boom"
+    d._refresh_preview()
+    assert "boom" in d._tabs["rotto"].text        # visibile solo in anteprima
+
+
+def test_b12_ritentativo_dopo_correzione(tmp_path, dialogo_senza_finestre):
+    stato = {"rotto": True}
+
+    def generatore():
+        if stato["rotto"]:
+            raise RuntimeError("non ancora")
+        return "contenuto valido"
+
+    items = [("k", "", "k.tex", generatore)]
+    d = _FintoDialogo(items, tmp_path)
+    d._export_all()
+    assert not (tmp_path / "k.tex").exists()
+
+    stato["rotto"] = False
+    d._dimentica("k")                    # ritenta dopo la correzione
+    d._export_all()
+    assert (tmp_path / "k.tex").read_text(encoding="utf-8") == "contenuto valido"
+
+
+def test_b12_batch_misto_conta_solo_i_riusciti(tmp_path, dialogo_senza_finestre):
+    items = [(f"k{i}", "", f"k{i}.svg",
+              (lambda i=i: f"<svg>{i}</svg>") if i % 2 == 0
+              else (lambda: (_ for _ in ()).throw(RuntimeError("x"))))
+             for i in range(4)]
+    d = _FintoDialogo(items, tmp_path)
+    d._export_all()
+    creati = sorted(p.name for p in tmp_path.iterdir())
+    assert creati == ["k0.svg", "k2.svg"]
+    completato = [m for t, _ti, m in dialogo_senza_finestre if t == "info"][0]
+    assert "2" in completato
+
+
 # ─────────────────────────────── R02 ────────────────────────────────────────
 
 def test_r02_excel_fallito_preserva_il_file_precedente(tmp_path, monkeypatch):
@@ -412,6 +469,19 @@ def test_r02_excel_grezzo_fallito_preserva_il_file_precedente(
     assert senza_dialoghi, "l'errore deve essere segnalato, non ignorato"
     assert dest.read_bytes() == prima
     assert [p.name for p in tmp_path.iterdir()] == ["grezzi.xlsx"]
+
+
+def test_r02_export_dialogo_non_tocca_i_file_altrui(tmp_path, dialogo_senza_finestre):
+    vicino = tmp_path / "vicino.txt"
+    vicino.write_text("da non toccare", encoding="utf-8")
+    dest = tmp_path / "k.svg"
+    dest.write_text("versione precedente", encoding="utf-8")
+
+    items = [("k", "", "k.svg", lambda: (_ for _ in ()).throw(RuntimeError("x")))]
+    _FintoDialogo(items, tmp_path)._export_all()
+    assert dest.read_text(encoding="utf-8") == "versione precedente"
+    assert vicino.read_text(encoding="utf-8") == "da non toccare"
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["k.svg", "vicino.txt"]
 
 
 # ─────────────────────────────── R03 ────────────────────────────────────────

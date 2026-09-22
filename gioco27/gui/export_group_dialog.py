@@ -22,10 +22,26 @@ Avvio:
 import colorsys
 import os
 from collections import Counter
+from typing import NamedTuple
 
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
+from ..core.parallel import atomic_write
 from .i18n import tr
+
+
+class _Generato(NamedTuple):
+    """Esito della generazione di un contenuto esportabile (B12).
+
+    Prima l'errore veniva formattato come stringa e messo nello stesso canale
+    del contenuto valido: `_export_all` lo salvava come file .svg/.tex e lo
+    contava fra i riusciti. Successo ed errore sono ora due cose distinte, e
+    un file viene scritto solo quando `ok` e' vero.
+    """
+
+    ok: bool
+    testo: str = ""
+    errore: str = ""
 
 
 # Classe S3 di ciascun generatore GEN3 (id / trasposizione / 3-ciclo) e
@@ -157,25 +173,38 @@ class _PreviewExportDialog(tk.Toplevel):
                    command=self.destroy).pack(side="left")
 
     def _content(self, key, gen):
-        """Genera (e mette in cache) il contenuto completo per la chiave."""
+        """Genera (e mette in cache) l'esito per la chiave. Vedi `_Generato`.
+
+        La cache conserva anche il fallimento: riaprire l'anteprima non
+        ripete un generatore che ha appena sollevato. `_dimentica` permette di
+        ritentare dopo una correzione.
+        """
         if key not in self._cache:
             try:
-                self._cache[key] = gen()
-            except Exception as exc:   # pragma: no cover - difensivo
-                self._cache[key] = tr("export.generation_error", detail=exc)
+                self._cache[key] = _Generato(True, gen())
+            except Exception as exc:
+                self._cache[key] = _Generato(False, errore=str(exc))
         return self._cache[key]
+
+    def _dimentica(self, key):
+        """Scarta l'esito in cache per `key`: il prossimo accesso rigenera."""
+        self._cache.pop(key, None)
 
     def _refresh_preview(self):
         for key, _label, _fn, gen in self._items:
-            content = self._content(key, gen)
+            esito = self._content(key, gen)
             t = self._tabs[key]
             t.configure(state="normal")
             t.delete("1.0", "end")
-            if len(content) > self._PREVIEW_MAX:
-                t.insert("end", content[:self._PREVIEW_MAX])
+            if not esito.ok:
+                # L'errore si vede in anteprima, ma non e' contenuto: non
+                # finira' in nessun file.
+                t.insert("end", tr("export.generation_error", detail=esito.errore))
+            elif len(esito.testo) > self._PREVIEW_MAX:
+                t.insert("end", esito.testo[:self._PREVIEW_MAX])
                 t.insert("end", f"\n\n{tr('export.preview_truncated')}\n")
             else:
-                t.insert("end", content)
+                t.insert("end", esito.testo)
             t.configure(state="disabled")
 
     def _export_all(self):
@@ -184,17 +213,35 @@ class _PreviewExportDialog(tk.Toplevel):
         if not folder:
             return
         done = []
+        falliti = []
         try:
             for key, _label, fname, gen in self._items:
                 if not self._opts[key].get():
                     continue
+                esito = self._content(key, gen)
+                if not esito.ok:
+                    # Nessun file: un generatore fallito non produce un .svg
+                    # o un .tex "riuscito" pieno del messaggio d'errore.
+                    falliti.append((fname, esito.errore))
+                    continue
                 path = os.path.join(folder, fname)
-                with open(path, "w", encoding="utf-8") as f:
-                    f.write(self._content(key, gen))
+                # Pubblicazione atomica: un errore a meta' scrittura non
+                # sostituisce un file precedente con uno troncato.
+                with atomic_write(path, "w", encoding="utf-8") as f:
+                    f.write(esito.testo)
                 done.append(path)
+            if falliti:
+                messagebox.showerror(
+                    tr("export.error_title"),
+                    "\n".join(f"{nome}: "
+                              f"{tr('export.generation_error', detail=err)}"
+                              for nome, err in falliti),
+                    parent=self)
             if not done:
-                messagebox.showinfo(tr("export.no_files_title"),
-                                    tr("export.no_content_selected"), parent=self)
+                if not falliti:
+                    messagebox.showinfo(tr("export.no_files_title"),
+                                        tr("export.no_content_selected"),
+                                        parent=self)
                 return
             messagebox.showinfo(
                 tr("export.completed_title"),
