@@ -22,28 +22,14 @@ def _compile_perm3_pat():
             "(" + "|".join(_re.escape(n) for n in PERM3_COLORS) + ")")
     return _PERM3_PAT
 
-def configure_matrix_tags(txt_widget, base_font=("Courier New", 9)):
-    """Configura tag-colore bold per tutti i nomi di matrice su un tk.Text."""
-    for name, color in PERM3_COLORS.items():
-        txt_widget.tag_configure(
-            f"mx_{name}", foreground=color,
-            font=(base_font[0], base_font[1], "bold"))
-
-def insert_colored(txt_widget, text, base_tags=()):
-    """Inserisce testo colorando i nomi di matrice (SCD_U, CDS_U ...) in bold."""
-    if isinstance(base_tags, str):
-        base_tags = (base_tags,)
-    pat = _compile_perm3_pat()
-    parts = pat.split(str(text))
-    for part in parts:
-        if not part:
-            continue
-        if part in PERM3_COLORS:
-            txt_widget.insert("end", part, (f"mx_{part}",) + tuple(base_tags))
-        elif base_tags:
-            txt_widget.insert("end", part, tuple(base_tags))
-        else:
-            txt_widget.insert("end", part)
+# NB (compartimento D, N02): qui vivevano anche `configure_matrix_tags` e
+# `insert_colored`, che scrivevano su un widget `tk.Text`. Sono operazioni di
+# presentazione, non di dominio: il loro unico proprietario e' ora
+# `gioco27/gui/common.py`, dove esistevano gia' identiche ed e' da dove tutti i
+# chiamanti le importavano. Il dominio non rende piu' nulla a schermo.
+# Resta qui `_compile_perm3_pat`, che e' una semplice regex sui nomi GEN3 e non
+# tocca Tk; la sua collocazione definitiva (insieme a PERM3_COLORS) e' materia
+# del compartimento H, non di D.
 
 
 def perm_to_mat3(perm):
