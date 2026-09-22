@@ -9,8 +9,10 @@ Novita v3:
   - Ricerca parallela (gioco27/core/kronecker.py)
   - Espressioni inviate all'Explorer usano 'o' e 'x'
 """
+import pathlib
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
+from ..core.parallel import atomic_write
 from .help_banner import HelpBanner
 from .i18n import tr
 from .i18n import get_language
@@ -573,9 +575,10 @@ code{{font-family:'Courier New',monospace;font-size:0.9em}}</style></head>
 <p style='color:#888;font-size:0.85em'>{tr('export.document.generated_by')}</p>
 </body></html>"""
         try:
-            with open(path, "w", encoding="utf-8") as f:
+            # Scrittura atomica (R02) e URI corretto per spazi, accenti e '#' (M05).
+            with atomic_write(path, "w", encoding="utf-8") as f:
                 f.write(html_str)
             import webbrowser
-            webbrowser.open(f"file://{path}")
+            webbrowser.open(pathlib.Path(path).resolve().as_uri())
         except OSError as exc:
             messagebox.showerror(tr("error.generic"), str(exc), parent=self)

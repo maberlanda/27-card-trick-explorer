@@ -7,9 +7,11 @@ Struttura:
   - Riquadro Centro Z(G)
   - Export TXT
 """
+import pathlib
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 
+from ..core.parallel import atomic_write
 from ..core.group_theory import get_group_data
 from ..core.log import get_logger
 from .common import run_in_thread, ui_call
@@ -362,9 +364,11 @@ th{{background:#f0f4f0}}tr:nth-child(even){{background:#fafafa}}</style></head>
 <table><tr><th>#</th><th>{tr('export.document.representative')}</th><th>{tr('export.document.dimension')}</th><th>{tr('export.document.element_plural')}</th></tr>
 {rows}</table></body></html>"""
         try:
-            with open(path, "w", encoding="utf-8") as f:
+            # Scrittura atomica (R02) e URI corretto per spazi, accenti e '#' (M05).
+            with atomic_write(path, "w", encoding="utf-8") as f:
                 f.write(html)
-            __import__("webbrowser").open(f"file://{path}")
+            __import__("webbrowser").open(
+                pathlib.Path(path).resolve().as_uri())
         except Exception as exc:
             __import__("tkinter.messagebox", fromlist=["showerror"]).showerror(
                 tr("error.generic"), str(exc), parent=self)

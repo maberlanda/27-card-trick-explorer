@@ -523,3 +523,9 @@ def test_m05_uri_del_browser_riporta_al_file(nome, tmp_path, monkeypatch,
     assert pathlib.Path(ricavato) == dest.resolve()
 
 
+def test_m05_nessun_uri_costruito_a_mano():
+    """Nessun modulo del package deve piu' concatenare 'file://' + percorso."""
+    sorgenti = list((RADICE / "gioco27").rglob("*.py"))
+    colpevoli = [p.relative_to(RADICE).as_posix() for p in sorgenti
+                 if 'f"file://' in p.read_text(encoding="utf-8")]
+    assert colpevoli == []

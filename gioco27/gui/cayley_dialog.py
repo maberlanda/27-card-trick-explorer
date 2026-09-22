@@ -2,9 +2,11 @@
 CayleyDialog: calcolatore interattivo di prodotti in G = GEN3^3
 e export della tabella di Cayley completa (216x216) in CSV.
 """
+import pathlib
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 
+from ..core.parallel import atomic_write
 from ..core.group_theory import get_group_data
 from .common import run_in_thread, ui_call
 from .tooltip import attach as _tip
@@ -336,10 +338,12 @@ th,td{{border:1px solid #ddd;padding:2px 5px;white-space:nowrap;font-family:'Cou
 th{{background:#f0f4f0;font-weight:bold}}</style></head>
 <body><h3>{tr('export.document.cayley.html_heading', size=n)}</h3>
 <table><tr><th></th>{hdr}</tr>{rows}</table></body></html>"""
-            with open(path, "w", encoding="utf-8") as f:
+            # Scrittura atomica (R02) e URI corretto per spazi, accenti e '#' (M05).
+            with atomic_write(path, "w", encoding="utf-8") as f:
                 f.write(html_str)
             self._status.set(tr("cayley.status.exported_html"))
-            __import__("webbrowser").open(f"file://{path}")
+            __import__("webbrowser").open(
+                pathlib.Path(path).resolve().as_uri())
         except Exception as exc:
             __import__("tkinter.messagebox", fromlist=["showerror"]).showerror(
                 tr("error.generic"), str(exc), parent=self)
