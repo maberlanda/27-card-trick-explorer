@@ -18,9 +18,101 @@ from .help_banner import HelpBanner
 from .i18n import tr
 from .i18n import get_language
 import webbrowser
+import pathlib
 import tempfile
+import time
 import os
 import html as _html
+
+from ..core.log import get_logger
+
+_log = get_logger(__name__)
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Policy del file temporaneo del protocollo (M05)
+#
+# Il documento non e' un export: e' una pagina che il browser deve poter
+# aprire, quindi non puo' essere cancellata subito dopo `webbrowser.open()` —
+# il browser la legge dopo, e su Windows spesso molto dopo. Non e' nemmeno un
+# file di destinazione: nessuno lo sostituisce, quindi non passa da
+# `atomic_write` (il compartimento G2 lo ha classificato cosi').
+#
+# Prima non aveva policy affatto: ogni apertura lasciava un file nella
+# cartella temporanea di sistema, per sempre. La policy e' la piu' semplice
+# compatibile con il browser:
+#
+#     cartella propria   →  «i miei file» ha una risposta, e il cleanup non
+#                           guarda mai nulla che non sia nostro
+#     nome univoco       →  due aperture non si sovrascrivono mai
+#     conservazione      →  il file resta finche' il browser puo' servirsene
+#     cleanup differito  →  all'apertura successiva si smaltiscono i propri
+#                           file vecchi. Nessun demone, nessun servizio.
+# ─────────────────────────────────────────────────────────────────────────────
+
+#: Sottocartella di `tempfile.gettempdir()` riservata ai protocolli.
+CARTELLA_PROTOCOLLI = "gioco27-protocolli"
+#: Prefisso e suffisso che rendono riconoscibile un file nostro.
+PREFISSO_PROTOCOLLO = "protocollo-"
+SUFFISSO_PROTOCOLLO = ".html"
+#: Per quanto tempo un protocollo resta sul disco. Generoso di proposito: chi
+#: apre il documento puo' tenerlo aperto, ricaricarlo o stamparlo piu' tardi.
+ORE_DI_CONSERVAZIONE = 24
+
+
+def cartella_protocolli():
+    """La cartella dei protocolli, creata se manca."""
+    cartella = pathlib.Path(tempfile.gettempdir()) / CARTELLA_PROTOCOLLI
+    cartella.mkdir(parents=True, exist_ok=True)
+    return cartella
+
+
+def e_un_protocollo(percorso):
+    """True solo per i file che questo modulo ha scritto.
+
+    Il cleanup non cancella mai un file che non riconosce: la cartella
+    temporanea di sistema e' di tutti, e anche la nostra potrebbe contenere
+    qualcosa che non abbiamo messo noi.
+    """
+    percorso = pathlib.Path(percorso)
+    return (percorso.name.startswith(PREFISSO_PROTOCOLLO)
+            and percorso.suffix == SUFFISSO_PROTOCOLLO
+            and percorso.is_file())
+
+
+def scrivi_protocollo(html):
+    """Scrive il protocollo con un nome univoco e restituisce il percorso."""
+    cartella = cartella_protocolli()
+    fd, percorso = tempfile.mkstemp(prefix=PREFISSO_PROTOCOLLO,
+                                    suffix=SUFFISSO_PROTOCOLLO,
+                                    dir=str(cartella))
+    with os.fdopen(fd, "w", encoding="utf-8") as f:
+        f.write(html)
+    return pathlib.Path(percorso)
+
+
+def pulisci_protocolli_vecchi(ore=ORE_DI_CONSERVAZIONE, adesso=None):
+    """Rimuove i protocolli piu' vecchi di `ore`. Restituisce quanti.
+
+    Non solleva: non riuscire a fare pulizia non e' un buon motivo per non
+    aprire il documento che l'utente ha chiesto.
+    """
+    adesso = time.time() if adesso is None else adesso
+    limite = adesso - ore * 3600
+    rimossi = 0
+    try:
+        cartella = cartella_protocolli()
+        candidati = list(cartella.iterdir())
+    except OSError:
+        return 0
+    for percorso in candidati:
+        try:
+            if not e_un_protocollo(percorso) or percorso.stat().st_mtime > limite:
+                continue
+            percorso.unlink()
+            rimossi += 1
+        except OSError:
+            continue
+    return rimossi
 
 from ..core.constants import PERM3
 from ..core.analysis import cycle_decomposition, order_of
@@ -459,11 +551,20 @@ class ProtocolDialog(tk.Toplevel):
         options = {k: v.get() for k, v in self._vars.items()}
         html_content = generate_protocol_html(dict(self._T_data), options)
         try:
-            import pathlib
-            fd, path = tempfile.mkstemp(suffix=".html", prefix="gioco27_proto_")
-            with os.fdopen(fd, "w", encoding="utf-8") as f:
-                f.write(html_content)
-            webbrowser.open(pathlib.Path(path).as_uri())
+            # Prima si smaltisce il vecchio, poi si scrive il nuovo: cosi' il
+            # file appena creato non e' mai un candidato al cleanup.
+            try:
+                rimossi = pulisci_protocolli_vecchi()
+                if rimossi:
+                    _log.info("protocolli temporanei rimossi: %d", rimossi)
+            except Exception:                      # pragma: no cover — difensivo
+                _log.exception("pulizia dei protocolli temporanei fallita")
+            percorso = scrivi_protocollo(html_content)
+            # `resolve()` prima di `as_uri()`, come nelle altre rotte che
+            # aprono il browser: su una cartella temporanea raggiunta da un
+            # link simbolico l'URI non risolto punta altrove. `as_uri()` fa poi
+            # il quoting di spazi, accenti e `#`.
+            webbrowser.open(percorso.resolve().as_uri())
             self.destroy()
         except Exception as exc:
             messagebox.showerror(

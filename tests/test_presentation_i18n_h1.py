@@ -265,23 +265,85 @@ def test_m05_due_aperture_non_si_sovrascrivono(protocollo, tmp_path):
     assert len(list(tmp_path.rglob("*.html"))) == 2
 
 
-@pytest.mark.xfail(strict=True,
-                   reason="M05: nessuna policy — ogni apertura lascia un file "
-                          "in piu' nella cartella temporanea di sistema")
-def test_m05_i_file_vecchi_vengono_ripuliti(protocollo, tmp_path):
-    """Una apertura deve poter smaltire i propri file di ieri."""
+def _invecchia(percorso, ore):
     import os
     import time
 
+    quando = time.time() - ore * 3600
+    os.utime(percorso, (quando, quando))
+
+
+def test_m05_i_file_vecchi_vengono_ripuliti(protocollo, tmp_path):
+    """Una apertura smaltisce i propri file di ieri."""
     _apri(protocollo)
     vecchio = list(tmp_path.rglob("*.html"))[0]
-    ieri = time.time() - 48 * 3600
-    os.utime(vecchio, (ieri, ieri))
+    _invecchia(vecchio, 48)
 
     _apri(protocollo)
     rimasti = list(tmp_path.rglob("*.html"))
     assert vecchio not in rimasti, "il file di due giorni fa e' ancora li'"
     assert len(rimasti) == 1
+
+
+def test_m05_i_file_recenti_restano(protocollo, tmp_path):
+    """Il browser puo' ancora tenere aperto il documento di poco fa."""
+    _apri(protocollo)
+    recente = list(tmp_path.rglob("*.html"))[0]
+    _invecchia(recente, 2)
+    _apri(protocollo)
+    assert recente.exists()
+    assert len(list(tmp_path.rglob("*.html"))) == 2
+
+
+def test_m05_il_file_appena_creato_non_e_mai_un_candidato(protocollo,
+                                                          tmp_path):
+    """La pulizia avviene prima della scrittura, non dopo."""
+    modulo, _ = protocollo
+    for _ in range(3):
+        _apri(protocollo)
+    assert len(list(tmp_path.rglob("*.html"))) == 3
+    assert modulo.pulisci_protocolli_vecchi(ore=0) == 3
+    assert list(tmp_path.rglob("*.html")) == []
+
+
+def test_m05_un_file_estraneo_non_viene_toccato(protocollo, tmp_path):
+    """Mai cancellare file arbitrari: solo quelli che sappiamo di aver scritto."""
+    modulo, _ = protocollo
+    _apri(protocollo)
+    cartella = modulo.cartella_protocolli()
+    estraneo = cartella / "appunti-di-qualcun-altro.html"
+    estraneo.write_text("non e' mio", encoding="utf-8")
+    anche_questo = cartella / "protocollo-ma-non-html.txt"
+    anche_questo.write_text("nemmeno questo", encoding="utf-8")
+    for p in (estraneo, anche_questo):
+        _invecchia(p, 72)
+
+    assert modulo.pulisci_protocolli_vecchi(ore=0) == 1
+    assert estraneo.exists() and anche_questo.exists()
+    assert not modulo.e_un_protocollo(estraneo)
+    assert not modulo.e_un_protocollo(anche_questo)
+
+
+def test_m05_i_protocolli_stanno_in_una_cartella_propria(protocollo, tmp_path):
+    """Il cleanup non deve nemmeno affacciarsi sulla temp di sistema."""
+    modulo, _ = protocollo
+    _apri(protocollo)
+    cartella = modulo.cartella_protocolli()
+    assert cartella.parent == tmp_path
+    assert cartella.name == modulo.CARTELLA_PROTOCOLLI
+    assert [p.parent for p in tmp_path.rglob("*.html")] == [cartella]
+
+
+def test_m05_la_pulizia_non_impedisce_l_apertura(protocollo, monkeypatch,
+                                                 tmp_path):
+    """Non riuscire a fare pulizia non e' un motivo per non aprire il documento."""
+    modulo, aperti = protocollo
+    monkeypatch.setattr(modulo, "pulisci_protocolli_vecchi",
+                        lambda *a, **k: (_ for _ in ()).throw(
+                            OSError("cartella occupata")))
+    _DialogoProtocollo(modulo)._open_browser()
+    assert len(aperti) == 1
+    assert len(list(tmp_path.rglob("*.html"))) == 1
 
 
 def test_m05_l_uri_indica_davvero_il_file(protocollo, tmp_path):
@@ -317,9 +379,6 @@ def test_m05_uri_con_spazi_accenti_e_cancelletto(monkeypatch, tmp_path,
     assert pathlib.Path(percorso).read_text(encoding="utf-8").startswith("<html>")
 
 
-@pytest.mark.xfail(strict=True,
-                   reason="M05: protocol_dialog non usa resolve() come le "
-                          "altre rotte che aprono il browser")
 def test_m05_apre_il_browser_come_le_altre_rotte():
     """Le altre rotte HTML costruiscono l'URI con `resolve().as_uri()`.
 
