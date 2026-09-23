@@ -706,13 +706,18 @@ def test_ninth_block_language_switch_and_fallback_do_not_change_analysis(
     from gioco27.core.algebra import analizza_righe
     from gioco27.gui import i18n
 
+    # F: la T deve essere una permutazione di 27 elementi. Prima qui c'era
+    # "[0,1,2]", che ora viene scartata: il confronto fra lingue avrebbe
+    # confrontato due liste vuote, sempre uguali e sempre prive di significato.
+    identita = "[" + ",".join(str(i) for i in range(27)) + "]"
     rows = [
         {"Stage0": "SCD_U", "Stage1": "CDS_U", "Stage2": "DCS_U",
-         "T_permutazione": "[0,1,2]"},
+         "T_permutazione": identita},
         {"Stage0": "DCS_U", "Stage1": "CDS_U", "Stage2": "SCD_U",
-         "T_permutazione": "[0,1,2]"},
+         "T_permutazione": identita},
     ]
     before = analizza_righe(rows)
+    assert len(before) == 1 and before[0]["n_sim"] == 2
     i18n.set_language("en")
     assert analizza_righe(rows) == before
     monkeypatch.delitem(i18n.CATALOGS["en"], "analysis.status.prompt")

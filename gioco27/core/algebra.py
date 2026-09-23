@@ -3,7 +3,6 @@ Motore algebrico e simbolico: Parser, Rewriter, Evaluator, Controller.
 """
 import csv
 import numpy as np
-from collections import defaultdict
 from dataclasses import dataclass, field
 from typing import Optional, List, Tuple
 
@@ -1579,79 +1578,38 @@ class Controller:
 # ANALISI MOLTEPLICITA'  (in-memory)
 # ─────────────────────────────────────────────────────────────────────────────
 
-def analizza_righe(righe):
+def analizza_righe(righe, *, verifica_formula=False):
     """Raggruppa per T_permutazione e conta le sequenze Stage distinte.
 
     Usa la notazione Stage-level "T = [Stage2] o [Stage1] o [Stage0]"
     che distingue (P, J) anche quando la composizione Ai = P∘J coincide,
     dando la granularità corretta come in analisi_sequenze.py.
+
+    Dal compartimento F la validazione degli ingressi vive in `core.analisi`:
+    ogni `T` passa dal contratto di dominio (27 valori distinti in 0..26) e le
+    righe rifiutate finiscono in `.scartate` invece di sparire. Il valore
+    restituito resta una lista di risultati — ora una `RisultatiImport`, che e'
+    una lista con in piu' la diagnostica.
     """
-    gruppi = defaultdict(lambda: {"simboliche": set(), "perm_str": ""})
-    for r in righe:
-        perm_str = r.get("T_permutazione", "")
-        s0 = r.get("Stage0", "")
-        s1 = r.get("Stage1", "")
-        s2 = r.get("Stage2", "")
-        if s0 or s1 or s2:
-            t_sim = f"T = [{s2}] o [{s1}] o [{s0}]"
-        else:
-            t_sim = r.get("T_simbolica", "")
-        try:
-            perm_tuple = tuple(int(x) for x in perm_str.strip("[]").split(","))
-        except ValueError:
-            continue
-        gruppi[perm_tuple]["simboliche"].add(t_sim)
-        gruppi[perm_tuple]["perm_str"] = perm_str
-    risultati = []
-    for pt, g in gruppi.items():
-        risultati.append({
-            "perm_tuple": pt,
-            "perm_str":   g["perm_str"],
-            "simboliche": sorted(g["simboliche"]),
-            "n_sim":      len(g["simboliche"]),
-        })
-    risultati.sort(key=lambda r: (-r["n_sim"], r["perm_tuple"]))
-    return risultati
+    from .analisi import aggrega_righe
+    return aggrega_righe(righe, verifica_formula=verifica_formula)
 
 
 def analizza_csv(input_path):
-    """Legge un CSV COMBINAZIONI (sep=;) e restituisce i risultati di analizza_righe.
+    """Legge un CSV COMBINAZIONI (sep=;) e restituisce i risultati aggregati.
 
-    Compatibile con il CSV prodotto da write_csv() / il file COMBINAZIONI_DEL_MODELLO.
-    Legge T_simbolica (colonna ridotta Ai) per il raggruppamento, e Stage0/1/2
-    per il pannello di dettaglio, esattamente come fa l'analisi in-memoria.
+    Compatibile con il CSV prodotto da write_csv() / il file
+    COMBINAZIONI_DEL_MODELLO: l'unica colonna obbligatoria e' T_permutazione,
+    quindi i formati storici che non portano le colonne Stage restano
+    leggibili. Un'intestazione che non appartiene a nessuno schema supportato
+    solleva `SchemaNonRiconosciuto` invece di produrre zero risultati (B05).
+
+    La coerenza fra formula simbolica e T viene verificata con il parser unico
+    del compartimento E: una riga la cui formula non produce la propria T viene
+    scartata con la sua diagnostica.
     """
-    import csv as _csv
-
-    def _col(header, kw):
-        kw = kw.lower()
-        for i, h in enumerate(header):
-            if kw in h.lower():
-                return i
-        return None
-
-    righe = []
-    with open(input_path, newline="", encoding="utf-8") as f:
-        reader = _csv.reader(f, delimiter=";", quotechar='"')
-        header = next(reader)
-        idx_s0   = _col(header, "stage0")
-        idx_s1   = _col(header, "stage1")
-        idx_s2   = _col(header, "stage2")
-        idx_tsim = _col(header, "t_simbolica")
-        idx_perm = _col(header, "t_permutazione")
-        for row in reader:
-            if not row:
-                continue
-            def _get(i):
-                return row[i].strip() if i is not None and i < len(row) else ""
-            righe.append({
-                "Stage0":         _get(idx_s0),
-                "Stage1":         _get(idx_s1),
-                "Stage2":         _get(idx_s2),
-                "T_simbolica":    _get(idx_tsim),
-                "T_permutazione": _get(idx_perm),
-            })
-    return analizza_righe(righe)
+    from .analisi import importa_csv
+    return importa_csv(input_path)
 
 
 def _prep_explorer_expr(t_sim):

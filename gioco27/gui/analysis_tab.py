@@ -52,6 +52,17 @@ class RisultatoAnalisi:
     diagnostica: str = ""
 
 
+def _diagnostica_import(risultati):
+    """Riassunto delle righe scartate, quando il risultato se lo porta dietro.
+
+    L'import restituisce una `RisultatiImport` (una lista con in piu' la
+    diagnostica); un risultato qualunque — per esempio quello di un test che
+    sostituisce l'analisi — resta una lista e non ha nulla da dire.
+    """
+    riassunto = getattr(risultati, "diagnostica", None)
+    return riassunto() if callable(riassunto) else ""
+
+
 class AnalysisTabMixin:
     """Metodi del tab Analisi. Richiede gli attributi/metodi di App:
     _get_filters(), progress, _explorer_entry, _explorer_calc(),
@@ -240,6 +251,12 @@ class AnalysisTabMixin:
         self._analisi_risultati = list(risultato.aggregati)
         self._analisi_righe_raw = list(risultato.grezzi)
         self._analisi_populate(self._analisi_risultati, risultato.totale)
+        # F: se qualcosa non e' completo — righe scartate, grezzi non
+        # conservati — l'utente lo legge accanto al riepilogo, non lo scopre
+        # dai menu disabilitati.
+        if risultato.diagnostica:
+            self._analisi_status.set(
+                f"{self._analisi_status.get()}   —   {risultato.diagnostica}")
         return True
 
     def _analisi_aggiorna_export(self):
@@ -359,10 +376,14 @@ class AnalysisTabMixin:
             # Un CSV di aggregati non porta con se' le righe grezze: restano
             # vuote, e gli export che le richiedono si disabilitano. Prima
             # sopravvivevano quelle dell'analisi precedente (B02).
+            note = [os.path.basename(path)]
+            riassunto = _diagnostica_import(risultati)
+            if riassunto:
+                note.append(riassunto)
             risultato = RisultatoAnalisi(
                 revisione=revisione, origine="csv",
                 aggregati=tuple(risultati), grezzi=(), totale=n,
-                diagnostica=os.path.basename(path))
+                diagnostica="   —   ".join(note))
             self._ui(lambda: self._analisi_pubblica(risultato))
 
         run_in_thread(self, job, error_title=tr("analysis.csv_read_error_title"),
@@ -407,10 +428,14 @@ class AnalysisTabMixin:
                 return
             n_perm = len(risultati)
             n_tot  = sum(r["n_sim"] for r in risultati)
+            note = [_os.path.basename(inp)]
+            riassunto = _diagnostica_import(risultati)
+            if riassunto:
+                note.append(riassunto)
             risultato = RisultatoAnalisi(
                 revisione=revisione, origine="pipeline",
                 aggregati=tuple(risultati), grezzi=(), totale=n_tot,
-                diagnostica=_os.path.basename(inp))
+                diagnostica="   —   ".join(note))
             self._ui(lambda: self._analisi_pubblica(risultato))
             msg = tr(
                 "analysis.completed_summary", permutations=f"{n_perm:,}",

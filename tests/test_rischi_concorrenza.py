@@ -28,6 +28,7 @@ class Event(threading.Event):
 class Widget:
     def __init__(self, app):
         self.app = app
+        self.valore = ""
 
     def configure(self, **kwargs):
         if self.app.destroyed:
@@ -35,6 +36,12 @@ class Widget:
 
     def set(self, value):
         self.configure()
+        self.valore = value
+
+    # Una StringVar si legge oltre che scriversi: da F la scheda rilegge lo
+    # stato per accodarvi la diagnostica dell'import.
+    def get(self):
+        return self.valore
 
     def __setitem__(self, key, value):
         self.configure()
