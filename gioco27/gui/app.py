@@ -954,17 +954,30 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
 
     # ── Presentazione fullscreen ──────────────────────────────────────────────
     def _run_selftest(self):
-        """Esegue la verifica di integrità (core/gioco_reale.selftest) in un thread."""
+        """Esegue la verifica di integrità (core/gioco_reale.selftest) in un thread.
+
+        R05: il worker intercettava soltanto `AssertionError`. Qualunque altro
+        guasto — una dipendenza mancante, un errore di runtime — usciva dal
+        thread senza toccare la UI, che restava con «verifica in corso…» per
+        sempre. Ora il lavoro termina sempre in uno stato conclusivo:
+
+        * incoerenza matematica (`AssertionError`, quindi anche `VerificaFallita`
+          introdotta in D): rapporto di incoerenza, stato «fallita»;
+        * qualunque altro errore: `run_in_thread` lo registra nel log, lo mostra
+          all'utente e `on_error` riporta comunque lo stato a «fallita»;
+        * successo: rapporto completo, stato «completata».
+
+        Il worker non tocca widget: pubblica solo attraverso `self._ui`.
+        """
         self.status_var.set(tr("status.integrity_running"))
 
         def worker():
+            from ..core.gioco_reale import selftest
             try:
-                from ..core.gioco_reale import selftest
-                rapporto = selftest()
-                testo = format_selftest_report(rapporto)
-                ok = True
+                testo, ok = format_selftest_report(selftest()), True
             except AssertionError as e:
                 testo, ok = tr("verify.inconsistency", detail=e), False
+
             def mostra():
                 self.status_var.set(
                     tr("status.integrity_completed" if ok
@@ -975,8 +988,10 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
                     parent=self)
             self._ui(mostra)
 
-        import threading
-        threading.Thread(target=worker, daemon=True).start()
+        return run_in_thread(self, worker,
+                             error_title=tr("dialog.integrity.title"),
+                             on_error=lambda _e: self.status_var.set(
+                                 tr("status.integrity_failed")))
 
     def _open_presentation(self):
         """Apre (o porta in primo piano) la finestra presentazione."""

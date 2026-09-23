@@ -1,18 +1,21 @@
 """Compartimento C — stato e concorrenza: provenienza, revisioni, sessioni.
 
 Copre B02 (aggregati e grezzi della stessa richiesta), B03 (risposte tardive e
-fuori ordine) e B04 (sessione di pratica con input congelati).
+fuori ordine), B04 (sessione di pratica con input congelati) e R05 (ogni lavoro
+finisce in uno stato conclusivo).
 
 Nessun test dipende dalla velocita' della macchina: i lavori vengono catturati e
-fatti avanzare esplicitamente.
+fatti avanzare esplicitamente, e dove serve un thread vero lo si aspetta con
+`join` prima di controllare.
 """
 import pathlib
+import threading
 from types import SimpleNamespace
 
 import pytest
 
 from gioco27.core import gioco_reale as gr
-from gioco27.gui import analysis_tab, simulator_tab
+from gioco27.gui import analysis_tab, app as app_module, common, simulator_tab
 from gioco27.gui.analysis_tab import RisultatoAnalisi
 from gioco27.gui.simulator_tab import SessionePratica
 
@@ -470,3 +473,98 @@ def test_b04_i_campi_si_leggono_in_un_solo_punto():
         encoding="utf-8")
     letture = sorgente.count("_card_var.get()") + sorgente.count("_target_var.get()")
     assert letture == 2, "i campi vanno letti solo in _find_sequence"
+
+
+# ───────────────────────────── R05 ──────────────────────────────────────────
+
+class AppSelftest:
+    """App ridotta all'osso: coda di callback e stato testuale."""
+
+    _ui = app_module.App._ui
+    _run_selftest = app_module.App._run_selftest
+
+    def __init__(self):
+        self._closing = False
+        self.status_var = _Var()
+        self.coda = []
+        self.mostrati = []
+
+    def after(self, _delay, fn):
+        self.coda.append(fn)
+
+    def winfo_exists(self):
+        return True
+
+    def esegui_coda(self):
+        pendenti, self.coda = list(self.coda), []
+        for fn in pendenti:
+            fn()
+
+
+@pytest.fixture
+def app_selftest(monkeypatch):
+    app = AppSelftest()
+    monkeypatch.setattr(app_module, "messagebox", SimpleNamespace(
+        showinfo=lambda t, m, **k: app.mostrati.append(("info", t, m)),
+        showerror=lambda t, m, **k: app.mostrati.append(("error", t, m))))
+    monkeypatch.setattr(common, "messagebox", SimpleNamespace(
+        showerror=lambda t, m: app.mostrati.append(("error", t, m))))
+    return app
+
+
+def _esegui_selftest(app, monkeypatch, selftest):
+    from gioco27.core import gioco_reale
+    monkeypatch.setattr(gioco_reale, "selftest", selftest)
+    errori_thread = []
+    monkeypatch.setattr(threading, "excepthook",
+                        lambda args: errori_thread.append(args.exc_value))
+    thread = app._run_selftest()
+    if thread is not None:
+        thread.join(30)
+        assert not thread.is_alive()
+    app.esegui_coda()
+    return errori_thread
+
+
+def test_r05_successo(app_selftest, monkeypatch):
+    errori = _esegui_selftest(app_selftest, monkeypatch,
+                              lambda completo=True: {"esito": "TUTTO OK"})
+    assert errori == []
+    assert app_selftest.status_var.get().startswith("Verifica completata")
+    assert app_selftest.mostrati and app_selftest.mostrati[0][0] == "info"
+
+
+@pytest.mark.parametrize("eccezione", [
+    None,                                     # VerificaFallita, risolta sotto
+    ImportError("numpy non disponibile"),
+    RuntimeError("guasto inatteso"),
+    MemoryError("memoria esaurita"),
+])
+def test_r05_ogni_errore_produce_uno_stato_conclusivo(eccezione, app_selftest,
+                                                      monkeypatch):
+    from gioco27.core.gioco_reale import VerificaFallita
+    exc = VerificaFallita("ancora #100") if eccezione is None else eccezione
+
+    def rotto(completo=True):
+        raise exc
+
+    errori = _esegui_selftest(app_selftest, monkeypatch, rotto)
+
+    assert errori == [], "nessuna eccezione deve sfuggire dal thread"
+    stato = app_selftest.status_var.get()
+    assert stato and "in corso" not in stato and "progress" not in stato.lower()
+    assert stato != ""
+    tipi = [t for t, *_ in app_selftest.mostrati]
+    assert "error" in tipi, "l'utente deve vedere il fallimento"
+
+
+def test_r05_lo_stato_non_resta_in_corso(app_selftest, monkeypatch):
+    in_corso = []
+
+    def rotto(completo=True):
+        in_corso.append(app_selftest.status_var.get())
+        raise RuntimeError("x")
+
+    _esegui_selftest(app_selftest, monkeypatch, rotto)
+    assert in_corso and "in corso" in in_corso[0]
+    assert "in corso" not in app_selftest.status_var.get()
