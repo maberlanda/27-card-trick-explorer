@@ -8,6 +8,7 @@ from tkinter import messagebox
 from ..core.constants import PERM3_COLORS
 from ..core.log import get_logger
 from ..core.permutations import _compile_perm3_pat
+from .errori import per_utente
 from .i18n import tr
 
 _log = get_logger(__name__)
@@ -38,7 +39,12 @@ def run_in_thread(widget, job, error_title=None, on_error=None):
         except Exception as e:
             _log.exception("Errore nel thread di lavoro (%s)", error_title)
             def report(e=e):
-                messagebox.showerror(error_title, str(e))
+                # H1: il titolo lo sceglie chi ha avviato il lavoro, che sa di
+                # che lavoro si tratta; il messaggio lo compone il confine di
+                # presentation, che sa dirlo nella lingua attiva. Prima era
+                # `str(e)`, cioe' il testo neutro del core — italiano anche in
+                # inglese.
+                messagebox.showerror(error_title, per_utente(e)[1])
                 if on_error is not None:
                     on_error(e)
             ui_call(widget, report)

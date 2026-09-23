@@ -61,19 +61,36 @@ __all__ = ["PermutazioneNonValida", "valida_permutazione", "valida_indice"]
 
 
 class PermutazioneNonValida(ValueError):
-    """L'ingresso non rispetta il contratto di permutazione del dominio."""
+    """L'ingresso non rispetta il contratto di permutazione del dominio.
+
+    Il messaggio resta **neutro**: e' un fatto, non una frase da mostrare, e
+    non cambia con la lingua dell'interfaccia. Accanto al messaggio l'errore
+    porta un `codice` stabile e i `dati` che lo descrivono (nome dell'API,
+    valore, posizione, lunghezza attesa), cosi' chi deve dirlo all'utente puo'
+    comporre la frase nella sua lingua invece di leggere questa (H1). Il
+    codice e' vuoto per i percorsi che non ne hanno uno: il messaggio resta
+    comunque leggibile.
+    """
+
+    def __init__(self, messaggio, *, codice="", **dati):
+        super().__init__(messaggio)
+        self.codice = codice
+        self.dati = dati
 
 
 def _come_intero(valore, nome, posizione):
     if isinstance(valore, bool):
         raise PermutazioneNonValida(
             f"{nome}: valore booleano {valore!r} in posizione {posizione}; "
-            "True/False non sono indici validi")
+            "True/False non sono indici validi",
+            codice="booleano", nome=nome, valore=valore, posizione=posizione)
     if isinstance(valore, numbers.Integral):
         return int(valore)
     raise PermutazioneNonValida(
         f"{nome}: valore non intero {valore!r} in posizione {posizione} "
-        f"(tipo {type(valore).__name__})")
+        f"(tipo {type(valore).__name__})",
+        codice="non_intero", nome=nome, valore=valore, posizione=posizione,
+        tipo=type(valore).__name__)
 
 
 def valida_permutazione(perm, n=None, *, nome="permutazione"):
@@ -96,24 +113,30 @@ def valida_permutazione(perm, n=None, *, nome="permutazione"):
     """
     if isinstance(perm, (str, bytes, bytearray, dict)):
         raise PermutazioneNonValida(
-            f"{nome}: tipo non ammesso {type(perm).__name__}")
+            f"{nome}: tipo non ammesso {type(perm).__name__}",
+            codice="tipo_non_ammesso", nome=nome, tipo=type(perm).__name__)
     forma = getattr(perm, "shape", None)
     if forma is not None and len(forma) != 1:
         raise PermutazioneNonValida(
-            f"{nome}: attesa una sequenza monodimensionale, ricevuto shape {forma}")
+            f"{nome}: attesa una sequenza monodimensionale, ricevuto shape {forma}",
+            codice="non_monodimensionale", nome=nome, forma=forma)
     try:
         valori = list(perm)
     except TypeError:
         raise PermutazioneNonValida(
-            f"{nome}: oggetto non iterabile ({type(perm).__name__})") from None
+            f"{nome}: oggetto non iterabile ({type(perm).__name__})",
+            codice="non_iterabile", nome=nome,
+            tipo=type(perm).__name__) from None
 
     if n is None:
         n = len(valori)
         if n == 0:
-            raise PermutazioneNonValida(f"{nome}: sequenza vuota")
+            raise PermutazioneNonValida(f"{nome}: sequenza vuota",
+                                        codice="sequenza_vuota", nome=nome)
     elif len(valori) != n:
         raise PermutazioneNonValida(
-            f"{nome}: lunghezza {len(valori)}, attesa {n}")
+            f"{nome}: lunghezza {len(valori)}, attesa {n}",
+            codice="lunghezza", nome=nome, ricevuta=len(valori), attesa=n)
 
     interi = tuple(_come_intero(v, nome, i) for i, v in enumerate(valori))
     visti = set()
@@ -121,11 +144,15 @@ def valida_permutazione(perm, n=None, *, nome="permutazione"):
         if not 0 <= valore < n:
             raise PermutazioneNonValida(
                 f"{nome}: valore {valore} fuori dall'intervallo 0..{n - 1} "
-                f"(posizione {posizione})")
+                f"(posizione {posizione})",
+                codice="fuori_intervallo", nome=nome, valore=valore,
+                massimo=n - 1, posizione=posizione)
         if valore in visti:
             raise PermutazioneNonValida(
                 f"{nome}: valore {valore} ripetuto (posizione {posizione}): "
-                "non e' una bigezione")
+                "non e' una bigezione",
+                codice="valore_ripetuto", nome=nome, valore=valore,
+                posizione=posizione)
         visti.add(valore)
     return interi
 
@@ -135,5 +162,7 @@ def valida_indice(valore, n, *, nome="indice"):
     intero = _come_intero(valore, nome, 0)
     if not 0 <= intero < n:
         raise PermutazioneNonValida(
-            f"{nome}: valore {intero} fuori dall'intervallo 0..{n - 1}")
+            f"{nome}: valore {intero} fuori dall'intervallo 0..{n - 1}",
+            codice="indice_fuori_intervallo", nome=nome, valore=intero,
+            massimo=n - 1)
     return intero

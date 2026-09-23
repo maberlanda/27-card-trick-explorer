@@ -149,7 +149,11 @@ def test_equivalenza_import_parziale(servizio, tmp_path):
     assert risultato.lette == atteso.lette == 3
     assert risultato.scartate == atteso.scartate
     assert risultato.parziale and not risultato.completo
-    assert "riga 3" in risultato.diagnostica
+    # H1: la nota del servizio porta il nome del file e basta — «quante righe
+    # sono state scartate e perche'» e' una frase, e la compone la
+    # presentation dai campi `lette` e `scartate`, che restano qui interi.
+    assert risultato.diagnostica == "misto.csv"
+    assert [s.numero for s in risultato.scartate] == [3]
 
 
 def test_import_di_schema_invalido_resta_un_errore(servizio, tmp_path):
@@ -636,9 +640,14 @@ def test_caratterizzazione_import_parziale(monkeypatch, tmp_path):
     _esegui(tab)
 
     assert len(tab._analisi_risultati) == 1
-    diagnostica = tab._analisi_corrente.diagnostica
-    assert "misto.csv" in diagnostica
-    assert "1 righe scartate su 2" in diagnostica and "riga 3" in diagnostica
+    # H1: la scheda compone la diagnostica al momento di mostrarla; il
+    # risultato conserva i dati (nome del file, righe lette e scartate).
+    from gioco27.gui.errori import diagnostica_import
+    risultato = tab._analisi_corrente
+    assert risultato.diagnostica == "misto.csv"
+    assert risultato.lette == 2 and [s.numero for s in risultato.scartate] == [3]
+    diagnostica = diagnostica_import(risultato)
+    assert "misto.csv" in diagnostica and "riga 3" in diagnostica
 
 
 def test_caratterizzazione_schema_invalido(monkeypatch, tmp_path):

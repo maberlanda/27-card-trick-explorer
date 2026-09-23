@@ -59,7 +59,18 @@ class SchemaNonRiconosciuto(ValueError):
 
     Distinta da un'analisi senza risultati: un file che non si sa leggere non
     e' un dominio vuoto.
+
+    Il messaggio resta neutro e non cambia con la lingua. Il `codice` dice
+    quale dei casi e' — file vuoto, nessuna intestazione, schema riconosciuto
+    ma non importabile, intestazione sconosciuta — e i `dati` portano cio' che
+    serve a dirlo (nome dello schema, colonne trovate), cosi' la presentation
+    compone la frase invece di leggere questa (H1).
     """
+
+    def __init__(self, messaggio, *, codice="", **dati):
+        super().__init__(messaggio)
+        self.codice = codice
+        self.dati = dati
 
 
 class AnalisiTroppoGrande(ValueError):
@@ -128,7 +139,8 @@ def riconosci_schema(intestazione):
     o se quello riconosciuto non e' importabile.
     """
     if not intestazione:
-        raise SchemaNonRiconosciuto("file senza intestazione")
+        raise SchemaNonRiconosciuto("file senza intestazione",
+                                   codice="senza_intestazione")
     indici = {}
     for colonna, cella in enumerate(intestazione):
         nome = _campo(cella)
@@ -138,24 +150,35 @@ def riconosci_schema(intestazione):
         if all(campo in indici for campo in schema.obbligatorie):
             if not schema.importabile:
                 raise SchemaNonRiconosciuto(
-                    f"schema «{schema.nome}»: {schema.motivo}")
+                    f"schema «{schema.nome}»: {schema.motivo}",
+                    codice="non_importabile", schema=schema.nome,
+                    motivo=schema.motivo)
             return schema, {c: indici[c] for c in
                             schema.obbligatorie + schema.opzionali
                             if c in indici}
     raise SchemaNonRiconosciuto(
         "intestazione non riconosciuta: manca la colonna «T_permutazione». "
-        f"Trovate {sorted(indici)[:8]}")
+        f"Trovate {sorted(indici)[:8]}",
+        codice="sconosciuto", colonne=", ".join(sorted(indici)[:8]))
 
 
 # ═════════════════════════ righe scartate e risultati ═══════════════════════
 
 @dataclass(frozen=True)
 class RigaScartata:
-    """Una riga rifiutata, con dove e perche'."""
+    """Una riga rifiutata, con dove e perche'.
+
+    `motivo` resta il testo neutro di sempre — `str(scarto)` non cambia — e
+    accanto ci sono ora un `codice` stabile e i `dati` che lo descrivono: sono
+    quelli con cui la presentation scrive il motivo nella lingua dell'utente
+    (H1), senza doverlo leggere dal messaggio.
+    """
 
     numero: int
     campo: str
     motivo: str
+    codice: str = ""
+    dati: dict = field(default_factory=dict)
 
     def __str__(self):
         return f"riga {self.numero}, {self.campo}: {self.motivo}"
@@ -201,10 +224,14 @@ def _perm_da_stringa(testo):
     """«[0,1,...,26]» → tupla di 27 interi validata secondo il contratto D."""
     grezzo = (testo or "").strip()
     if not grezzo:
-        raise PermutazioneNonValida("T_permutazione: campo vuoto")
+        raise PermutazioneNonValida("T_permutazione: campo vuoto",
+                                    codice="campo_vuoto",
+                                    nome="T_permutazione")
     interno = grezzo.strip("[]").strip()
     if not interno:
-        raise PermutazioneNonValida("T_permutazione: lista vuota")
+        raise PermutazioneNonValida("T_permutazione: lista vuota",
+                                    codice="lista_vuota",
+                                    nome="T_permutazione")
     valori = []
     for pezzo in interno.split(","):
         pezzo = pezzo.strip()
@@ -212,7 +239,9 @@ def _perm_da_stringa(testo):
             valori.append(int(pezzo))
         except ValueError:
             raise PermutazioneNonValida(
-                f"T_permutazione: valore non intero {pezzo!r}") from None
+                f"T_permutazione: valore non intero {pezzo!r}",
+                codice="non_intero_testo", nome="T_permutazione",
+                valore=pezzo) from None
     return valida_permutazione(valori, N_CARTE, nome="T_permutazione")
 
 
@@ -267,14 +296,18 @@ class Aggregatore:
         try:
             perm = _perm_da_stringa(riga.get("T_permutazione", ""))
         except PermutazioneNonValida as errore:
-            self._scartate.append(RigaScartata(n, "T_permutazione", str(errore)))
+            self._scartate.append(RigaScartata(
+                n, "T_permutazione", str(errore),
+                codice=errore.codice, dati=dict(errore.dati)))
             return False
 
         formula = _formula_di(riga)
         if self.verifica_formula and formula:
             problema = self._confronta(formula, perm)
             if problema:
-                self._scartate.append(RigaScartata(n, "T_simbolica", problema))
+                motivo, codice, dati = problema
+                self._scartate.append(RigaScartata(n, "T_simbolica", motivo,
+                                                   codice=codice, dati=dati))
                 return False
 
         gruppo = self._gruppi[perm]
@@ -286,19 +319,25 @@ class Aggregatore:
 
     @staticmethod
     def _confronta(formula, perm):
-        """None se la formula vale `perm`, altrimenti il motivo dello scarto."""
+        """None se la formula vale `perm`, altrimenti `(motivo, codice, dati)`.
+
+        Il motivo e' il testo neutro di sempre; codice e dati accanto servono
+        a chi deve riscriverlo nella lingua dell'utente (H1).
+        """
         # Import locale: `core.espressione` importa `core.algebra`, che importa
         # questo modulo. Il ciclo si spezza qui, alla prima chiamata.
         from .espressione import ParseError, permutazione_di
         try:
             calcolata = permutazione_di(formula)
         except ParseError as errore:
-            return f"formula non valida ({errore})"
+            return (f"formula non valida ({errore})",
+                    "formula_non_valida", {"dettaglio": str(errore)})
         except ValueError as errore:
-            return f"formula non valutabile ({errore})"
+            return (f"formula non valutabile ({errore})",
+                    "formula_non_valutabile", {"dettaglio": str(errore)})
         if tuple(calcolata) != tuple(perm):
-            return ("la formula non produce la T della riga "
-                    f"({formula[:60]})")
+            return (f"la formula non produce la T della riga ({formula[:60]})",
+                    "formula_discorde", {"formula": formula[:60]})
         return None
 
     @property
@@ -355,7 +394,8 @@ def importa_csv(percorso, *, verifica_formula=True):
         try:
             intestazione = next(lettore)
         except StopIteration:
-            raise SchemaNonRiconosciuto("file vuoto: nessuna intestazione") from None
+            raise SchemaNonRiconosciuto("file vuoto: nessuna intestazione",
+                                        codice="file_vuoto") from None
         schema, indici = riconosci_schema(intestazione)
 
         for numero, riga in enumerate(lettore, start=2):   # 1 = intestazione

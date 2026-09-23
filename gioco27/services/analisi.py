@@ -144,17 +144,19 @@ def _aggrega(righe):
 
 
 def _da_import(esito, origine, percorso) -> RisultatoAnalisi:
-    """Traduce l'esito di un import nel modello applicativo condiviso."""
-    note = [os.path.basename(str(percorso))]
-    riassunto = esito.diagnostica()
-    if riassunto:
-        note.append(riassunto)
+    """Traduce l'esito di un import nel modello applicativo condiviso.
+
+    La nota porta il nome del file e basta: e' un dato, non una frase. Il
+    riassunto di quante righe sono state lette, accettate e scartate lo
+    compone la presentation dai campi `lette` e `scartate`, che viaggiano
+    interi nel modello — un servizio non sa in che lingua verra' letto (H1).
+    """
     return RisultatoAnalisi(
         origine=origine, aggregati=tuple(esito),
         totale=sum(r["n_sim"] for r in esito),
         grezzi=(), grezzi_scartati=False,
         lette=esito.lette, scartate=esito.scartate,
-        nota="   —   ".join(note))
+        nota=os.path.basename(str(percorso)))
 
 
 _SERVIZIO = ServizioAnalisi()

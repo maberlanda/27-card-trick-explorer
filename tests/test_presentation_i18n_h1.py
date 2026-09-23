@@ -557,9 +557,6 @@ def test_il_core_resta_neutro_e_in_una_lingua_sola(lingua):
     assert italiano == inglese and italiano
 
 
-@pytest.mark.xfail(strict=True,
-                   reason="gli errori applicativi arrivano all'utente come "
-                          "str(exc), cioe' in italiano anche in inglese")
 def test_gli_errori_applicativi_sono_localizzati(lingua):
     """In inglese l'utente non deve leggere il messaggio tecnico italiano."""
     from gioco27.gui import errori
@@ -573,9 +570,6 @@ def test_gli_errori_applicativi_sono_localizzati(lingua):
                              messaggio), (nome, messaggio)
 
 
-@pytest.mark.xfail(strict=True,
-                   reason="la diagnostica dell'import e' composta nel core, "
-                          "in italiano")
 def test_la_diagnostica_dell_import_e_localizzata(lingua):
     from gioco27.core.analisi import RigaScartata, RisultatiImport
     from gioco27.gui import errori
@@ -588,6 +582,169 @@ def test_la_diagnostica_dell_import_e_localizzata(lingua):
     testo = errori.diagnostica_import(esito)
     assert "4" in testo and "2" in testo
     assert "righe" not in testo and "scartate" not in testo
+
+
+@pytest.mark.parametrize("intestazione,codice", [
+    ([], "senza_intestazione"),
+    (["T_permutazione  [lista 0..26]", "T_simboliche_distinte  [x]"],
+     "non_importabile"),
+    (["foo", "bar"], "sconosciuto"),
+])
+def test_ogni_schema_rifiutato_ha_la_sua_frase(lingua, intestazione, codice):
+    """Quattro modi di non saper leggere un file, quattro frasi diverse."""
+    from gioco27.core.analisi import SchemaNonRiconosciuto, riconosci_schema
+    from gioco27.gui import errori
+
+    with pytest.raises(SchemaNonRiconosciuto) as errore:
+        riconosci_schema(intestazione)
+    assert errore.value.codice == codice
+
+    frasi = {}
+    for lingua_codice in ("it", "en"):
+        lingua(lingua_codice)
+        titolo, messaggio = errori.per_utente(errore.value)
+        assert titolo and messaggio
+        frasi[lingua_codice] = messaggio
+    assert frasi["it"] != frasi["en"], "la frase deve cambiare con la lingua"
+    assert str(errore.value) not in frasi["en"]
+
+
+def test_ogni_motivo_di_scarto_ha_una_frase(lingua, tmp_path):
+    """Le righe rifiutate da un import vero, raccontate nelle due lingue."""
+    from gioco27.core.analisi import importa_csv
+    from gioco27.core.permutations import CSV_HEADER
+    from gioco27.gui import errori
+
+    identita = "[" + ",".join(str(i) for i in range(27)) + "]"
+    righe = [
+        ["1", "", "", "", "", "", "", "", identita],            # valida
+        ["2", "", "", "", "", "", "", "", ""],                  # campo vuoto
+        ["3", "", "", "", "", "", "", "", "[]"],                # lista vuota
+        ["4", "", "", "", "", "", "", "", "[0,uno,2]"],         # non intero
+        ["5", "", "", "", "", "", "", "", "[0,1,2]"],           # lunghezza
+        ["6", "", "", "", "", "", "", "",
+         "[99," + ",".join(str(i) for i in range(1, 27)) + "]"],  # fuori range
+        ["7", "", "", "", "", "", "", "",
+         "[0,0," + ",".join(str(i) for i in range(2, 27)) + "]"],  # ripetuto
+    ]
+    percorso = tmp_path / "misto.csv"
+    percorso.write_text(
+        "\n".join(";".join(f'"{c}"' for c in r)
+                  for r in [list(CSV_HEADER)] + righe) + "\n",
+        encoding="utf-8")
+
+    esito = importa_csv(percorso)
+    assert esito.lette == 7 and len(esito.scartate) == 6
+    codici = {s.codice for s in esito.scartate}
+    assert codici == {"campo_vuoto", "lista_vuota", "non_intero_testo",
+                      "lunghezza", "fuori_intervallo", "valore_ripetuto"}
+
+    lingua("en")
+    for scarto in esito.scartate:
+        motivo = errori.motivo_di(scarto)
+        assert motivo and motivo != scarto.motivo, scarto.codice
+        assert "valore" not in motivo and "intervallo" not in motivo
+
+
+def test_la_diagnostica_conta_lette_accettate_e_scartate(lingua):
+    from gioco27.core.analisi import RigaScartata, RisultatiImport
+    from gioco27.gui import errori
+
+    esito = RisultatiImport([], lette=10, scartate=tuple(
+        RigaScartata(n, "T_permutazione", "campo vuoto", codice="campo_vuoto",
+                     dati={"nome": "T_permutazione"}) for n in range(2, 7)))
+    for lingua_codice in ("it", "en"):
+        lingua(lingua_codice)
+        testo = errori.diagnostica_import(esito)
+        assert "10" in testo and "5" in testo
+        assert "riga 2" in testo or "row 2" in testo
+        # cinque scarti, tre mostrati: due restano nella coda
+        assert "2" in testo
+
+
+def test_la_coda_della_diagnostica_e_una_frase_corretta(lingua):
+    """Come per M06: «e altre 1» non e' italiano."""
+    from gioco27.core.analisi import RigaScartata, RisultatiImport
+    from gioco27.gui import errori
+
+    def esito(quanti):
+        return RisultatiImport([], lette=quanti + 1, scartate=tuple(
+            RigaScartata(n, "T_permutazione", "campo vuoto",
+                         codice="campo_vuoto", dati={"nome": "T"})
+            for n in range(2, quanti + 2)))
+
+    lingua("it")
+    assert "e un'altra" in errori.diagnostica_import(esito(4))
+    assert "e altre 2" in errori.diagnostica_import(esito(5))
+    lingua("en")
+    assert "and one more" in errori.diagnostica_import(esito(4))
+    assert "and 2 more" in errori.diagnostica_import(esito(5))
+
+
+def test_config_non_salvata_passa_dallo_stesso_confine(lingua, tmp_path):
+    """G2 ha reso osservabile il fallimento; H1 lo fa dire da un posto solo."""
+    from gioco27.core.config import ConfigNonSalvata
+    from gioco27.gui import errori
+
+    exc = ConfigNonSalvata(tmp_path / "config.json", OSError("disco pieno"))
+    for lingua_codice, atteso in (("it", "salvare"), ("en", "saved")):
+        lingua(lingua_codice)
+        titolo, messaggio = errori.per_utente(exc)
+        assert titolo and atteso in messaggio
+        assert "config.json" in messaggio
+
+
+def test_il_confine_regge_cio_che_non_conosce(lingua):
+    """Un codice non previsto mostra il testo neutro, non un guasto."""
+    from gioco27.core.dominio import PermutazioneNonValida
+    from gioco27.gui import errori
+
+    lingua("en")
+    senza_nome = PermutazioneNonValida("qualcosa di nuovo", codice="mai_visto")
+    titolo, messaggio = errori.per_utente(senza_nome)
+    assert titolo and messaggio == "qualcosa di nuovo"
+
+    con_nome = PermutazioneNonValida("qualcosa di nuovo", codice="mai_visto",
+                                     nome="T")
+    _, messaggio = errori.per_utente(con_nome)
+    assert messaggio == "T: not a valid permutation."
+
+    _, messaggio = errori.per_utente(RuntimeError("guasto generico"))
+    assert messaggio == "guasto generico"
+
+
+def test_il_worker_mostra_il_messaggio_localizzato(lingua, monkeypatch):
+    """`run_in_thread` e' il punto in cui finiscono gli errori di fondo."""
+    from types import SimpleNamespace
+
+    from gioco27.core.analisi import SchemaNonRiconosciuto
+    from gioco27.gui import common
+
+    mostrati = []
+    monkeypatch.setattr(common, "messagebox", SimpleNamespace(
+        showerror=lambda titolo, testo: mostrati.append((titolo, testo))))
+
+    class Finto:
+        _closing = False
+
+        def winfo_exists(self):
+            return True
+
+        def after(self, _ms, fn):
+            fn()
+
+    lingua("en")
+    exc = SchemaNonRiconosciuto("file vuoto: nessuna intestazione",
+                                codice="file_vuoto")
+
+    def job():
+        raise exc
+
+    common.run_in_thread(Finto(), job, error_title="Import").join(5)
+    assert len(mostrati) == 1
+    titolo, testo = mostrati[0]
+    assert titolo == "Import"
+    assert testo == "The file is empty." and testo != str(exc)
 
 
 def test_la_presentation_non_entra_nel_core():

@@ -80,6 +80,37 @@ _ITALIAN = {
     "status.cache_cleared": "Cache cancellata.",
     "status.saved": "Salvato: {filename} ({count})",
     "error.generic": "Errore",
+    "errore.schema.senza_intestazione": "Il file non ha una riga di intestazione: "
+                                       "non si sa che cosa contengono le colonne.",
+    "errore.schema.file_vuoto": "Il file è vuoto.",
+    "errore.schema.non_importabile": "Questo file è l'export di un'analisi "
+                                     "(schema «{schema}»), non un CSV di "
+                                     "combinazioni: rileggerlo darebbe "
+                                     "molteplicità 1 per ogni permutazione.",
+    "errore.schema.sconosciuto": "Intestazione non riconosciuta: manca la "
+                                 "colonna «T_permutazione».\n\nColonne "
+                                 "trovate: {colonne}",
+    "errore.permutazione.campo_vuoto": "{nome}: il campo è vuoto.",
+    "errore.permutazione.lista_vuota": "{nome}: la lista non contiene valori.",
+    "errore.permutazione.non_intero": "{nome}: «{valore}» non è un numero intero.",
+    "errore.permutazione.lunghezza": "{nome}: {ricevuta} valori invece di {attesa}.",
+    "errore.permutazione.fuori_intervallo": "{nome}: il valore {valore} è fuori "
+                                            "dall'intervallo ammesso 0–{massimo}.",
+    "errore.permutazione.valore_ripetuto": "{nome}: il valore {valore} compare "
+                                           "due volte; una permutazione non "
+                                           "ripete nessun valore.",
+    "errore.permutazione.generico": "{nome}: non è una permutazione valida.",
+    "errore.formula.non_valida": "La formula non si legge: {dettaglio}",
+    "errore.formula.non_valutabile": "La formula non si calcola: {dettaglio}",
+    "errore.formula.discorde": "La formula non produce la T scritta nella "
+                               "riga ({formula}).",
+    "errore.filtro.generico": "I filtri non descrivono un dominio valido. "
+                              "Il dettaglio tecnico è nel file di log.",
+    "errore.import.riepilogo": "{lette} righe lette, {accettate} accettate, "
+                               "{scartate} scartate",
+    "errore.import.riga": "riga {numero}, {campo}: {motivo}",
+    "errore.import.altre": "e altre {count}",
+    "errore.import.altre_una": "e un'altra",
     "config.save_failed.title": "Impostazioni non salvate",
     "config.save_failed": "Non è stato possibile salvare le impostazioni in "
                           "{path}.\n\nDettaglio: {detail}",
@@ -1387,6 +1418,35 @@ _ENGLISH = {
     "status.cache_cleared": "Cache cleared.",
     "status.saved": "Saved: {filename} ({count})",
     "error.generic": "Error",
+    "errore.schema.senza_intestazione": "The file has no header row: there is "
+                                       "no way to know what the columns hold.",
+    "errore.schema.file_vuoto": "The file is empty.",
+    "errore.schema.non_importabile": "This file is an analysis export "
+                                     "(«{schema}» schema), not a combinations "
+                                     "CSV: reading it back would give every "
+                                     "permutation a multiplicity of 1.",
+    "errore.schema.sconosciuto": "Header not recognised: the «T_permutazione» "
+                                 "column is missing.\n\nColumns found: {colonne}",
+    "errore.permutazione.campo_vuoto": "{nome}: the field is empty.",
+    "errore.permutazione.lista_vuota": "{nome}: the list holds no values.",
+    "errore.permutazione.non_intero": "{nome}: «{valore}» is not a whole number.",
+    "errore.permutazione.lunghezza": "{nome}: {ricevuta} values instead of {attesa}.",
+    "errore.permutazione.fuori_intervallo": "{nome}: {valore} is outside the "
+                                            "allowed range 0–{massimo}.",
+    "errore.permutazione.valore_ripetuto": "{nome}: {valore} appears twice; a "
+                                           "permutation never repeats a value.",
+    "errore.permutazione.generico": "{nome}: not a valid permutation.",
+    "errore.formula.non_valida": "The formula cannot be read: {dettaglio}",
+    "errore.formula.non_valutabile": "The formula cannot be evaluated: {dettaglio}",
+    "errore.formula.discorde": "The formula does not produce the T written on "
+                               "the row ({formula}).",
+    "errore.filtro.generico": "The filters do not describe a valid domain. "
+                              "The technical detail is in the log file.",
+    "errore.import.riepilogo": "{lette} rows read, {accettate} accepted, "
+                               "{scartate} discarded",
+    "errore.import.riga": "row {numero}, {campo}: {motivo}",
+    "errore.import.altre": "and {count} more",
+    "errore.import.altre_una": "and one more",
     "config.save_failed.title": "Settings not saved",
     "config.save_failed": "The settings could not be saved to {path}.\n\n"
                           "Details: {detail}",

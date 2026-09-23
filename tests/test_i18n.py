@@ -1175,7 +1175,7 @@ def test_twelfth_block_catalog_additions_are_symmetric_and_counted():
     assert len([k for k in i18n.CATALOGS["it"] if k.startswith("glossary.long.")]) == 14
     assert len([k for k in i18n.CATALOGS["it"] if k.startswith("help.tab.")]) == 16
     assert len([k for k in i18n.CATALOGS["it"] if k.startswith("filter.")]) == 25  # +7 audit finale, +1 H1 (filter.never_empty)
-    assert len(i18n.CATALOGS["it"]) == 1297  # 820 + 354 guide.* + 32 anomalie UI + 82 audit finale + 1 (E) + 3 (F) + 2 (G2) + 3 (H1: livello mai vuoto, coda delle trasposte)
+    assert len(i18n.CATALOGS["it"]) == 1316  # 820 + 354 guide.* + 32 anomalie UI + 82 audit finale + 1 (E) + 3 (F) + 2 (G2) + 22 (H1: presentation e localizzazione)
 
 
 def _use_config_file(monkeypatch, tmp_path):

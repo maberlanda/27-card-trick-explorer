@@ -17,6 +17,7 @@ from ..core.export_analisi import (EXCEL_MAX_CELL_CHARS, scrivi_excel,
 from ..core.parallel import atomic_write
 from ..services import Revisioni, RisultatoAnalisi, servizio_analisi
 from .common import configure_matrix_tags, insert_colored, EtaEstimator, run_in_thread
+from .errori import diagnostica_import, per_utente
 from .i18n import tr
 from .i18n import get_language
 
@@ -245,9 +246,14 @@ class AnalysisTabMixin:
         # F: se qualcosa non e' completo — righe scartate, grezzi non
         # conservati — l'utente lo legge accanto al riepilogo, non lo scopre
         # dai menu disabilitati.
-        if risultato.diagnostica:
+        # F: se qualcosa non e' completo — righe scartate, grezzi non
+        # conservati — l'utente lo legge accanto al riepilogo. H1: la frase la
+        # compone la presentation dai dati del risultato (quante righe lette,
+        # accettate, scartate, e perche'), non il servizio.
+        diagnostica = diagnostica_import(risultato)
+        if diagnostica:
             self._analisi_status.set(
-                f"{self._analisi_status.get()}   —   {risultato.diagnostica}")
+                f"{self._analisi_status.get()}   —   {diagnostica}")
         return True
 
     def _analisi_aggiorna_export(self):
@@ -303,13 +309,12 @@ class AnalysisTabMixin:
         try:
             piano = SERVIZIO.pianifica(filters)
         except AnalisiTroppoGrande as troppo:
-            messagebox.showwarning(
-                tr("analysis.too_large_title"),
-                tr("analysis.too_large", count=f"{troppo.richieste:,}",
-                   limit=f"{troppo.limite:,}"))
+            messagebox.showwarning(*per_utente(troppo))
             return
         except ValueError as errore:          # FiltroNonValido
-            messagebox.showerror(tr("analysis.error_title"), str(errore))
+            # H1: il messaggio del core e' neutro e resta nel log; qui si
+            # mostra la frase nella lingua attiva.
+            messagebox.showerror(*per_utente(errore))
             return
 
         n = piano.combinazioni
