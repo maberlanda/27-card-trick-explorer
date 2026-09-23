@@ -593,14 +593,7 @@ def test_eighth_block_simulator_uses_i18n_without_major_hardcoded_strings():
 def test_eighth_block_simulator_instruction_output_switches_language_without_ui():
     from gioco27.core import gioco_reale
     from gioco27.gui.i18n import set_language
-    from gioco27.gui.simulator_tab import SimulatorFrame
-
-    class Value:
-        def __init__(self, value):
-            self.value = value
-
-        def get(self):
-            return self.value
+    from gioco27.gui.simulator_tab import SessionePratica, SimulatorFrame
 
     class TextCapture:
         def __init__(self):
@@ -616,15 +609,16 @@ def test_eighth_block_simulator_instruction_output_switches_language_without_ui(
             self.parts.append(text)
 
     simulator = object.__new__(SimulatorFrame)
-    simulator._card_var = Value(7)
-    simulator._target_var = Value(19)
     simulator._istr_txt = TextCapture()
-    plan = gioco_reale.risolvi_trucco(7, 19)
+    # B04: le istruzioni appartengono alla sessione, non ai campi della
+    # finestra; carta e bersaglio arrivano congelati insieme al piano.
+    sessione = SessionePratica.calcola(7, 19)
+    plan = sessione.piano
 
-    simulator._build_istruzioni(plan)
+    simulator._build_istruzioni(sessione)
     italian = "".join(simulator._istr_txt.parts)
     set_language("en")
-    simulator._build_istruzioni(plan)
+    simulator._build_istruzioni(sessione)
     english = "".join(simulator._istr_txt.parts)
 
     assert "Istruzioni per il trucco" in italian

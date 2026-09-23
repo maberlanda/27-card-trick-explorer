@@ -1,18 +1,22 @@
-"""Compartimento C — stato e concorrenza: provenienza e revisioni.
+"""Compartimento C — stato e concorrenza: provenienza, revisioni, sessioni.
 
-Copre B02 (aggregati e grezzi della stessa richiesta) e B03 (risposte tardive
-e fuori ordine).
+Copre B02 (aggregati e grezzi della stessa richiesta), B03 (risposte tardive e
+fuori ordine) e B04 (sessione di pratica con input congelati).
 
 Nessun test dipende dalla velocita' della macchina: i lavori vengono catturati e
 fatti avanzare esplicitamente.
 """
+import pathlib
 from types import SimpleNamespace
 
 import pytest
 
-from gioco27.gui import analysis_tab
+from gioco27.core import gioco_reale as gr
+from gioco27.gui import analysis_tab, simulator_tab
 from gioco27.gui.analysis_tab import RisultatoAnalisi
+from gioco27.gui.simulator_tab import SessionePratica
 
+RADICE = pathlib.Path(__file__).resolve().parents[1]
 FILTRI = [dict(p0="SCD_U", p1="SCD_U", p2="SCD_U",
                j0="I_3", j1="I_3", j2="I_3") for _ in range(3)]
 
@@ -344,3 +348,125 @@ def test_b03_la_revisione_e_monotona(tab):
     assert tab._analisi_nuova_revisione() == prima + 2
     assert tab._analisi_e_corrente(prima + 2) is True
     assert tab._analisi_e_corrente(prima + 1) is False
+
+
+# ───────────────────────────── B04 ──────────────────────────────────────────
+
+class _Testo:
+    def __init__(self):
+        self.parti = []
+
+    def configure(self, **kw):
+        pass
+
+    def delete(self, *a):
+        self.parti.clear()
+
+    def insert(self, _dove, testo, tag=None):
+        self.parti.append(testo)
+
+    def see(self, *a):
+        pass
+
+
+def _simulatore(carta=0, bersaglio=13):
+    sim = object.__new__(simulator_tab.SimulatorFrame)
+    sim._card_var = _Var(carta)
+    sim._target_var = _Var(bersaglio)
+    sim._p_log = _Testo()
+    sim._p_errors = 0
+    sim._p_err_log = []
+    sim._sessione = None
+    return sim
+
+
+def test_b04_la_sessione_congela_i_suoi_input():
+    sessione = SessionePratica.calcola(0, 13)
+    assert (sessione.carta, sessione.bersaglio) == (0, 13)
+    assert sessione.piano["T"][0] == 13
+    with pytest.raises(Exception):            # frozen: non si riscrive
+        sessione.carta = 1
+    with pytest.raises(TypeError):            # il piano e' di sola lettura
+        sessione.piano["mescolamenti"] = ()
+
+
+def test_b04_ricomincia_usa_la_sessione_non_i_campi():
+    """Il bug: cambiando il campo carta, «ricomincia» riusava il piano 0->13."""
+    sim = _simulatore()
+    sim._sessione = SessionePratica.calcola(0, 13)
+    ricevute = []
+    sim._init_practice = lambda sessione: ricevute.append(sessione)
+
+    sim._card_var.set(1)                      # l'utente cambia il campo
+    sim._target_var.set(5)
+    sim._practice_reset()
+
+    assert ricevute == [sim._sessione]
+    assert (ricevute[0].carta, ricevute[0].bersaglio) == (0, 13)
+    # e il piano continua a fare cio' per cui era stato calcolato
+    assert ricevute[0].piano["T"][0] == 13
+
+
+def test_b04_riepilogo_giudica_sul_bersaglio_della_sessione():
+    sim = _simulatore()
+    sim._sessione = SessionePratica.calcola(0, 13)
+    sim._p_deck = [0] * 27
+    mazzo = list(range(27))
+    for sigla in sim._sessione.piano["mescolamenti"]:
+        mazzo = gr.raccogli(gr.distribuisci(mazzo), sigla)
+    sim._p_deck = mazzo
+    sim._target_var.set(25)                   # cambiato a pratica iniziata
+
+    sim._show_practice_summary()
+    testo = "".join(sim._p_log.parti)
+    assert "13" in testo
+    assert "25" not in testo, "il campo modificato non deve entrare nel giudizio"
+
+
+def test_b04_pratica_senza_sessione_non_fa_nulla():
+    sim = _simulatore()
+    sim._init_practice = lambda sessione: pytest.fail("non deve partire")
+    sim._practice_reset()                     # nessuna sessione: nessun effetto
+
+
+@pytest.mark.parametrize("carta, bersaglio", [("", 13), ("x", 13), (0, ""),
+                                              (99, 13), (0, 99), (-1, 0)])
+def test_b04_input_non_validi_non_creano_sessione(carta, bersaglio):
+    sim = _simulatore(carta, bersaglio)
+    stato = []
+    sim._status_lbl = SimpleNamespace(configure=lambda **kw: stato.append(kw))
+    sim._find_sequence()
+    assert sim._sessione is None
+    assert stato and "✗" in stato[0]["text"]
+
+
+def test_b04_reset_dimentica_la_sessione():
+    sim = _simulatore()
+    sim._sessione = SessionePratica.calcola(3, 7)
+    fatto = []
+    sim._status_lbl = SimpleNamespace(configure=lambda **kw: None)
+    sim._istr_txt = sim._deck_log = _Testo()
+    sim._write_placeholder_istr = lambda: fatto.append("placeholder")
+    sim._phase_var = _Var(0)
+    sim._phase_lbl = SimpleNamespace(configure=lambda **kw: None)
+    sim._p_set_state = lambda stato: fatto.append(stato)
+    sim._card_var = _Var(0)
+    sim._target_var = _Var(13)
+
+    simulator_tab.SimulatorFrame.reset(sim)
+    assert sim._sessione is None and "idle" in fatto
+
+
+def test_b04_tutte_le_729_coppie_restano_coerenti():
+    """Il piano di ogni sessione porta la SUA carta al SUO bersaglio."""
+    for carta in range(27):
+        for bersaglio in range(27):
+            sessione = SessionePratica.calcola(carta, bersaglio)
+            assert sessione.piano["T"][sessione.carta] == sessione.bersaglio
+
+
+def test_b04_i_campi_si_leggono_in_un_solo_punto():
+    sorgente = (RADICE / "gioco27" / "gui" / "simulator_tab.py").read_text(
+        encoding="utf-8")
+    letture = sorgente.count("_card_var.get()") + sorgente.count("_target_var.get()")
+    assert letture == 2, "i campi vanno letti solo in _find_sequence"

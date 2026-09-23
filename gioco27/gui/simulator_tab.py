@@ -17,7 +17,9 @@ Simula il trucco delle 27 carte esattamente come si esegue col mazzo vero:
 Convenzione: posizione 0 = carta al DORSO del mazzo tenuto a faccia in giù.
 """
 import tkinter as tk
+from dataclasses import dataclass
 from tkinter import ttk
+from types import MappingProxyType
 
 from ..core import gioco_reale as gr
 from .i18n import tr
@@ -46,12 +48,43 @@ _C_TARGET  = "#FFD700"
 _C_HIDDEN  = "#F0F0F0"
 
 
+@dataclass(frozen=True)
+class SessionePratica:
+    """Gli input congelati di una sessione, insieme al piano che ne discende.
+
+    B04: prima la sessione ricalcolava carta e bersaglio leggendo i campi della
+    finestra, che l'utente puo' modificare in qualsiasi momento. Bastava
+    cambiare il numero della carta e premere «ricomincia» per riusare il piano
+    di 0->13 con la carta 1, che quel piano porta in 12; e il riepilogo finale
+    giudicava la pratica su un bersaglio diverso da quello con cui era stata
+    calcolata.
+
+    Da qui in avanti carta, bersaglio e piano sono un blocco unico, deciso nel
+    momento in cui si preme «trova la sequenza». **I campi della finestra non
+    agiscono retroattivamente**: la sessione in corso continua con i propri
+    input, e i nuovi valori entrano in gioco alla sequenza successiva. E' il
+    comportamento gia' suggerito dalla UI, dove «ricomincia» ripete la stessa
+    pratica e non ne crea una diversa.
+    """
+
+    carta: int
+    bersaglio: int
+    piano: MappingProxyType           # sola lettura: il piano non si modifica
+
+    @classmethod
+    def calcola(cls, carta, bersaglio):
+        """Risolve il trucco e congela il risultato insieme ai suoi input."""
+        return cls(carta=int(carta), bersaglio=int(bersaglio),
+                   piano=MappingProxyType(dict(gr.risolvi_trucco(int(carta),
+                                                                 int(bersaglio)))))
+
+
 class SimulatorFrame(ttk.Frame):
 
     def __init__(self, parent, on_new_T=None, **kw):
         super().__init__(parent, **kw)
         self._on_new_T = on_new_T    # callback(list[int]) per app/gobbo
-        self._plan   = None          # risultato di gr.risolvi_trucco
+        self._sessione = None        # SessionePratica congelata (B04)
         self._phases = []
 
         # stato pratica
@@ -309,33 +342,39 @@ class SimulatorFrame(ttk.Frame):
     # ─── Calcolo della sequenza (forma chiusa, istantaneo) ────────────────────
 
     def _find_sequence(self):
+        """Unico punto in cui i campi della finestra vengono letti (B04).
+
+        Da qui in poi tutto — istruzioni, fotografie del mazzo, pratica,
+        riepilogo — lavora sulla sessione congelata.
+        """
         try:
-            card   = int(self._card_var.get())
-            target = int(self._target_var.get())
-            plan   = gr.risolvi_trucco(card, target)
+            sessione = SessionePratica.calcola(self._card_var.get(),
+                                               self._target_var.get())
         except (ValueError, tk.TclError):
+            # campo vuoto, testo non numerico o fuori da 0..26
             self._status_lbl.configure(
                 text=f"✗  {tr('simulator.validation.positions')}")
             return
-        self._plan = plan
+        self._sessione = sessione
+        plan = sessione.piano
         self._status_lbl.configure(
             text="✓  " + tr("simulator.status.sequence",
                             shuffles=" ".join(plan["mescolamenti"]),
                             number=plan["numero"]))
-        self._build_istruzioni(plan)
-        self._build_deck_phases(plan)
-        self._init_practice(plan, card)
+        self._build_istruzioni(sessione)
+        self._build_deck_phases(sessione)
+        self._init_practice(sessione)
         if self._on_new_T is not None:
-            try:
-                self._on_new_T(list(plan["T"]))
-            except Exception:
-                pass
+            self._on_new_T(list(plan["T"]))
 
     # ─── Tab Istruzioni ────────────────────────────────────────────────────────
 
-    def _build_istruzioni(self, plan):
-        card   = int(self._card_var.get())
-        target = int(self._target_var.get())
+    def _build_istruzioni(self, sessione):
+        """Istruzioni della sessione: carta e bersaglio sono i suoi, non quelli
+        che i campi mostrano adesso (B04)."""
+        card   = sessione.carta
+        target = sessione.bersaglio
+        plan   = sessione.piano
         txt = self._istr_txt
         txt.configure(state="normal")
         txt.delete("1.0", "end")
@@ -381,8 +420,9 @@ class SimulatorFrame(ttk.Frame):
 
     # ─── Tab Mazzo: 7 fotografie fisiche ──────────────────────────────────────
 
-    def _build_deck_phases(self, plan):
-        card = int(self._card_var.get())
+    def _build_deck_phases(self, sessione):
+        card = sessione.carta
+        plan = sessione.piano
         _, fasi = gr.esegui_partita(plan["mescolamenti"])
         phases = []
         for f in fasi:
@@ -481,7 +521,7 @@ class SimulatorFrame(ttk.Frame):
                 "simulator.practice.question_column", phase=self._pstep,
                 card=self._p_card))
         elif state == "order_q":
-            mesc = self._plan["mescolamenti"][self._pstep - 1]
+            mesc = self._sessione.piano["mescolamenti"][self._pstep - 1]
             self._p_question_lbl.configure(text=tr(
                 "simulator.practice.question_stacking", phase=self._pstep,
                 shuffle=mesc))
@@ -489,7 +529,10 @@ class SimulatorFrame(ttk.Frame):
             self._p_question_lbl.configure(
                 text=f"✅  {tr('simulator.practice.completed_log')}")
 
-    def _init_practice(self, plan, card):
+    def _init_practice(self, sessione):
+        self._sessione  = sessione
+        plan            = sessione.piano
+        card            = sessione.carta
         self._p_card    = card
         self._p_errors  = 0
         self._p_err_log = []
@@ -517,12 +560,15 @@ class SimulatorFrame(ttk.Frame):
         self._p_render_cols(show_target=False)
 
     def _practice_reset(self):
-        if self._plan is not None:
-            self._init_practice(self._plan, int(self._card_var.get()))
+        """Ricomincia LA STESSA pratica: stessa carta, stesso bersaglio, stesso
+        piano. Prima rileggeva la carta dal campo, e il piano finiva applicato a
+        una carta per cui non era stato calcolato (B04)."""
+        if self._sessione is not None:
+            self._init_practice(self._sessione)
 
     def reset(self):
         """Riporta il simulatore allo stato iniziale (per «Reset tutto»)."""
-        self._plan   = None
+        self._sessione = None
         self._pstate = "idle"
         self._card_var.set(0)
         self._target_var.set(13)
@@ -590,8 +636,8 @@ class SimulatorFrame(ttk.Frame):
         if self._pstate != "order_q":
             return
         chosen  = self._p_order_var.get()
-        mesc    = self._plan["mescolamenti"][self._pstep - 1]
-        correct = self._plan["impilamenti"][self._pstep - 1]
+        mesc    = self._sessione.piano["mescolamenti"][self._pstep - 1]
+        correct = self._sessione.piano["impilamenti"][self._pstep - 1]
 
         if chosen == correct:
             self._p_log_append(
@@ -633,8 +679,11 @@ class SimulatorFrame(ttk.Frame):
             self._show_practice_summary()
 
     def _show_practice_summary(self):
-        card      = self._p_card
-        target    = int(self._target_var.get())
+        # Il giudizio usa il bersaglio della sessione: cambiare il campo a
+        # pratica iniziata non puo' far risultare sbagliata una pratica
+        # corretta, ne' viceversa (B04).
+        card      = self._sessione.carta
+        target    = self._sessione.bersaglio
         final_pos = self._p_deck.index(card)
         success   = final_pos == target
         max_err   = 6
