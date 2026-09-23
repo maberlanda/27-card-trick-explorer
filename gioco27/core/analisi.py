@@ -10,15 +10,24 @@ sottostringa. Le conseguenze erano due bug distinti:
   intestazione ``foo;bar`` produceva ``[]``: un'analisi valida con zero
   risultati, indistinguibile da un dominio vuoto. Le righe corrotte sparivano
   senza lasciare traccia.
-La fase di ingresso e' ora esplicita e ogni passo ha un esito dichiarato:
+* **R01** — l'analisi materializzava ogni riga in una lista prima di
+  aggregare. Con i filtri liberi sono 5.159.780.352 combinazioni: misurate a
+  ~1 kB e ~59 µs ciascuna, sono 5,4 TB e 85 ore. L'unica difesa era una
+  finestra «sei sicuro?».
+
+La pipeline e' ora esplicita e ogni fase ha un esito dichiarato:
 
     ingresso
       │
-      ├─ riconoscimento schema   riconosci_schema()     → SchemaNonRiconosciuto
+      ├─ riconoscimento schema   riconosci_schema()   → SchemaNonRiconosciuto
       ├─ validazione riga        Aggregatore.aggiungi() → RigaScartata
-      └─ aggregazione            Aggregatore            → risultati + diagnostica
+      ├─ piano e budget          pianifica_analisi()  → AnalisiTroppoGrande
+      ├─ enumerazione            core.combinations (contratto unico dei filtri)
+      └─ aggregazione            Aggregatore          → risultati + diagnostica
 
-Nessuna fase interpreta un ingresso invalido come «zero risultati».
+Nessuna fase interpreta un ingresso invalido come «zero risultati», e il
+conteggio che decide il piano e' lo stesso che descrive cio' che verra'
+enumerato.
 
 Il modulo non conosce Tk ne' la GUI. Usa i contratti gia' esistenti invece di
 riscriverli: `core.dominio.valida_permutazione` (D) per la `T` e il parser
@@ -30,12 +39,14 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from typing import Tuple
 
+from .combinations import cardinalita, normalizza_filtri
 from .dominio import PermutazioneNonValida, valida_permutazione
 
 __all__ = [
-    "SchemaNonRiconosciuto", "SchemaCsv", "RigaScartata", "RisultatiImport",
-    "Aggregatore", "SCHEMI", "riconosci_schema", "importa_csv",
-    "aggrega_righe", "N_CARTE",
+    "SchemaNonRiconosciuto", "AnalisiTroppoGrande", "SchemaCsv", "RigaScartata",
+    "RisultatiImport", "Aggregatore", "PianoAnalisi", "SCHEMI",
+    "riconosci_schema", "pianifica_analisi", "importa_csv", "aggrega_righe",
+    "LIMITE_GREZZI", "LIMITE_ANALISI", "N_CARTE",
 ]
 
 #: Dimensione del mazzo: ogni `T` importata e' una permutazione di 27 elementi.
@@ -48,6 +59,17 @@ class SchemaNonRiconosciuto(ValueError):
     Distinta da un'analisi senza risultati: un file che non si sa leggere non
     e' un dominio vuoto.
     """
+
+
+class AnalisiTroppoGrande(ValueError):
+    """Il dominio richiesto supera il budget dell'analisi in memoria."""
+
+    def __init__(self, richieste, limite=None):
+        self.richieste = richieste
+        self.limite = LIMITE_ANALISI if limite is None else limite
+        super().__init__(
+            f"analisi di {richieste:,} combinazioni: oltre il limite di "
+            f"{self.limite:,}. Il dominio va ristretto con i filtri.")
 
 
 # ═══════════════════════════════ schema CSV ═════════════════════════════════
@@ -349,3 +371,59 @@ def importa_csv(percorso, *, verifica_formula=True):
                 "T_permutazione": valore("t_permutazione"),
             }, numero=numero)
     return aggregatore.esito(schema=schema)
+
+
+# ═══════════════════════ piano e budget dell'analisi ════════════════════════
+#
+# Le soglie sono misurate, non scelte a occhio (campione di 15.552 combinazioni,
+# ambiente di riferimento):
+#
+#   riga grezza trattenuta      ~796 B     aggregati       ~220 B per riga
+#   generazione + aggregazione  ~59 µs per riga
+#
+# da cui:
+#
+#   100.000 combinazioni   ~105 MB con i grezzi,  ~6 s
+#   1.000.000              ~220 MB senza grezzi, ~59 s
+#   5.159.780.352          ~5,4 TB e ~85 ore — il caso di R01
+#
+# Il limite di export (`MAX_EXPORT_ITEMS`, 20 milioni) resta un'altra cosa: un
+# export scrive su disco e non trattiene nulla in memoria, quindi puo'
+# permettersi molto di piu' di un'analisi che tiene in RAM gruppi e formule.
+
+#: Oltre questo numero di combinazioni le righe grezze non vengono conservate:
+#: restano gli aggregati, completi, e gli export che richiedono i grezzi si
+#: disabilitano da soli (contratto di C: `grezzi=()`).
+LIMITE_GREZZI = 100_000
+
+#: Oltre questo numero l'analisi viene rifiutata **prima** di enumerare: gli
+#: aggregati stessi non sarebbero piu' contenibili in memoria.
+LIMITE_ANALISI = 1_000_000
+
+
+@dataclass(frozen=True)
+class PianoAnalisi:
+    """Che cosa verra' fatto, deciso prima di enumerare qualunque cosa."""
+
+    combinazioni: int
+    grezzi: bool
+    limite_grezzi: int = LIMITE_GREZZI
+    limite_analisi: int = LIMITE_ANALISI
+
+    @property
+    def modalita(self):
+        return "completa" if self.grezzi else "aggregata"
+
+
+def pianifica_analisi(filtri):
+    """Valida i filtri, conta il dominio e decide la modalita'.
+
+    Non enumera nulla: la cardinalita' e' un prodotto di lunghezze. Solleva
+    `FiltroNonValido` se i filtri non rispettano il contratto e
+    `AnalisiTroppoGrande` se il dominio non e' analizzabile in sicurezza.
+    """
+    normalizzati = normalizza_filtri(filtri)
+    n = cardinalita(normalizzati)
+    if n > LIMITE_ANALISI:
+        raise AnalisiTroppoGrande(n, LIMITE_ANALISI)
+    return PianoAnalisi(combinazioni=n, grezzi=(n <= LIMITE_GREZZI))

@@ -37,7 +37,7 @@ def _lang(language):
 def test_cataloghi_simmetrici_e_placeholder_coerenti():
     it, en = i18n.CATALOGS["it"], i18n.CATALOGS["en"]
     assert set(it) == set(en)
-    assert len(it) == 1289  # +1 in E: shuffle.operation_atom (passi J/I nel Mescolamento)
+    assert len(it) == 1292  # +1 in E (shuffle.operation_atom), +3 in F (budget dell'analisi)
     fields = lambda s: sorted(n for _, n, _, _ in Formatter().parse(s) if n)
     for key in it:
         assert fields(it[key]) == fields(en[key]), key

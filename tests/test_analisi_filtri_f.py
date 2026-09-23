@@ -1,7 +1,8 @@
-"""Compartimento F — ingressi e filtri hanno un contratto (B05, B06).
+"""Compartimento F — ingressi, filtri e preflight dell'analisi (B05, B06, R01).
 
-Un solo modello di filtro validato alimenta conteggio, enumerazione, export e
-analisi: `count == iter` per costruzione, non per coincidenza.
+Il dominio viene validato e contato prima di enumerare: un piano non eseguibile
+non fa partire nulla. Il caso da 5.159.780.352 combinazioni viene provato con
+una sentinella che esplode se qualcuno avvia l'enumerazione.
 """
 import ast
 import pathlib
@@ -11,7 +12,7 @@ import pytest
 
 from gioco27.core import combinations
 from gioco27.core.algebra import analizza_csv, analizza_righe
-from gioco27.core.analisi import RisultatiImport, SchemaNonRiconosciuto, importa_csv, riconosci_schema
+from gioco27.core.analisi import AnalisiTroppoGrande, LIMITE_ANALISI, LIMITE_GREZZI, RisultatiImport, SchemaNonRiconosciuto, importa_csv, pianifica_analisi, riconosci_schema
 from gioco27.core.combinations import (FiltroNonValido, N_STADI, cardinalita,
                                        count_combinations,
                                        count_combinations_ex,
@@ -243,7 +244,7 @@ def test_b06_numero_di_stadi_non_supportato(n_stadi):
     for funzione in (count_combinations_ex, count_combinations,
                      lambda f: list(iter_combinations_ex(f)),
                      lambda f: list(iter_combinations(f)),
-                     normalizza_filtri):
+                     normalizza_filtri, pianifica_analisi):
         with pytest.raises(FiltroNonValido):
             funzione(filtri)
 
@@ -413,6 +414,41 @@ def test_b06_il_filtro_normalizzato_e_immutabile():
     assert cardinalita(filtri) == 1
 
 
+# ════════════════════════════ R01 — preflight ═══════════════════════════════
+
+def test_r01_il_caso_enorme_e_rifiutato_prima_di_enumerare(monkeypatch):
+    def esplode(*args, **kwargs):
+        raise AssertionError("enumerazione avviata su un piano non eseguibile")
+
+    monkeypatch.setattr(combinations, "_combinazioni", esplode)
+    liberi = [{k: ANY for k in FISSO} for _ in range(3)]
+    with pytest.raises(AnalisiTroppoGrande) as errore:
+        pianifica_analisi(liberi)
+    assert errore.value.richieste == 5_159_780_352
+    assert errore.value.limite == LIMITE_ANALISI
+
+
+def test_r01_analisi_piccola_tiene_i_grezzi():
+    piano = pianifica_analisi([dict(FISSO, p0=ANY), dict(FISSO), dict(FISSO)])
+    assert piano.combinazioni == 6
+    assert piano.grezzi and piano.modalita == "completa"
+
+
+def test_r01_analisi_grande_ma_consentita_rinuncia_ai_grezzi():
+    filtri = [dict(FISSO, p0=ANY, p1=ANY, p2=ANY),
+              dict(FISSO, p0=ANY, p1=ANY, p2=ANY), dict(FISSO, p0=ANY)]
+    piano = pianifica_analisi(filtri)
+    assert LIMITE_GREZZI < piano.combinazioni <= LIMITE_ANALISI
+    assert not piano.grezzi and piano.modalita == "aggregata"
+
+
+def test_r01_le_soglie_sono_ordinate_e_dichiarate():
+    assert 0 < LIMITE_GREZZI < LIMITE_ANALISI < 5_159_780_352
+    sorgente = (RADICE / "gioco27" / "core" / "analisi.py").read_text(encoding="utf-8")
+    assert "MAX_EXPORT_ITEMS" in sorgente     # la differenza e' motivata
+    assert "5.159.780.352" in sorgente
+
+
 # ═════════════════════════ R01 — la scheda Analisi ══════════════════════════
 
 class _Var:
@@ -493,6 +529,64 @@ def tab(monkeypatch):
         askyesno=lambda *a, **k: True))
     t.lavori, t.avvisi = lavori, avvisi
     return t
+
+
+def test_r01_la_scheda_rifiuta_il_dominio_enorme_senza_enumerare(tab, monkeypatch):
+    def esplode(*a, **k):
+        raise AssertionError("enumeratore avviato")
+
+    monkeypatch.setattr(analysis_tab, "iter_combinations_ex", esplode)
+    tab._filtri = [{k: ANY for k in FISSO} for _ in range(3)]
+    tab._run_analisi()
+    assert tab.lavori == []                      # nessun lavoro avviato
+    assert [tipo for tipo, _ in tab.avvisi] == ["warning"]
+    assert tab._analisi_risultati == []
+
+
+def test_r01_la_scheda_rifiuta_un_filtro_non_valido(tab, monkeypatch):
+    def esplode(*a, **k):
+        raise AssertionError("enumeratore avviato")
+
+    monkeypatch.setattr(analysis_tab, "iter_combinations_ex", esplode)
+    tab._filtri = [dict(FISSO, p0="NON_ESISTE"), dict(FISSO), dict(FISSO)]
+    tab._run_analisi()
+    assert tab.lavori == []
+    assert [tipo for tipo, _ in tab.avvisi] == ["error"]
+
+
+def test_r01_analisi_piccola_pubblica_aggregati_e_grezzi(tab):
+    tab._filtri = [dict(FISSO, p0=ANY), dict(FISSO), dict(FISSO)]
+    tab._run_analisi()
+    tab.lavori[0]()
+    tab.esegui_coda()
+    assert tab._analisi_corrente.origine == "filtri"
+    assert len(tab._analisi_righe_raw) == 6
+    assert sum(r["n_sim"] for r in tab._analisi_risultati) == 6
+    assert tab._analisi_corrente.diagnostica == ""
+
+
+def test_r01_reset_durante_l_aggregazione_invalida_il_lavoro(tab):
+    tab._filtri = [dict(FISSO, p0=ANY), dict(FISSO), dict(FISSO)]
+    tab._run_analisi()
+    lavoro = tab.lavori[0]
+    tab._reset_analisi()
+    lavoro()
+    tab.esegui_coda()
+    assert tab._analisi_risultati == [] and tab.popolati == []
+
+
+def test_r01_nuova_richiesta_durante_l_aggregazione(tab):
+    tab._filtri = [dict(FISSO, p0=ANY), dict(FISSO), dict(FISSO)]
+    tab._run_analisi()
+    primo = tab.lavori[0]
+    tab._run_analisi()
+    secondo = tab.lavori[1]
+    secondo()
+    tab.esegui_coda()
+    primo()                       # il vecchio finisce dopo: non deve pubblicare
+    tab.esegui_coda()
+    assert len(tab.popolati) == 1
+    assert tab._analisi_corrente.revisione == tab._analisi_revisione
 
 
 # ═════════════════════ contratti degli altri compartimenti ══════════════════

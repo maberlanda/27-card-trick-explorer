@@ -12,6 +12,7 @@ import tkinter as tk
 import pytest
 
 from gioco27.core import cache, config, parallel
+from gioco27.core.analisi import PianoAnalisi
 from gioco27.gui import app as app_module, common, analysis_tab
 
 
@@ -178,7 +179,9 @@ def test_r1_analisi_si_ferma_fra_due_elementi(close, monkeypatch):
         calls.append(i)
         return [str(i)] * 9
 
-    monkeypatch.setattr(analysis_tab, "count_combinations_ex", lambda f: 2)
+    # F: il preflight ha preso il posto del conteggio nudo
+    monkeypatch.setattr(analysis_tab, "pianifica_analisi",
+                        lambda f: PianoAnalisi(combinazioni=2, grezzi=True))
     monkeypatch.setattr(analysis_tab, "iter_combinations_ex", params)
     monkeypatch.setattr(analysis_tab, "make_csv_row", row)
     def analyze(rows):

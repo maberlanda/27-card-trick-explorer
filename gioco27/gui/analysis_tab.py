@@ -11,9 +11,10 @@ import tkinter as tk
 from dataclasses import dataclass
 from tkinter import ttk, messagebox, filedialog
 
+from ..core.analisi import AnalisiTroppoGrande, pianifica_analisi
 from ..core.algebra import (EXCEL_MAX_CELL_CHARS, analizza_righe, analizza_csv,
                              _prep_explorer_expr, scrivi_output, scrivi_excel)
-from ..core.combinations import iter_combinations_ex, count_combinations_ex
+from ..core.combinations import iter_combinations_ex
 from ..core.parallel import atomic_write
 from ..core.permutations import make_csv_row
 from .common import configure_matrix_tags, insert_colored, EtaEstimator, run_in_thread
@@ -300,9 +301,28 @@ class AnalysisTabMixin:
         self._analisi_status.set(tr("analysis.status.prompt"))
 
     def _run_analisi(self):
+        # Preflight (R01): i filtri vengono validati e il dominio contato
+        # PRIMA di toccare l'enumeratore. Un piano non eseguibile non fa
+        # partire nulla: prima l'unica difesa era una finestra «sei sicuro?»,
+        # e con i filtri liberi (5.159.780.352 combinazioni) il «si'» portava
+        # a riempire la memoria. Il piano decide anche se le righe grezze
+        # verranno conservate; a onorarlo sara' l'aggregazione incrementale.
         filters = self._get_filters()
-        n = count_combinations_ex(filters)
-        if n == 0:
+        try:
+            piano = pianifica_analisi(filters)
+        except AnalisiTroppoGrande as troppo:
+            messagebox.showwarning(
+                tr("analysis.too_large_title"),
+                tr("analysis.too_large", count=f"{troppo.richieste:,}",
+                   limit=f"{troppo.limite:,}"))
+            return
+        except ValueError as errore:          # FiltroNonValido
+            messagebox.showerror(tr("analysis.error_title"), str(errore))
+            return
+
+        n = piano.combinazioni
+        if n == 0:                            # difensivo: il contratto dei
+                                              # filtri non produce domini vuoti
             messagebox.showwarning(tr("analysis.no_combinations_title"),
                                    tr("analysis.no_combinations"))
             return

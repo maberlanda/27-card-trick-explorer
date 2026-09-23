@@ -16,6 +16,7 @@ from types import SimpleNamespace
 import pytest
 
 from gioco27.core import gioco_reale as gr
+from gioco27.core.analisi import PianoAnalisi
 from gioco27.gui import analysis_tab, app as app_module, common, simulator_tab
 from gioco27.gui.analysis_tab import RisultatoAnalisi
 from gioco27.gui.simulator_tab import SessionePratica
@@ -142,10 +143,24 @@ def _risultati(n_sim, perm="[0]"):
     return [{"n_sim": n_sim, "perm_str": perm, "simboliche": [f"S{n_sim}"]}]
 
 
+def _piano(monkeypatch, combinazioni, grezzi=True):
+    """Finge il preflight dell'analisi.
+
+    Il compartimento F ha sostituito il conteggio nudo del dominio con un piano
+    calcolato prima di enumerare: e' li' che la scheda decide quante
+    combinazioni ci sono e se terra' le righe grezze. I test che qui fingono un
+    dominio piccolo fingono il piano; il contratto di C — revisioni,
+    pubblicazione unica, RisultatoAnalisi — non cambia.
+    """
+    monkeypatch.setattr(analysis_tab, "pianifica_analisi",
+                        lambda f: PianoAnalisi(combinazioni=combinazioni,
+                                               grezzi=grezzi))
+
+
 # ───────────────────────────── B02 ──────────────────────────────────────────
 
 def test_b02_analisi_dai_filtri_porta_con_se_i_grezzi(tab, monkeypatch):
-    monkeypatch.setattr(analysis_tab, "count_combinations_ex", lambda f: 2)
+    _piano(monkeypatch, 2)
     monkeypatch.setattr(analysis_tab, "iter_combinations_ex", lambda f: iter([0, 1]))
     monkeypatch.setattr(analysis_tab, "make_csv_row",
                         lambda i, p: [str(i)] * 9)
@@ -163,7 +178,7 @@ def test_b02_analisi_dai_filtri_porta_con_se_i_grezzi(tab, monkeypatch):
 
 def test_b02_import_csv_non_eredita_i_grezzi_precedenti(tab, monkeypatch):
     """A -> import B: gli aggregati sono di B, i grezzi di A spariscono."""
-    monkeypatch.setattr(analysis_tab, "count_combinations_ex", lambda f: 1)
+    _piano(monkeypatch, 1)
     monkeypatch.setattr(analysis_tab, "iter_combinations_ex", lambda f: iter([0]))
     monkeypatch.setattr(analysis_tab, "make_csv_row", lambda i, p: ["A"] * 9)
     monkeypatch.setattr(analysis_tab, "analizza_righe", lambda righe: _risultati(1, "[A]"))
@@ -196,7 +211,7 @@ def test_b02_import_vuoto(tab, monkeypatch):
 
 
 def test_b02_import_fallito_lascia_lo_stato_precedente_coerente(tab, monkeypatch):
-    monkeypatch.setattr(analysis_tab, "count_combinations_ex", lambda f: 1)
+    _piano(monkeypatch, 1)
     monkeypatch.setattr(analysis_tab, "iter_combinations_ex", lambda f: iter([0]))
     monkeypatch.setattr(analysis_tab, "make_csv_row", lambda i, p: ["A"] * 9)
     monkeypatch.setattr(analysis_tab, "analizza_righe", lambda righe: _risultati(1, "[A]"))
@@ -224,7 +239,7 @@ def test_b02_import_fallito_lascia_lo_stato_precedente_coerente(tab, monkeypatch
 
 def test_b02_catena_a_b_c(tab, monkeypatch):
     """A (filtri) -> B (csv) -> C (filtri): nessun dato di A riappare con C."""
-    monkeypatch.setattr(analysis_tab, "count_combinations_ex", lambda f: 1)
+    _piano(monkeypatch, 1)
     monkeypatch.setattr(analysis_tab, "make_csv_row", lambda i, p: ["A"] * 9)
     monkeypatch.setattr(analysis_tab, "iter_combinations_ex", lambda f: iter([0]))
     monkeypatch.setattr(analysis_tab, "analizza_righe", lambda righe: _risultati(1, "[A]"))
@@ -258,7 +273,7 @@ def test_b02_aggregati_e_grezzi_vengono_sempre_dallo_stesso_risultato(tab):
 # ───────────────────────────── B03 ──────────────────────────────────────────
 
 def _prepara_due_analisi(tab, monkeypatch):
-    monkeypatch.setattr(analysis_tab, "count_combinations_ex", lambda f: 1)
+    _piano(monkeypatch, 1)
     monkeypatch.setattr(analysis_tab, "iter_combinations_ex", lambda f: iter([0]))
     etichette = iter(["A", "B"])
 

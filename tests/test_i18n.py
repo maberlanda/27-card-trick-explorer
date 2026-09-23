@@ -807,7 +807,7 @@ def test_ninth_block_analysis_uses_i18n_and_localizes_eta(monkeypatch):
     english = {key for key in i18n.CATALOGS["en"]
                if key.startswith("analysis.")}
     assert italian == english
-    assert len(italian) == 52
+    assert len(italian) == 55   # +3 in F: budget dell'analisi
 
 
 def test_tenth_block_protocol_main_controls_and_sections_are_localized():
@@ -1175,7 +1175,7 @@ def test_twelfth_block_catalog_additions_are_symmetric_and_counted():
     assert len([k for k in i18n.CATALOGS["it"] if k.startswith("glossary.long.")]) == 14
     assert len([k for k in i18n.CATALOGS["it"] if k.startswith("help.tab.")]) == 16
     assert len([k for k in i18n.CATALOGS["it"] if k.startswith("filter.")]) == 24  # +7 audit finale
-    assert len(i18n.CATALOGS["it"]) == 1289  # 820 + 354 guide.* + 32 anomalie UI + 82 audit finale + 1 (E: shuffle.operation_atom)
+    assert len(i18n.CATALOGS["it"]) == 1292  # 820 + 354 guide.* + 32 anomalie UI + 82 audit finale + 1 (E) + 3 (F: budget analisi)
 
 
 def _use_config_file(monkeypatch, tmp_path):
