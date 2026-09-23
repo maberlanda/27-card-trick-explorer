@@ -1,23 +1,20 @@
-"""Compartimento G1 — caratterizzazione del comportamento dell'analisi.
+"""Compartimento G1 — modello applicativo condiviso del risultato.
 
-Prima di spostare qualunque responsabilita', questi test fissano cio' che
-l'utente ottiene oggi: guidano la scheda vera con il core vero — solo Tk e i
-thread sono finti — e verificano aggregati, righe grezze, provenienza e
-diagnostica per le quattro strade dell'analisi (filtri, import, import
-parziale, schema invalido, pipeline).
-
-Non guardano dentro: se G1 spostera' il calcolo altrove, questi test devono
-restare identici e restare verdi. E' la loro unica ragione di esistere.
+La caratterizzazione del comportamento (invariata) piu' gli stati che il nuovo
+modello rende distinguibili: zero risultati, grezzi non conservati, import
+parziale, risultato completo.
 """
 import ast
 import pathlib
 from types import SimpleNamespace
 
+import pytest
 
 from gioco27.core.analisi import Aggregatore, SchemaNonRiconosciuto, aggrega_righe
 from gioco27.core.combinations import iter_combinations_ex
 from gioco27.core.constants import ANY
 from gioco27.core.permutations import CSV_HEADER, make_csv_row
+from gioco27.services import Provenienza, RisultatoAnalisi
 
 RADICE = pathlib.Path(__file__).resolve().parents[1]
 PACCHETTO = RADICE / "gioco27"
@@ -72,6 +69,44 @@ def _scrivi_csv(percorso, righe, intestazione=None):
 
 def _riga_csv(perm=IDENTITA, formula="T = MSC o MSC o MSC", numero=1):
     return [str(numero), "", "", "", "", "", "", formula, perm]
+
+
+# ═══════════════════════ il modello e i suoi stati ══════════════════════════
+
+def test_stati_distinguibili():
+    vuoto = RisultatoAnalisi(origine=Provenienza.CSV)
+    senza_grezzi = RisultatoAnalisi(origine=Provenienza.FILTRI,
+                                    aggregati=({"n_sim": 1},), totale=1,
+                                    grezzi_scartati=True)
+    parziale = RisultatoAnalisi(origine=Provenienza.CSV,
+                                aggregati=({"n_sim": 1},), totale=1,
+                                lette=2, scartate=("riga 2",))
+    completo = RisultatoAnalisi(origine=Provenienza.FILTRI,
+                                aggregati=({"n_sim": 1},), totale=1,
+                                grezzi=({"Stage0": "x"},))
+
+    assert vuoto.vuoto and not vuoto.parziale and vuoto.completo
+    assert not senza_grezzi.vuoto and not senza_grezzi.grezzi_disponibili
+    assert not senza_grezzi.completo and not senza_grezzi.parziale
+    assert parziale.parziale and not parziale.completo
+    assert completo.completo and completo.grezzi_disponibili
+    # «nessun grezzo perche' l'origine non ne ha» != «grezzi scartati»
+    assert not vuoto.grezzi_scartati and senza_grezzi.grezzi_scartati
+
+
+def test_il_modello_e_congelato():
+    risultato = RisultatoAnalisi(origine=Provenienza.CSV)
+    with pytest.raises(Exception):
+        risultato.totale = 5
+    assert isinstance(risultato.aggregati, tuple)
+    assert isinstance(risultato.con_nota("ciao"), RisultatoAnalisi)
+    assert risultato.con_nota("ciao").diagnostica == "ciao"
+    assert risultato.diagnostica == ""
+
+
+def test_la_provenienza_e_un_insieme_chiuso_ma_resta_testo():
+    assert [p.value for p in Provenienza] == ["filtri", "csv", "pipeline"]
+    assert Provenienza.FILTRI == "filtri" and str(Provenienza.CSV) == "csv"
 
 
 # ═════════════════════════ architettura di G1 ═══════════════════════════════

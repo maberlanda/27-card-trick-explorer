@@ -17,6 +17,7 @@ import pytest
 
 from gioco27.core import gioco_reale as gr
 from gioco27.core.analisi import PianoAnalisi
+from gioco27.services.modelli import Provenienza
 from gioco27.gui import analysis_tab, app as app_module, common, simulator_tab
 from gioco27.gui.analysis_tab import RisultatoAnalisi
 from gioco27.gui.simulator_tab import SessionePratica
@@ -260,11 +261,11 @@ def test_b02_catena_a_b_c(tab, monkeypatch):
 
 def test_b02_aggregati_e_grezzi_vengono_sempre_dallo_stesso_risultato(tab):
     """La pubblicazione e' un unico punto: non esiste uno stato misto."""
-    risultato = RisultatoAnalisi(revisione=tab._analisi_revisione, origine="csv",
+    risultato = RisultatoAnalisi(origine=Provenienza.CSV,
                                  aggregati=({"n_sim": 1, "perm_str": "[X]",
                                              "simboliche": []},),
                                  grezzi=({"Stage0": "X"},), totale=1)
-    assert tab._analisi_pubblica(risultato) is True
+    assert tab._analisi_pubblica(risultato, tab._analisi_revisione) is True
     assert tab._analisi_corrente is risultato
     assert tab._analisi_risultati == list(risultato.aggregati)
     assert tab._analisi_righe_raw == list(risultato.grezzi)
@@ -312,12 +313,10 @@ def test_b03_pubblicazione_rifiuta_una_revisione_superata(tab):
     """Il controllo di identita', isolato dal resto."""
     rev_a = tab._analisi_nuova_revisione()
     rev_b = tab._analisi_nuova_revisione()
-    risultato_a = RisultatoAnalisi(revisione=rev_a, origine="filtri",
-                                   aggregati=(), grezzi=(), totale=0)
-    risultato_b = RisultatoAnalisi(revisione=rev_b, origine="csv",
-                                   aggregati=(), grezzi=(), totale=0)
-    assert tab._analisi_pubblica(risultato_b) is True
-    assert tab._analisi_pubblica(risultato_a) is False
+    risultato_a = RisultatoAnalisi(origine=Provenienza.FILTRI)
+    risultato_b = RisultatoAnalisi(origine=Provenienza.CSV)
+    assert tab._analisi_pubblica(risultato_b, rev_b) is True
+    assert tab._analisi_pubblica(risultato_a, rev_a) is False
     assert tab._analisi_corrente is risultato_b
 
 

@@ -8,7 +8,6 @@ Estratto da app.py (v2.8.0) senza modifiche funzionali.
 import os
 import pathlib
 import tkinter as tk
-from dataclasses import dataclass
 from tkinter import ttk, messagebox, filedialog
 
 from ..core.analisi import (AnalisiTroppoGrande, Aggregatore,
@@ -18,40 +17,17 @@ from ..core.algebra import (EXCEL_MAX_CELL_CHARS, analizza_righe, analizza_csv,
 from ..core.combinations import iter_combinations_ex
 from ..core.parallel import atomic_write
 from ..core.permutations import make_csv_row
+from ..services.modelli import Provenienza, RisultatoAnalisi
 from .common import configure_matrix_tags, insert_colored, EtaEstimator, run_in_thread
 from .i18n import tr
 from .i18n import get_language
 
 
-@dataclass(frozen=True)
-class RisultatoAnalisi:
-    """Un solo esperimento di analisi: aggregati e grezzi vengono da li' e basta.
-
-    Modello locale al tab, deliberatamente piccolo (compartimento C): serve a
-    garantire due cose che prima non erano garantite.
-
-    * **Provenienza unica (B02).** Prima gli aggregati e le righe grezze erano
-      due attributi indipendenti: dopo un'analisi A seguita da un import CSV B,
-      lo stato mostrava gli aggregati di B con i grezzi di A, e l'export grezzo
-      univa due esperimenti diversi. Qui stanno insieme o non ci sono.
-    * **Identita' della richiesta (B03).** `revisione` dice quale richiesta ha
-      prodotto questo risultato: una risposta tardiva che non corrisponde alla
-      revisione corrente viene scartata invece di ripopolare lo stato.
-
-    `grezzi` e' vuoto quando l'origine non ne fornisce (per esempio un import
-    CSV di soli aggregati): in quel caso gli export che li richiedono vengono
-    disabilitati, non lasciati puntare ai dati di prima.
-
-    Il modello definitivo dei risultati (`AnalysisResult` condiviso fra le
-    schede) appartiene al compartimento G: qui non se ne anticipa la forma.
-    """
-
-    revisione: int
-    origine: str                       # "filtri" | "csv" | "pipeline"
-    aggregati: tuple = ()
-    grezzi: tuple = ()
-    totale: int = 0
-    diagnostica: str = ""
+#: `RisultatoAnalisi` era un modello locale di questa scheda (compartimento C).
+#: Dal compartimento G1 e' il contratto applicativo condiviso di
+#: `gioco27.services.modelli`: viene ri-esportato qui perche' e' da qui che
+#: moduli e test lo importano.
+__all__ = ["AnalysisTabMixin", "RisultatoAnalisi"]
 
 
 def _diagnostica_import(risultati):
@@ -241,13 +217,18 @@ class AnalysisTabMixin:
         return (revisione == getattr(self, "_analisi_revisione", 0)
                 and not getattr(self, "_closing", False))
 
-    def _analisi_pubblica(self, risultato):
+    def _analisi_pubblica(self, risultato, revisione):
         """Unico punto in cui aggregati e grezzi entrano nello stato del tab.
 
         Va chiamata sul thread Tk. Restituisce False — senza toccare nulla — se
         nel frattempo c'e' stato un reset, una nuova richiesta o la chiusura.
+
+        La revisione e' un argomento e non piu' un campo del risultato: dal
+        compartimento G1 il risultato e' un modello applicativo condiviso, e chi
+        lo produce non ha modo di sapere quale richiesta sia corrente. Chi
+        decide se pubblicare resta questa scheda, con le primitive di C.
         """
-        if not self._analisi_e_corrente(risultato.revisione):
+        if not self._analisi_e_corrente(revisione):
             return False
         self._analisi_corrente = risultato
         self._analisi_risultati = list(risultato.aggregati)
@@ -378,16 +359,19 @@ class AnalysisTabMixin:
                 return
             note = [] if piano.grezzi else [
                 tr("analysis.raw_not_kept", limit=f"{piano.limite_grezzi:,}")]
-            riassunto = (_diagnostica_import(risultati) if piano.grezzi
-                         else aggregatore.esito().diagnostica())
+            esito = (risultati if piano.grezzi else aggregatore.esito())
+            riassunto = getattr(esito, "diagnostica", lambda: "")()
             if riassunto:
                 note.append(riassunto)
             # Aggregati e grezzi entrano nello stato insieme, sul thread Tk.
             risultato = RisultatoAnalisi(
-                revisione=revisione, origine="filtri",
-                aggregati=tuple(risultati), grezzi=aggregatore.grezzi,
-                totale=n, diagnostica="   ".join(note))
-            self._ui(lambda: self._analisi_pubblica(risultato))
+                origine=Provenienza.FILTRI, aggregati=tuple(risultati),
+                totale=n, grezzi=aggregatore.grezzi,
+                grezzi_scartati=not piano.grezzi,
+                lette=getattr(esito, "lette", 0),
+                scartate=getattr(esito, "scartate", ()),
+                nota="   ".join(note))
+            self._ui(lambda: self._analisi_pubblica(risultato, revisione))
 
         run_in_thread(self, job, error_title=tr("analysis.error_title"),
                       on_error=lambda e: self._analisi_status.set(
@@ -419,10 +403,11 @@ class AnalysisTabMixin:
             if riassunto:
                 note.append(riassunto)
             risultato = RisultatoAnalisi(
-                revisione=revisione, origine="csv",
-                aggregati=tuple(risultati), grezzi=(), totale=n,
-                diagnostica="   —   ".join(note))
-            self._ui(lambda: self._analisi_pubblica(risultato))
+                origine=Provenienza.CSV, aggregati=tuple(risultati), totale=n,
+                lette=getattr(risultati, "lette", 0),
+                scartate=getattr(risultati, "scartate", ()),
+                nota="   —   ".join(note))
+            self._ui(lambda: self._analisi_pubblica(risultato, revisione))
 
         run_in_thread(self, job, error_title=tr("analysis.csv_read_error_title"),
                       on_error=lambda e: self._analisi_status.set(
@@ -471,10 +456,11 @@ class AnalysisTabMixin:
             if riassunto:
                 note.append(riassunto)
             risultato = RisultatoAnalisi(
-                revisione=revisione, origine="pipeline",
-                aggregati=tuple(risultati), grezzi=(), totale=n_tot,
-                diagnostica="   —   ".join(note))
-            self._ui(lambda: self._analisi_pubblica(risultato))
+                origine=Provenienza.PIPELINE, aggregati=tuple(risultati),
+                totale=n_tot, lette=getattr(risultati, "lette", 0),
+                scartate=getattr(risultati, "scartate", ()),
+                nota="   —   ".join(note))
+            self._ui(lambda: self._analisi_pubblica(risultato, revisione))
             msg = tr(
                 "analysis.completed_summary", permutations=f"{n_perm:,}",
                 sequences=f"{n_tot:,}", csv=_os.path.basename(out_csv),

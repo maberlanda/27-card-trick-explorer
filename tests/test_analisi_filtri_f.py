@@ -634,7 +634,12 @@ def test_r01_nuova_richiesta_durante_l_aggregazione(tab):
     primo()                       # il vecchio finisce dopo: non deve pubblicare
     tab.esegui_coda()
     assert len(tab.popolati) == 1
-    assert tab._analisi_corrente.revisione == tab._analisi_revisione
+    # G1: la revisione non viaggia piu' dentro il risultato — e' un dato del
+    # ciclo di vita della scheda, non del risultato applicativo. Che il
+    # controllo di identita' sia intatto lo dice il rifiuto diretto.
+    assert tab._analisi_corrente is not None
+    assert tab._analisi_pubblica(tab._analisi_corrente,
+                                 tab._analisi_revisione - 1) is False
 
 
 def test_r01_nessun_risultato_parziale_presentato_come_completo(tab, monkeypatch):
@@ -695,12 +700,21 @@ def test_kronecker_fuori_da_g_resta_vuoto():
 # ═════════════════════ contratti degli altri compartimenti ══════════════════
 
 def test_f_non_tocca_i_contratti_di_c():
-    """RisultatoAnalisi, revisioni e SessionePratica restano quelli di C."""
+    """Il risultato dell'analisi e la sessione di pratica restano contratti.
+
+    In G1 `RisultatoAnalisi` e' diventato il modello applicativo condiviso di
+    `gioco27.services.modelli` — la scheda lo ri-esporta — e ha perso la
+    `revisione`, che appartiene al ciclo di vita della vista e non al
+    risultato. Tutto il resto del contratto di C e' intatto: provenienza,
+    aggregati, grezzi, totale e diagnostica.
+    """
     from gioco27.gui.analysis_tab import RisultatoAnalisi
     from gioco27.gui.simulator_tab import SessionePratica
     campi = [c.name for c in RisultatoAnalisi.__dataclass_fields__.values()]
-    assert campi == ["revisione", "origine", "aggregati", "grezzi", "totale",
-                     "diagnostica"]
+    assert campi == ["origine", "aggregati", "totale", "grezzi",
+                     "grezzi_scartati", "lette", "scartate", "nota"]
+    assert "revisione" not in campi
+    assert isinstance(RisultatoAnalisi(origine="filtri").diagnostica, str)
     assert SessionePratica.__dataclass_fields__.keys() == {
         "carta", "bersaglio", "piano"}
 
