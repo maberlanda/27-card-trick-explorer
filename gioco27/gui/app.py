@@ -922,19 +922,31 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
 
     # ── Notifica cambio T ───────────────────────────────────────────────────
     def _notify_T_changed(self, perm_27):
-        """Chiamata ogni volta che una nuova T viene calcolata."""
+        """Chiamata ogni volta che una nuova T viene calcolata.
+
+        Contratto delle viste (M03): riceve la nuova T soltanto chi la
+        rappresenta davvero.
+
+        * **Cicli** espone `set_permutation` e mostra i cicli della T corrente:
+          e' il destinatario naturale.
+        * **Presentazione**, se aperta, espone `update_from_T`.
+        * **Distribuzione** NON viene notificata. La sua scheda e' globale:
+          calcola, per ogni T raggiungibile, quante decomposizioni possiede, e
+          non rappresenta la T selezionata. Qui veniva invocato un
+          `set_permutation` che quella vista non ha mai avuto, dentro un
+          `except Exception: pass` che nascondeva l'AttributeError a ogni
+          calcolo. La chiamata e' stata rimossa: non si inventa una
+          funzionalita' per dare ragione a una riga sbagliata.
+        """
         self._last_T_perm = list(perm_27)
         if hasattr(self, "_cycles_frame"):
             self._cycles_frame.set_permutation(perm_27)
-        if hasattr(self, "_distrib_frame"):
-            try:
-                self._distrib_frame.set_permutation(perm_27)
-            except Exception:
-                pass
         if self._presentation_win is not None:
             try:
                 self._presentation_win.update_from_T({"perm": perm_27})
-            except Exception:
+            except tk.TclError:
+                # la finestra e' stata chiusa fra un calcolo e l'altro: e'
+                # l'unico errore atteso, e il rimedio e' dimenticarla.
                 self._presentation_win = None
 
     # ── Export dialog ────────────────────────────────────────────────────────

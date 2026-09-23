@@ -53,6 +53,18 @@ class Presentation:
         pass
 
 
+class _SpiaDistribuzione:
+    """Registra ogni attributo richiesto: la vista reale non espone nulla per T."""
+
+    def __init__(self, registro):
+        self._registro = registro
+
+    def __getattr__(self, nome):
+        def chiamata(*a, **k):
+            self._registro.append(nome)
+        return chiamata
+
+
 class ExplorerHarness(ExplorerTabMixin):
     _notify_T_changed = app_module.App._notify_T_changed
     _on_simulator_T = app_module.App._on_simulator_T
@@ -67,7 +79,13 @@ class ExplorerHarness(ExplorerTabMixin):
         self._presentation_win = None
         self.cycles, self.distribution = [], []
         self._cycles_frame = SimpleNamespace(set_permutation=lambda p: self.cycles.append(list(p)))
-        self._distrib_frame = SimpleNamespace(set_permutation=lambda p: self.distribution.append(list(p)))
+        # M03: la scheda Distribuzione e' globale (per ogni T raggiungibile
+        # conta le decomposizioni) e NON rappresenta la T selezionata. Il finto
+        # widget usato prima esponeva un `set_permutation` che la vista reale
+        # non ha mai avuto: il test passava mentre l'applicazione inghiottiva
+        # un AttributeError a ogni calcolo. Ora la spia registra QUALUNQUE
+        # chiamata, e il contratto e' che non ne arrivi nessuna.
+        self._distrib_frame = _SpiaDistribuzione(self.distribution)
         self.output = {}
         for name in ("norm steps_sum perm period sig inv nf_kind nf_msc nf_sym "
                      "nf_kron nf_notes can_avail can_sym can_exp can_notes log rewrite eval").split():
@@ -104,7 +122,7 @@ def test_b15_explorer_e_presentazione_ricevono_la_nuova_t(already_open, monkeypa
     assert app._last_T_perm == new
     app._open_presentation()
     assert app._presentation_win.received[-1] == new
-    assert app.cycles[-1] == new and app.distribution[-1] == new
+    assert app.cycles[-1] == new and app.distribution == []
     if already_open:
         assert app._presentation_win.received == [old, new]
         assert app._presentation_win.lifted
@@ -120,7 +138,7 @@ def test_b15_simulatore_notifica_una_volta_e_conserva_copia(monkeypatch):
     app._open_presentation()
     assert app._last_T_perm == expected
     assert app._presentation_win.received == [expected]
-    assert app.cycles == [expected] and app.distribution == [expected]
+    assert app.cycles == [expected] and app.distribution == []
 
 
 def test_b15_anteprima_aggiorna_anche_presentazione(monkeypatch):
@@ -137,7 +155,7 @@ def test_b15_anteprima_aggiorna_anche_presentazione(monkeypatch):
     assert app._last_T_perm == app._prev_T_perm
     assert app._presentation_win.received == [app._prev_T_perm]
     assert app.cycles == [app._prev_T_perm]
-    assert app.distribution == [app._prev_T_perm]
+    assert app.distribution == []
 
 
 @pytest.mark.parametrize("expression", ["", "???"])

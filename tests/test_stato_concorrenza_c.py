@@ -1,13 +1,14 @@
 """Compartimento C — stato e concorrenza: provenienza, revisioni, sessioni.
 
 Copre B02 (aggregati e grezzi della stessa richiesta), B03 (risposte tardive e
-fuori ordine), B04 (sessione di pratica con input congelati) e R05 (ogni lavoro
-finisce in uno stato conclusivo).
+fuori ordine), B04 (sessione di pratica con input congelati), R05 (ogni lavoro
+finisce in uno stato conclusivo) e M03 (contratto delle notifiche di T).
 
 Nessun test dipende dalla velocita' della macchina: i lavori vengono catturati e
 fatti avanzare esplicitamente, e dove serve un thread vero lo si aspetta con
 `join` prima di controllare.
 """
+import ast
 import pathlib
 import threading
 from types import SimpleNamespace
@@ -568,3 +569,58 @@ def test_r05_lo_stato_non_resta_in_corso(app_selftest, monkeypatch):
     _esegui_selftest(app_selftest, monkeypatch, rotto)
     assert in_corso and "in corso" in in_corso[0]
     assert "in corso" not in app_selftest.status_var.get()
+
+
+# ───────────────────────────── M03 ──────────────────────────────────────────
+
+class _VistaSpia:
+    def __init__(self):
+        self.chiamate = []
+
+    def __getattr__(self, nome):
+        def registra(*a, **k):
+            self.chiamate.append(nome)
+        return registra
+
+
+def test_m03_la_distribuzione_non_riceve_la_T():
+    """Contratto: la Distribuzione e' globale, non rappresenta la T corrente."""
+    app = object.__new__(app_module.App)
+    cicli, distrib = _VistaSpia(), _VistaSpia()
+    app._cycles_frame = cicli
+    app._distrib_frame = distrib
+    app._presentation_win = None
+
+    app_module.App._notify_T_changed(app, list(range(27)))
+
+    assert cicli.chiamate == ["set_permutation"]
+    assert distrib.chiamate == [], "nessuna notifica non pertinente"
+    assert app._last_T_perm == list(range(27))
+
+
+def test_m03_la_distribuzione_non_espone_set_permutation():
+    """La chiamata rimossa non poteva funzionare: il metodo non esiste."""
+    from gioco27.gui.distribution_tab import DistributionFrame
+
+    assert not hasattr(DistributionFrame, "set_permutation")
+
+
+def test_m03_la_presentazione_riceve_la_T():
+    app = object.__new__(app_module.App)
+    app._cycles_frame = _VistaSpia()
+    presentazione = _VistaSpia()
+    app._presentation_win = presentazione
+    app_module.App._notify_T_changed(app, list(range(27)))
+    assert presentazione.chiamate == ["update_from_T"]
+
+
+def test_m03_nessuna_eccezione_silenziata_nella_notifica():
+    sorgente = (RADICE / "gioco27" / "gui" / "app.py").read_text(encoding="utf-8")
+    albero = ast.parse(sorgente)
+    funzione = next(n for n in ast.walk(albero)
+                    if isinstance(n, ast.FunctionDef) and n.name == "_notify_T_changed")
+    for handler in [n for n in ast.walk(funzione) if isinstance(n, ast.ExceptHandler)]:
+        assert handler.type is not None, "except nudo"
+        nome = getattr(handler.type, "attr", getattr(handler.type, "id", ""))
+        assert nome != "Exception", "except Exception nella notifica"
+        assert not all(isinstance(s, ast.Pass) for s in handler.body)
