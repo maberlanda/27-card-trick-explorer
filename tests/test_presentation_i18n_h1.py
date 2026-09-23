@@ -828,6 +828,145 @@ def test_ogni_scheda_ha_una_chiave_stabile():
     assert richieste and richieste <= registrate, richieste - registrate
 
 
+# ══════════════════ i contratti di presentation, sorvegliati ═══════════════
+
+#: Dove il testo grezzo di un'eccezione arriva ancora all'utente, e perche'.
+#: Sono tutti casi in cui il messaggio NON e' testo applicativo italiano:
+#: errori del sistema operativo (disco pieno, permesso negato) o messaggi che
+#: il core produce gia' localizzati. Il test fallisce se ne compare uno nuovo,
+#: cosi' la decisione e' esplicita invece che dimenticata.
+_STR_EXC_DICHIARATI = {
+    "analysis_tab.py": "OSError delle rotte di export (TXT, CSV, Excel, HTML)",
+    "app.py": "OSError della cancellazione della cache",
+    "cayley_dialog.py": "OSError delle rotte di export",
+    "conjugacy_dialog.py": "OSError delle rotte di export",
+    "decomposition.py": "OSError delle rotte di export",
+    "export_dialog.py": "OSError dell'export multiplo",
+    "export_group_dialog.py": "OSError dell'export in cartella",
+    "shuffle.py": "ParseError ed EspressioneNonSimulabile, gia' localizzate "
+                  "nel core dal compartimento E",
+}
+
+_MOSTRANO = {"showerror", "showwarning", "showinfo", "_set_error"}
+
+
+def test_il_testo_grezzo_di_un_eccezione_arriva_solo_dove_e_dichiarato():
+    """H1-G8: nessun percorso nuovo mostra un messaggio applicativo neutro."""
+    trovati = {}
+    for percorso in sorted((PACCHETTO / "gui").glob("*.py")):
+        for n in ast.walk(ast.parse(percorso.read_text(encoding="utf-8"))):
+            if not isinstance(n, ast.Call):
+                continue
+            f = n.func
+            nome = (f.id if isinstance(f, ast.Name)
+                    else f.attr if isinstance(f, ast.Attribute) else "")
+            if nome not in _MOSTRANO:
+                continue
+            argomenti = list(n.args) + [k.value for k in n.keywords]
+            for a in argomenti:
+                for sub in ast.walk(a):
+                    if (isinstance(sub, ast.Call)
+                            and isinstance(sub.func, ast.Name)
+                            and sub.func.id == "str"):
+                        trovati.setdefault(percorso.name, set()).add(n.lineno)
+    assert set(trovati) == set(_STR_EXC_DICHIARATI), {
+        "nuovi": sorted(set(trovati) - set(_STR_EXC_DICHIARATI)),
+        "spariti": sorted(set(_STR_EXC_DICHIARATI) - set(trovati)),
+    }
+
+
+def test_il_thread_di_lavoro_passa_dal_confine():
+    """Gli errori di fondo — import CSV compreso — non escono piu' grezzi."""
+    sorgente = (PACCHETTO / "gui" / "common.py").read_text(encoding="utf-8")
+    assert "per_utente(e)[1]" in sorgente
+    assert "showerror(error_title, str(e))" not in sorgente
+
+
+@pytest.mark.parametrize("guasto", ["chiave_mancante", "segnaposto_mancante"])
+def test_il_ripiego_i18n_non_fa_esplodere_un_percorso_d_errore(lingua, guasto,
+                                                               monkeypatch):
+    """H1: un errore secondario non diventa un guasto mentre se ne riferisce uno.
+
+    La politica del catalogo non cambia — `tr` continua a sollevare su una
+    chiave mancante, ed e' giusto che lo faccia nei test — ma il confine di
+    presentation la regge: mostra il testo neutro e lascia una riga nel log.
+    """
+    from gioco27.core.dominio import PermutazioneNonValida
+    from gioco27.gui import errori
+
+    lingua("en")
+    exc = PermutazioneNonValida("T: lunghezza 2, attesa 3", codice="lunghezza",
+                                nome="T", ricevuta=2, attesa=3)
+    if guasto == "chiave_mancante":
+        monkeypatch.setitem(errori._PERMUTAZIONE, "lunghezza", "chiave.assente")
+    else:
+        monkeypatch.setitem(errori._PERMUTAZIONE, "lunghezza",
+                            "errore.import.riga")   # vuole numero/campo/motivo
+
+    # Il ripiego e' a due gradini e nessuno dei due solleva: la frase
+    # specifica non si compone, resta quella generica dell'errore; se
+    # mancasse anche quella resterebbe il testo neutro del core.
+    titolo, messaggio = errori.per_utente(exc)
+    assert titolo and messaggio == "T: not a valid permutation."
+
+    monkeypatch.setitem(errori._PERMUTAZIONE, "lunghezza", "chiave.assente")
+    monkeypatch.setattr(errori, "_testo", lambda chiave, neutro, **d: neutro)
+    _, messaggio = errori.per_utente(exc)
+    assert messaggio == "T: lunghezza 2, attesa 3"
+
+
+def test_la_politica_del_catalogo_resta_quella(lingua):
+    """Una chiave mancante resta un errore rumoroso: non si scopre tardi."""
+    lingua("en")
+    with pytest.raises(KeyError):
+        catalogo.tr("chiave.che.non.esiste")
+    with pytest.raises(KeyError):
+        catalogo.tr("errore.import.riga", numero=1)
+    # un valore in piu' non disturba: i template restano singoli, non pezzi
+    assert catalogo.tr("errore.import.altre_una", inutile=1)
+
+
+def test_la_lingua_si_applica_al_riavvio_come_prima(lingua, monkeypatch,
+                                                    tmp_path):
+    """H1 non introduce il cambio lingua a caldo: sistema il solo feedback."""
+    from types import SimpleNamespace
+
+    from gioco27.core import config as config_mod
+    from gioco27.gui import app as app_module
+
+    cartella = tmp_path / ".gioco27"
+    monkeypatch.setattr(config_mod, "_CONFIG_DIR", cartella)
+    monkeypatch.setattr(config_mod, "_CONFIG_FILE", cartella / "config.json")
+    cfg = config_mod.Config()
+
+    mostrati = []
+    monkeypatch.setattr(app_module, "messagebox", SimpleNamespace(
+        showinfo=lambda titolo, testo, **k: mostrati.append(("info", testo)),
+        showerror=lambda titolo, testo, **k: mostrati.append(("errore", testo))))
+
+    finto = SimpleNamespace(
+        _cfg=cfg,
+        _segnala_config_non_salvata=lambda exc, parent:
+            app_module.App._segnala_config_non_salvata(finto, exc, parent))
+
+    lingua("it")
+    assert app_module.App._save_language_preference(finto, "en", None) is True
+    assert mostrati[-1][0] == "info" and "avvio" in mostrati[-1][1]
+    assert cfg.get("language") == "en"
+
+    # e la GUI non ha cambiato lingua da sola
+    assert catalogo.get_language() == "it"
+
+
+def test_m04_non_e_iniziato():
+    """H1-G14: layout, dimensioni minime, DPI e focus restano a H2."""
+    sorgente = (PACCHETTO / "gui" / "app.py").read_text(encoding="utf-8")
+    assert "self.minsize(1200, 750)" in sorgente, "la dimensione minima e' quella"
+    for parola in ("focus_set(", "tk_focusNext", "bind_all(\"<Tab>",
+                   "winfo_fpixels", "tk scaling"):
+        assert parola not in sorgente, parola
+
+
 # ════════════════════════════ catalogo IT/EN ════════════════════════════════
 
 def test_i_cataloghi_restano_simmetrici():
