@@ -2,9 +2,9 @@
 
 Corpus condiviso: le stesse espressioni vengono date a **entrambi** i
 consumatori e si pretende la stessa risposta. Prima del compartimento E le
-risposte divergevano in tredici casi (B07): il visualizzatore cancellava
-l'operatore finale e le parentesi spaiate, e non conosceva `I`, `J` ne' i
-fattori Kronecker composti.
+risposte divergevano in dieci casi su cinquantuno (B07): il visualizzatore
+cancellava l'operatore finale e le parentesi spaiate, e non conosceva `I`,
+`J` ne' i fattori Kronecker composti.
 
 Convenzioni verificate (invarianti di D, qui solo usate):
 
@@ -12,6 +12,7 @@ Convenzioni verificate (invarianti di D, qui solo usate):
 * ``mazzo[posizione] = carta``;
 * ``(a ∘ b)[i] = a[b[i]]`` — in ``A ∘ B`` si applica prima B.
 
+Da cui la relazione fra i due mondi: ``mazzo finale = inversa(T)``.
 I test non dipendono da tempi o risorse esterne: tutto e' deterministico.
 """
 import ast
@@ -302,6 +303,32 @@ def test_valutazione_e_traccia_sono_deterministiche(testo, nota):
 
 
 @pytest.mark.parametrize("testo,nota", VALIDI, ids=[n for _, n in VALIDI])
+def test_equivalenza_explorer_mescolamento(testo, nota):
+    """T dell'Explorer e mazzo finale del Mescolamento sono coerenti.
+
+    Due percorsi diversi: l'Explorer compone permutazioni, il Mescolamento
+    sposta carte fra posizioni. L'oracolo di questo test rifa' il secondo con
+    aritmetica elementare e lo confronta con il primo.
+    """
+    risultato = _explorer(testo)
+    assert risultato["ok"], risultato["error"]
+    T = risultato["perm"]
+
+    traccia = traccia_simulazione(testo)
+    oracolo = _applica_al_mazzo(traccia.passi)
+
+    # 1. il mazzo calcolato dal linguaggio coincide con l'oracolo
+    assert list(traccia.mazzo_finale) == oracolo
+    # 2. il mazzo finale e' l'inversa di T: la carta c finisce in posizione T[c]
+    assert oracolo == _inversa(T)
+    # 3. la vista costruisce gli stessi passi
+    vista = object.__new__(ShuffleViewerFrame)
+    vista._build_steps(traccia)
+    assert list(vista._steps[-1]["deck"]) == oracolo
+    assert len(vista._steps) == len(traccia) + 1
+
+
+@pytest.mark.parametrize("testo,nota", VALIDI, ids=[n for _, n in VALIDI])
 def test_la_traccia_fattorizza_la_permutazione(testo, nota):
     """Componendo i passi in ordine testuale si riottiene T."""
     traccia = traccia_simulazione(testo)
@@ -357,6 +384,27 @@ def test_il_prefisso_t_appartiene_al_parser():
     assert analizza("T = MSC") is not None
     assert permutazione_di("T = MSC o MSC") == permutazione_di("MSC o MSC")
     assert traccia_simulazione("T = MSC") == traccia_simulazione("MSC")
+
+
+# ═══════════════════════════ corpus generativo ══════════════════════════════
+
+def test_corpus_generativo_coerente():
+    """Ogni espressione generata: parse, T, traccia, mazzo finale coerenti."""
+    for testo in GENERATIVO:
+        risultato = _explorer(testo)
+        assert risultato["ok"], (testo, risultato["error"])
+        traccia = traccia_simulazione(testo)
+        assert _applica_al_mazzo(traccia.passi) == _inversa(risultato["perm"]), testo
+        assert _shuffle_accetta(testo), testo
+
+
+def test_corpus_generativo_con_code_invalide():
+    """Le stesse espressioni, guastate in coda, sono rifiutate da entrambi."""
+    for k, testo in enumerate(GENERATIVO):
+        coda = CODE_INVALIDE[k % len(CODE_INVALIDE)]
+        guasta = testo + coda
+        assert not _explorer(guasta)["ok"], guasta
+        assert not _shuffle_accetta(guasta), guasta
 
 
 # ═══════════════════════════ architettura di E ══════════════════════════════
