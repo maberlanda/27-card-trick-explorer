@@ -16,6 +16,7 @@ from tkinter import ttk, messagebox, filedialog
 import csv
 
 from ..core import gioco_reale as gr
+from ..core.parallel import atomic_write
 from .i18n import tr
 
 
@@ -214,7 +215,8 @@ class TavolaFrame(ttk.Frame):
         if not path:
             return
         try:
-            with open(path, "w", newline="", encoding="utf-8") as fh:
+            # G2: pubblicazione atomica (temporaneo + os.replace).
+            with atomic_write(path, "w", newline="", encoding="utf-8") as fh:
                 w = csv.writer(fh, delimiter=";")
                 w.writerow(["numero", "mesc_1", "mesc_2", "mesc_3",
                             "imp_1", "imp_2", "imp_3",

@@ -502,7 +502,8 @@ class DecompositionDialog(tk.Toplevel):
                 i, _disp(a1), _disp(a2), _disp(a3), w=W))
         lines.append("")
         try:
-            with open(path, "w", encoding="utf-8") as f:
+            # G2: pubblicazione atomica, come per l'HTML piu' sotto.
+            with atomic_write(path, "w", encoding="utf-8") as f:
                 f.write("\n".join(lines))
             messagebox.showinfo(tr("explorer.decomposition.exported_title"),
                                 tr("explorer.decomposition.exported",
@@ -527,7 +528,10 @@ class DecompositionDialog(tk.Toplevel):
         if not path:
             return
         try:
-            with open(path, "w", newline="", encoding="utf-8") as f:
+            # G2: pubblicazione atomica. Un elenco di decomposizioni puo'
+            # essere lungo: un guasto a meta' lasciava un CSV troncato al
+            # posto del precedente.
+            with atomic_write(path, "w", newline="", encoding="utf-8") as f:
                 w = csv.writer(f, delimiter=";", quotechar='"',
                                quoting=csv.QUOTE_ALL, lineterminator="\n")
                 w.writerow(["#", "A0", "A1", "A2"])

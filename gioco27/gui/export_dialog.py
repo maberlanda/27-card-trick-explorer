@@ -16,6 +16,7 @@ import os
 
 from ..core.analysis import cycle_decomposition, order_of, cycle_type
 from ..core.kronecker import decomposition_context
+from ..core.parallel import atomic_write
 from .i18n import tr
 
 
@@ -303,27 +304,36 @@ class ExportDialog(tk.Toplevel):
         lb  = self._lbl.replace("^","").replace("{","").replace("}","")
         p, iv = self._perm, self._inv
         done = []
+
+        def pubblica(nome, testo):
+            """Scrive un file dell'export e lo aggiunge all'elenco.
+
+            G2: pubblicazione atomica (temporaneo + os.replace, la primitiva
+            comune di `core.parallel`). Prima erano `open(...).write(...)`
+            senza nemmeno un `with`: un guasto a meta' — disco pieno, errore
+            del generatore — lasciava al posto del file precedente un .tex o
+            un .svg troncato, che LaTeX e i visualizzatori poi rifiutano. La
+            stessa forma usata dall'export delle tabelle di gruppo (B12).
+            """
+            percorso = os.path.join(folder, nome)
+            with atomic_write(percorso, "w", encoding="utf-8") as fh:
+                fh.write(testo)
+            done.append(percorso)
+
         try:
             if self._opt_perm.get():
-                f = os.path.join(folder, f"{lb}_permutazione.tex")
-                open(f,"w",encoding="utf-8").write(self._latex_perm(p,iv,self._lbl))
-                done.append(f)
+                pubblica(f"{lb}_permutazione.tex",
+                         self._latex_perm(p, iv, self._lbl))
             if self._opt_cycles.get():
-                f = os.path.join(folder, f"{lb}_cicli.tex")
-                open(f,"w",encoding="utf-8").write(self._latex_cycles(p,self._lbl))
-                done.append(f)
+                pubblica(f"{lb}_cicli.tex", self._latex_cycles(p, self._lbl))
             if self._opt_svg.get():
-                f = os.path.join(folder, f"{lb}_frecce.svg")
-                open(f,"w",encoding="utf-8").write(self._svg_arrows(p,self._lbl))
-                done.append(f)
+                pubblica(f"{lb}_frecce.svg", self._svg_arrows(p, self._lbl))
             if self._opt_decomp.get() and self._decomps:
-                f = os.path.join(folder, f"{lb}_decomposizioni.tex")
-                open(f,"w",encoding="utf-8").write(self._latex_decomp(self._lbl))
-                done.append(f)
+                pubblica(f"{lb}_decomposizioni.tex",
+                         self._latex_decomp(self._lbl))
             if self._opt_txt.get():
-                f = os.path.join(folder, f"{lb}_analisi.txt")
-                open(f,"w",encoding="utf-8").write(self._txt_summary(p,iv,self._lbl))
-                done.append(f)
+                pubblica(f"{lb}_analisi.txt",
+                         self._txt_summary(p, iv, self._lbl))
             messagebox.showinfo(
                 tr("export.completed_title"),
                 tr("export.completed", count=len(done), folder=folder,

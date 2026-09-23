@@ -21,9 +21,11 @@ filesystem: i guasti sono iniettati (i permessi POSIX non sono riproducibili su
 Windows), i lavori vengono catturati e fatti avanzare esplicitamente, e dove
 serve un thread vero lo si aspetta con `join`.
 """
+import contextlib
 import json
 import os
 import pathlib
+import sys
 import threading
 from types import SimpleNamespace
 
@@ -887,6 +889,236 @@ def test_la_matematica_non_si_e_spostata():
 
 
 # ══════════════════ pubblicazione: la destinazione precedente ═══════════════
+
+def test_nessuna_rotta_pubblica_scrive_direttamente_il_file_finale():
+    """Censimento: `open(..., "w")` non pubblica piu' nessun file di destinazione.
+
+    Restano due usi dichiarati, e sono entrambi temporanei — non destinazioni:
+
+    * `gui/protocol_dialog.py` crea un file temporaneo da aprire nel browser;
+      non sostituisce nulla, e il suo residuo (M05) appartiene a H;
+    * `core/pdfmerge.py` scrive il proprio temporaneo e poi lo pubblica con
+      `_sostituisci`, che e' gia' una sostituzione atomica.
+    """
+    import ast
+
+    MODI = ("w", "wb", "a", "ab", "w+", "wb+")
+    dichiarate = {"gioco27/gui/protocol_dialog.py", "gioco27/core/pdfmerge.py"}
+    trovate = set()
+    for rel, sorgente in _moduli_del_pacchetto():
+        for n in ast.walk(ast.parse(sorgente)):
+            if not isinstance(n, ast.Call):
+                continue
+            f = n.func
+            nome = (f.id if isinstance(f, ast.Name)
+                    else f.attr if isinstance(f, ast.Attribute) else "")
+            if nome not in ("open", "fdopen"):
+                continue
+            modi = [a.value for a in n.args[1:2]
+                    if isinstance(a, ast.Constant)]
+            modi += [k.value.value for k in n.keywords
+                     if k.arg == "mode" and isinstance(k.value, ast.Constant)]
+            if any(m in MODI for m in modi):
+                trovate.add(rel)
+    assert trovate == dichiarate, sorted(trovate)
+
+
+class _DialogoDecomposizioni:
+    """I due export testuali reali della finestra decomposizioni, senza Tk."""
+
+    from gioco27.gui import decomposition as _d
+    _export_txt = _d.DecompositionDialog._export_txt
+    _export_csv = _d.DecompositionDialog._export_csv
+    del _d
+
+    def __init__(self, risultati):
+        self._result_context = {"target": tuple(range(27)), "inverse": False,
+                                "results": risultati}
+
+
+class _TavolaDelle216:
+    """L'export CSV reale della tavola, senza Tk."""
+
+    from gioco27.gui import tavola_tab as _t
+    _esporta_csv = _t.TavolaFrame._esporta_csv
+    del _t
+
+    def __init__(self, righe):
+        self._righe = righe
+
+
+def _riga_tavola(numero):
+    return {"numero": numero, "mescolamenti": ("A", "B", "C"),
+            "impilamenti": ("D", "E", "F"), "assi": (1, 2, 3),
+            "periodo": 3, "punti_fissi": 0, "tipo_ciclo": (3, 3),
+            "parita": 1, "autoinversa": False, "T": list(range(27))}
+
+
+def _zittisci(monkeypatch, modulo, percorso, errori):
+    """Sostituisce i dialoghi della rotta e raccoglie gli errori mostrati."""
+    monkeypatch.setattr(modulo.filedialog, "asksaveasfilename",
+                        lambda **kw: str(percorso))
+    monkeypatch.setattr(modulo, "messagebox", SimpleNamespace(
+        showinfo=lambda *a, **k: None,
+        showerror=lambda *a, **k: errori.append(a)))
+
+
+def _rotte_migrate(tmp_path, monkeypatch, errori):
+    """(nome, esegui, destinazione, riporta) per ogni rotta resa atomica in G2.
+
+    `riporta` distingue le rotte della GUI — che intercettano l'OSError e lo
+    mostrano — da quelle del core, che lo lasciano salire al chiamante.
+    """
+    import numpy as np
+
+    from gioco27.core.group_theory import GroupData
+    from gioco27.gui import decomposition, tavola_tab
+
+    decomposizioni = [(("A", "B", "C"), ("D", "E", "F"), ("G", "H", "I"))] * 5
+
+    def txt_decomposizioni(dest):
+        _zittisci(monkeypatch, decomposition, dest, errori)
+        _DialogoDecomposizioni(decomposizioni)._export_txt()
+
+    def csv_decomposizioni(dest):
+        _zittisci(monkeypatch, decomposition, dest, errori)
+        _DialogoDecomposizioni(decomposizioni)._export_csv()
+
+    def csv_tavola(dest):
+        _zittisci(monkeypatch, tavola_tab, dest, errori)
+        _TavolaDelle216([_riga_tavola(i) for i in range(1, 4)])._esporta_csv()
+
+    def csv_cayley(dest):
+        arr = np.array([list(range(27)), list(range(27))], dtype=np.int32)
+        gd = GroupData(kron_arr=arr, kron_names=[("I", "I", "I")] * 2)
+        gd.export_cayley_csv(str(dest))
+
+    return [
+        ("TXT decomposizioni", txt_decomposizioni, tmp_path / "dec.txt", True),
+        ("CSV decomposizioni", csv_decomposizioni, tmp_path / "dec.csv", True),
+        ("CSV tavola delle 216", csv_tavola, tmp_path / "tavola.csv", True),
+        ("CSV tavola di Cayley", csv_cayley, tmp_path / "cayley.csv", False),
+    ]
+
+
+def test_le_rotte_migrate_scrivono_il_file(tmp_path, monkeypatch):
+    errori = []
+    for nome, esegui, dest, _ in _rotte_migrate(tmp_path, monkeypatch, errori):
+        esegui(dest)
+        assert dest.exists() and dest.stat().st_size > 0, nome
+    assert errori == []
+
+
+@pytest.mark.parametrize("guasto", ["generazione", "pubblicazione"])
+def test_un_guasto_non_corrompe_la_destinazione(guasto, tmp_path, monkeypatch):
+    """G2-G10: il file precedente resta, e nessun temporaneo sopravvive."""
+    errori = []
+    for nome, esegui, dest, riporta in _rotte_migrate(tmp_path, monkeypatch,
+                                                      errori):
+        dest.write_text("precedente", encoding="utf-8")
+        prima = sorted(p.name for p in tmp_path.iterdir())
+        errori.clear()
+
+        with monkeypatch.context() as mp:
+            if guasto == "generazione":
+                # A meta' scrittura: il temporaneo ha gia' del contenuto e la
+                # generazione si interrompe. Le quattro rotte scrivono tutte in
+                # modo testo, quindi basta una stringa.
+                @contextlib.contextmanager
+                def a_meta(percorso, *a, **k):
+                    with parallel.atomic_write(percorso, *a, **k) as f:
+                        f.write("contenuto incompleto\n")
+                        raise OSError(28, "disco pieno (iniettato)")
+
+                for modulo in ("gioco27.gui.decomposition",
+                               "gioco27.gui.tavola_tab",
+                               "gioco27.core.group_theory"):
+                    mp.setattr(sys.modules[modulo], "atomic_write", a_meta)
+            else:
+                mp.setattr(os, "replace", _boom)
+
+            if riporta:
+                esegui(dest)
+                assert errori, f"{nome}: guasto silenzioso"
+            else:
+                with pytest.raises(OSError):
+                    esegui(dest)
+
+        assert dest.read_text(encoding="utf-8") == "precedente", nome
+        assert sorted(p.name for p in tmp_path.iterdir()) == prima, nome
+
+
+def test_l_export_multiplo_pubblica_ogni_file_atomicamente(tmp_path,
+                                                           monkeypatch):
+    """`ExportDialog._export_all` scrive fino a cinque file in una cartella.
+
+    Prima di G2 erano `open(...).write(...)` senza nemmeno un `with`: un
+    guasto sul terzo lasciava i primi due buoni e il terzo troncato.
+    """
+    from gioco27.gui import export_dialog
+
+    class _Opzione:
+        def __init__(self, v=True):
+            self._v = v
+
+        def get(self):
+            return self._v
+
+    class Dialogo:
+        _export_all = export_dialog.ExportDialog._export_all
+
+        def __init__(self, esplode_su=None):
+            self._lbl = "T"
+            self._perm = list(range(27))
+            self._inv = list(range(27))
+            self._decomps = []
+            self._opt_perm = _Opzione()
+            self._opt_cycles = _Opzione()
+            self._opt_svg = _Opzione()
+            self._opt_decomp = _Opzione(False)
+            self._opt_txt = _Opzione()
+            self._esplode_su = esplode_su
+
+        def _uno(self, marca):
+            if self._esplode_su == marca:
+                raise OSError(28, "disco pieno (iniettato)")
+            return f"contenuto {marca}"
+
+        def _latex_perm(self, p, iv, lbl):
+            return self._uno("perm")
+
+        def _latex_cycles(self, p, lbl):
+            return self._uno("cicli")
+
+        def _svg_arrows(self, p, lbl):
+            return self._uno("svg")
+
+        def _txt_summary(self, p, iv, lbl):
+            return self._uno("txt")
+
+    monkeypatch.setattr(export_dialog.filedialog, "askdirectory",
+                        lambda **kw: str(tmp_path))
+    mostrati = []
+    monkeypatch.setattr(export_dialog, "messagebox", SimpleNamespace(
+        showinfo=lambda *a, **k: mostrati.append("info"),
+        showerror=lambda *a, **k: mostrati.append("errore")))
+
+    Dialogo()._export_all()
+    assert {p.name for p in tmp_path.iterdir()} == {
+        "T_permutazione.tex", "T_cicli.tex", "T_frecce.svg", "T_analisi.txt"}
+    assert mostrati == ["info"]
+    contenuti = {p.name: p.read_text(encoding="utf-8")
+                 for p in tmp_path.iterdir()}
+
+    # Ora il terzo generatore fallisce: i due gia' pubblicati restano com'erano
+    # e non compare un .svg troncato.
+    mostrati.clear()
+    Dialogo(esplode_su="svg")._export_all()
+    assert mostrati == ["errore"]
+    assert set(p.name for p in tmp_path.iterdir()) == set(contenuti)
+    assert {p.name: p.read_text(encoding="utf-8")
+            for p in tmp_path.iterdir()} == contenuti
+
 
 def test_una_scrittura_fallita_non_tocca_il_file_precedente(tmp_path):
     """Il contratto della primitiva comune, su cui G2 porta le rotte residue."""

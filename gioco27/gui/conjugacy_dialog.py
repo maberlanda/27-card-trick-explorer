@@ -311,7 +311,8 @@ class ConjugacyDialog(tk.Toplevel):
         else:
             lines.append("  {e}  " + tr("export.document.conjugacy.trivial_center"))
         try:
-            with open(path, "w", encoding="utf-8") as f:
+            # G2: pubblicazione atomica, come per l'HTML poco piu' sotto.
+            with atomic_write(path, "w", encoding="utf-8") as f:
                 f.write("\n".join(lines))
             messagebox.showinfo(tr("export.completed_title"),
                                 tr("conjugacy.export.saved", path=path),

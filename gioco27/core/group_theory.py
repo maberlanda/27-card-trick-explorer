@@ -18,6 +18,7 @@ from typing import List
 import numpy as np
 
 from .kronecker import _get_kron_table
+from .parallel import atomic_write
 
 
 # ---------------------------------------------------------------- dataclass --
@@ -169,7 +170,10 @@ class GroupData:
         names = ["{} x {} x {}".format(*t) for t in self.kron_names]
         cay   = self.cayley
         n     = len(names)
-        with open(path, "w", newline="", encoding="utf-8") as f:
+        # G2: pubblicazione atomica. La tavola di Cayley e' 648x648: la
+        # scrittura dura abbastanza perche' un'interruzione a meta' sia
+        # plausibile, e lasciava un CSV troncato al posto del precedente.
+        with atomic_write(path, "w", newline="", encoding="utf-8") as f:
             writer = csv.writer(f, delimiter=";", quotechar='"', quoting=__import__("csv").QUOTE_ALL)
             writer.writerow([""] + names)
             for i in range(n):
