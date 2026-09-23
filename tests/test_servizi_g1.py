@@ -1,8 +1,8 @@
-"""Compartimento G1 — modello applicativo condiviso del risultato.
+"""Compartimento G1 — modello condiviso e linguaggio separato dall'I/O.
 
-La caratterizzazione del comportamento (invariata) piu' gli stati che il nuovo
-modello rende distinguibili: zero risultati, grezzi non conservati, import
-parziale, risultato completo.
+Oltre alla caratterizzazione e al modello: `core.algebra` non scrive piu' su
+disco, e i nomi storici che se ne sono andati restano raggiungibili da li'
+attraverso una facciata che non ricrea il ciclo d'importazione.
 """
 import ast
 import pathlib
@@ -131,6 +131,42 @@ def _importati(rel, sorgente):
         elif isinstance(n, ast.Import):
             fuori.update(a.name for a in n.names)
     return {m for m in fuori if m.startswith("gioco27")}
+
+
+def test_il_linguaggio_non_scrive_piu_su_disco():
+    """`core.algebra` non contiene piu' export: solo il linguaggio."""
+    sorgente = (PACCHETTO / "core" / "algebra.py").read_text(encoding="utf-8")
+    albero = ast.parse(sorgente)
+    nomi = {n.name.split(".")[0] for n in ast.walk(albero)
+            if isinstance(n, ast.Import) for n in n.names}
+    assert "csv" not in nomi and "openpyxl" not in nomi
+    for classe in ("Lexer", "Parser", "Evaluator"):
+        assert f"class {classe}" in sorgente, "il linguaggio resta qui"
+
+
+def test_la_facciata_di_algebra_risolve_i_nomi_traslocati():
+    """I nomi storici restano importabili, con il nuovo proprietario dietro."""
+    from gioco27.core import algebra
+    attesi = {
+        "analizza_righe": "gioco27.core.analisi",
+        "analizza_csv": "gioco27.core.analisi",
+        "scrivi_output": "gioco27.core.export_analisi",
+        "scrivi_excel": "gioco27.core.export_analisi",
+    }
+    for nome, proprietario in attesi.items():
+        assert getattr(algebra, nome).__module__ == proprietario
+    assert algebra.EXCEL_MAX_CELL_CHARS == 32767
+    assert "analizza_righe" in dir(algebra)
+    with pytest.raises(AttributeError):
+        algebra.simbolo_che_non_esiste
+
+
+def test_la_facciata_non_ricrea_il_ciclo_di_importazione():
+    """La risoluzione differita e' cio' che tiene aciclico il grafo."""
+    sorgente = (PACCHETTO / "core" / "algebra.py").read_text(encoding="utf-8")
+    for modulo in _importati("gioco27/core/algebra.py", sorgente):
+        assert not modulo.endswith(("core.analisi", "core.export_analisi")), modulo
+    assert "def __getattr__(nome):" in sorgente
 
 
 # ═══════════════ la scheda come adattatore (senza aprire Tk) ════════════════

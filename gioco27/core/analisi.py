@@ -46,6 +46,7 @@ __all__ = [
     "SchemaNonRiconosciuto", "AnalisiTroppoGrande", "SchemaCsv", "RigaScartata",
     "RisultatiImport", "Aggregatore", "PianoAnalisi", "SCHEMI",
     "riconosci_schema", "pianifica_analisi", "importa_csv", "aggrega_righe",
+    "analizza_righe", "analizza_csv",
     "LIMITE_GREZZI", "LIMITE_ANALISI", "N_CARTE",
 ]
 
@@ -427,3 +428,35 @@ def pianifica_analisi(filtri):
     if n > LIMITE_ANALISI:
         raise AnalisiTroppoGrande(n, LIMITE_ANALISI)
     return PianoAnalisi(combinazioni=n, grezzi=(n <= LIMITE_GREZZI))
+
+
+# ═══════════════════ nomi storici dell'ingresso dell'analisi ════════════════
+#
+# `analizza_righe` e `analizza_csv` erano funzioni di `core.algebra`, che dal
+# compartimento F si limitavano a delegare qui. In G1 l'implementazione e il
+# nome vivono insieme: `core.algebra` li espone ancora, ma per rinvio.
+
+def analizza_righe(righe, *, verifica_formula=False):
+    """Raggruppa per T_permutazione e conta le sequenze Stage distinte.
+
+    Usa la notazione Stage-level "T = [Stage2] o [Stage1] o [Stage0]", che
+    distingue (P, J) anche quando la composizione Ai = P∘J coincide.
+
+    Ogni `T` passa dal contratto di dominio (27 valori distinti in 0..26) e le
+    righe rifiutate finiscono in `.scartate` invece di sparire: il valore
+    restituito e' una `RisultatiImport`, cioe' una lista con in piu' la
+    diagnostica.
+    """
+    return aggrega_righe(righe, verifica_formula=verifica_formula)
+
+
+def analizza_csv(input_path):
+    """Legge un CSV COMBINAZIONI (sep=;) e restituisce i risultati aggregati.
+
+    Compatibile con il CSV prodotto da `write_csv` / il file
+    COMBINAZIONI_DEL_MODELLO: l'unica colonna obbligatoria e' `T_permutazione`,
+    quindi i formati storici che non portano le colonne Stage restano
+    leggibili. Un'intestazione che non appartiene a nessuno schema supportato
+    solleva `SchemaNonRiconosciuto` invece di produrre zero risultati (B05).
+    """
+    return importa_csv(input_path)

@@ -11,9 +11,10 @@ import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
 
 from ..core.analisi import (AnalisiTroppoGrande, Aggregatore,
-                            pianifica_analisi)
-from ..core.algebra import (EXCEL_MAX_CELL_CHARS, analizza_righe, analizza_csv,
-                             _prep_explorer_expr, scrivi_output, scrivi_excel)
+                            analizza_csv, analizza_righe, pianifica_analisi)
+from ..core.algebra import _prep_explorer_expr
+from ..core.export_analisi import (EXCEL_MAX_CELL_CHARS, scrivi_excel,
+                                   scrivi_output)
 from ..core.combinations import iter_combinations_ex
 from ..core.parallel import atomic_write
 from ..core.permutations import make_csv_row

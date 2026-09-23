@@ -1,7 +1,6 @@
 """
 Motore algebrico e simbolico: Parser, Rewriter, Evaluator, Controller.
 """
-import csv
 import numpy as np
 from dataclasses import dataclass, field
 from typing import Optional, List, Tuple
@@ -1574,44 +1573,6 @@ class Controller:
 # GUI
 # =============================================================================
 
-# ─────────────────────────────────────────────────────────────────────────────
-# ANALISI MOLTEPLICITA'  (in-memory)
-# ─────────────────────────────────────────────────────────────────────────────
-
-def analizza_righe(righe, *, verifica_formula=False):
-    """Raggruppa per T_permutazione e conta le sequenze Stage distinte.
-
-    Usa la notazione Stage-level "T = [Stage2] o [Stage1] o [Stage0]"
-    che distingue (P, J) anche quando la composizione Ai = P∘J coincide,
-    dando la granularità corretta come in analisi_sequenze.py.
-
-    Dal compartimento F la validazione degli ingressi vive in `core.analisi`:
-    ogni `T` passa dal contratto di dominio (27 valori distinti in 0..26) e le
-    righe rifiutate finiscono in `.scartate` invece di sparire. Il valore
-    restituito resta una lista di risultati — ora una `RisultatiImport`, che e'
-    una lista con in piu' la diagnostica.
-    """
-    from .analisi import aggrega_righe
-    return aggrega_righe(righe, verifica_formula=verifica_formula)
-
-
-def analizza_csv(input_path):
-    """Legge un CSV COMBINAZIONI (sep=;) e restituisce i risultati aggregati.
-
-    Compatibile con il CSV prodotto da write_csv() / il file
-    COMBINAZIONI_DEL_MODELLO: l'unica colonna obbligatoria e' T_permutazione,
-    quindi i formati storici che non portano le colonne Stage restano
-    leggibili. Un'intestazione che non appartiene a nessuno schema supportato
-    solleva `SchemaNonRiconosciuto` invece di produrre zero risultati (B05).
-
-    La coerenza fra formula simbolica e T viene verificata con il parser unico
-    del compartimento E: una riga la cui formula non produce la propria T viene
-    scartata con la sua diagnostica.
-    """
-    from .analisi import importa_csv
-    return importa_csv(input_path)
-
-
 def _prep_explorer_expr(t_sim):
     """Prepara una T_simbolica per il campo Explorer.
     Normalizza qualunque operatore di composizione a 'o' (lettera),
@@ -1631,84 +1592,42 @@ def _prep_explorer_expr(t_sim):
     return expr
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# ESPORTAZIONE ANALISI
-# ─────────────────────────────────────────────────────────────────────────────
+# ═════════════════════ compatibilita' con i chiamanti storici ════════════════
+#
+# Fino al compartimento G1 questo modulo conteneva, oltre al linguaggio, anche
+# l'ingresso dell'analisi (`analizza_righe`, `analizza_csv`) e l'export dei suoi
+# risultati (`scrivi_output`, `scrivi_excel`, `EXCEL_MAX_CELL_CHARS`). Le
+# implementazioni si sono spostate nei moduli che ne hanno la responsabilita';
+# i nomi restano raggiungibili da qui perche' moduli e test li importano da
+# anni.
+#
+# La risoluzione e' **differita** (PEP 562) e non una catena di `from ... import`
+# in cima al file: `core.analisi` usa il parser di `core.espressione`, che
+# importa questo modulo, e un import immediato creerebbe un ciclo. Cosi' invece
+# il grafo resta aciclico e il costo si paga solo a chi usa i nomi vecchi.
+#
+# Piano di rimozione: i chiamanti interni sono gia' stati migrati in G1; la
+# facciata resta per i test storici e per chiunque importi da fuori, e potra'
+# essere tolta quando un compartimento successivo decidera' di rompere quei
+# nomi. Non e' una migrazione «flag day».
 
-def scrivi_output(risultati, output_path):
-    from .parallel import atomic_write
-    header = [
-        "T_permutazione  [lista 0..26]",
-        "T_simboliche_distinte  [separate da , ]",
-        "n_sim_distinte  [molteplicita della permutazione]",
-    ]
-    with atomic_write(output_path, "w", newline="", encoding="utf-8") as f:
-        w = csv.writer(f, delimiter=";", quotechar='"',
-                       quoting=csv.QUOTE_ALL, lineterminator="\n")
-        w.writerow(header)
-        for r in risultati:
-            w.writerow([r["perm_str"], " , ".join(r["simboliche"]), str(r["n_sim"])])
+_TRASLOCHI = {
+    "analizza_righe":        "analisi",
+    "analizza_csv":          "analisi",
+    "scrivi_output":         "export_analisi",
+    "scrivi_excel":          "export_analisi",
+    "EXCEL_MAX_CELL_CHARS":  "export_analisi",
+}
 
 
-#: Limite di caratteri di UNA cella Excel. Oltre questa soglia openpyxl scrive
-#: il valore, ma Excel lo tronca alla riapertura: il dato sparisce senza che
-#: nessuno se ne accorga. Chi concatena piu' valori in una cella deve tenerne
-#: conto ed esporre altrove il dettaglio completo (B01).
-EXCEL_MAX_CELL_CHARS = 32767
+def __getattr__(nome):
+    """Risolve i nomi traslocati importando il nuovo proprietario alla bisogna."""
+    modulo = _TRASLOCHI.get(nome)
+    if modulo is None:
+        raise AttributeError(f"module {__name__!r} has no attribute {nome!r}")
+    from importlib import import_module
+    return getattr(import_module(f".{modulo}", __package__), nome)
 
 
-def scrivi_excel(risultati, output_path):
-    from openpyxl import Workbook
-    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
-    wb       = Workbook()
-    HDR_FILL = PatternFill("solid", fgColor="1F4E79")
-    HDR_FONT = Font(bold=True, color="FFFFFF", size=10)
-    ALT_FILL = PatternFill("solid", fgColor="D6E4F0")
-    BORDER   = Border(bottom=Side(style="thin", color="AAAAAA"),
-                      right=Side(style="thin",  color="AAAAAA"))
-    def _fmt(ws, i, nc):
-        fill = ALT_FILL if i % 2 == 0 else None
-        for c in range(1, nc+1):
-            cell = ws.cell(i+1, c)
-            if fill: cell.fill = fill
-            cell.alignment = Alignment(wrap_text=True, vertical="top")
-            cell.border = BORDER
-    def _hdr(ws, hdrs):
-        ws.append(hdrs)
-        for c in range(1, len(hdrs)+1):
-            cell = ws.cell(1, c)
-            cell.font = HDR_FONT; cell.fill = HDR_FILL
-            cell.alignment = Alignment(horizontal="center", wrap_text=True)
-    ws1 = wb.active
-    ws1.title = "Perm -> Simboliche"
-    _hdr(ws1, ["T_permutazione", "T_simboliche_distinte", "n_sim_distinte"])
-    for i, r in enumerate(risultati, 1):
-        summary = " , ".join(r["simboliche"])
-        if len(summary) > EXCEL_MAX_CELL_CHARS:
-            summary = tr("export.excel.summary_overflow",
-                         count=len(r["simboliche"]))
-        ws1.append([r["perm_str"], summary, r["n_sim"]])
-        _fmt(ws1, i, 3)
-    ws1.column_dimensions["A"].width = 40
-    ws1.column_dimensions["B"].width = 120
-    ws1.column_dimensions["C"].width = 14
-    ws1.freeze_panes = "A2"
-    ws1.auto_filter.ref = f"A1:C{len(risultati)+1}"
-    ws2 = wb.create_sheet("Simbolica -> Perm")
-    _hdr(ws2, ["T_simbolica", "T_permutazione", "n_sim_distinte"])
-    righe_inv = sorted(
-        [(sim, r["perm_str"], r["n_sim"]) for r in risultati for sim in r["simboliche"]],
-        key=lambda x: x[0])
-    for i, (sim, perm, n) in enumerate(righe_inv, 1):
-        ws2.append([sim, perm, n])
-        _fmt(ws2, i, 3)
-    ws2.column_dimensions["A"].width = 120
-    ws2.column_dimensions["B"].width = 40
-    ws2.column_dimensions["C"].width = 14
-    ws2.freeze_panes = "A2"
-    ws2.auto_filter.ref = f"A1:C{len(righe_inv)+1}"
-    # Pubblicazione atomica (R02): finche' il nuovo file non e' completo, al suo
-    # posto resta quello precedente, non un .xlsx troncato che Excel rifiuta.
-    from .parallel import atomic_write
-    with atomic_write(output_path, "wb") as f:
-        wb.save(f)
+def __dir__():
+    return sorted(set(globals()) | set(_TRASLOCHI))
