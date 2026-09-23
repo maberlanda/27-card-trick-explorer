@@ -8,6 +8,7 @@ Estratto da app.py (v2.8.0) senza modifiche funzionali.
 import os
 import pathlib
 import tkinter as tk
+from dataclasses import dataclass
 from tkinter import ttk, messagebox, filedialog
 
 from ..core.algebra import (EXCEL_MAX_CELL_CHARS, analizza_righe, analizza_csv,
@@ -18,6 +19,32 @@ from ..core.permutations import make_csv_row
 from .common import configure_matrix_tags, insert_colored, EtaEstimator, run_in_thread
 from .i18n import tr
 from .i18n import get_language
+
+
+@dataclass(frozen=True)
+class RisultatoAnalisi:
+    """Un solo esperimento di analisi: aggregati e grezzi vengono da li' e basta.
+
+    Modello locale al tab, deliberatamente piccolo (compartimento C): serve a
+    garantire la **provenienza unica** dei dati mostrati (B02). Prima gli
+    aggregati e le righe grezze erano due attributi indipendenti: dopo
+    un'analisi A seguita da un import CSV B, lo stato mostrava gli aggregati di
+    B con i grezzi di A, e l'export grezzo univa due esperimenti diversi. Qui
+    stanno insieme o non ci sono.
+
+    `grezzi` e' vuoto quando l'origine non ne fornisce (per esempio un import
+    CSV di soli aggregati): in quel caso gli export che li richiedono vengono
+    disabilitati, non lasciati puntare ai dati di prima.
+
+    Il modello definitivo dei risultati (`AnalysisResult` condiviso fra le
+    schede) appartiene al compartimento G: qui non se ne anticipa la forma.
+    """
+
+    origine: str                       # "filtri" | "csv" | "pipeline"
+    aggregati: tuple = ()
+    grezzi: tuple = ()
+    totale: int = 0
+    diagnostica: str = ""
 
 
 class AnalysisTabMixin:
@@ -60,6 +87,9 @@ class AnalysisTabMixin:
                               command=self._export_analisi_raw_csv)
         exp_menu2.add_command(label=f"📗  {tr('analysis.menu.raw_excel')}",
                               command=self._export_analisi_raw_excel)
+        self._analisi_exp_menu = exp_menu2
+        #: indici delle voci che richiedono le righe grezze (B02)
+        self._analisi_voci_grezzi = (4, 5)
         self._analisi_exp_mb["menu"] = exp_menu2
         self._analisi_exp_mb.pack(side="left", padx=4)
         ttk.Button(cmd, text=f"🔬  {tr('analysis.open_explorer')}",
@@ -169,12 +199,49 @@ class AnalysisTabMixin:
         self._analisi_detail_text.insert("1.0", _hint, "hint")
         self._analisi_detail_text.configure(state="disabled")
 
+        self._analisi_corrente = None
         self._analisi_risultati = []
         self._analisi_righe_raw = []
+        self._analisi_aggiorna_export()
         return outer
+
+    # ── pubblicazione dello stato del tab (B02) ─────────────────────────────
+
+    def _analisi_pubblica(self, risultato):
+        """Unico punto in cui aggregati e grezzi entrano nello stato del tab.
+
+        Va chiamata sul thread Tk. Restituisce False — senza toccare nulla — se
+        nel frattempo la finestra si sta chiudendo.
+        """
+        if getattr(self, "_closing", False):
+            return False
+        self._analisi_corrente = risultato
+        self._analisi_risultati = list(risultato.aggregati)
+        self._analisi_righe_raw = list(risultato.grezzi)
+        self._analisi_populate(self._analisi_risultati, risultato.totale)
+        return True
+
+    def _analisi_aggiorna_export(self):
+        """Abilita l'export, e le voci dei grezzi solo se i grezzi esistono."""
+        mb = getattr(self, "_analisi_exp_mb", None)
+        if mb is None:
+            return
+        ha_aggregati = bool(getattr(self, "_analisi_risultati", ()))
+        ha_grezzi = bool(getattr(self, "_analisi_righe_raw", ()))
+        mb.configure(state="normal" if ha_aggregati else "disabled")
+        menu = getattr(self, "_analisi_exp_menu", None)
+        if menu is None:
+            return
+        for indice in getattr(self, "_analisi_voci_grezzi", ()):
+            try:
+                menu.entryconfigure(
+                    indice, state="normal" if ha_grezzi else "disabled")
+            except tk.TclError:              # menu gia' distrutto
+                return
 
     def _reset_analisi(self):
         """Riporta il tab Analisi allo stato iniziale (per «Reset tutto»)."""
+        self._analisi_corrente = None
         self._analisi_risultati = []
         self._analisi_righe_raw = []
         tv = getattr(self, "_analisi_tv", None)
@@ -186,8 +253,7 @@ class AnalysisTabMixin:
             txt.delete("1.0", "end")
             txt.insert("1.0", f"  {tr('analysis.detail.hint')}", "hint")
             txt.configure(state="disabled")
-        if hasattr(self, "_analisi_exp_mb"):
-            self._analisi_exp_mb.configure(state="disabled")
+        self._analisi_aggiorna_export()
         self._analisi_status.set(tr("analysis.status.prompt"))
 
     def _run_analisi(self):
@@ -229,14 +295,16 @@ class AnalysisTabMixin:
                             done=f"{v:,}", total=f"{n:,}", eta=_eta.text(v, n)))))
             if getattr(self, "_closing", False):
                 return
-            self._analisi_righe_raw = righe
             self._ui(lambda: self._analisi_status.set(tr(
                 "analysis.status.analyzing_rows", count=f"{len(righe):,}")))
             risultati = analizza_righe(righe)
             if getattr(self, "_closing", False):
                 return
-            self._analisi_risultati = risultati
-            self._ui(lambda: self._analisi_populate(risultati, n))
+            # Aggregati e grezzi entrano nello stato insieme, sul thread Tk.
+            risultato = RisultatoAnalisi(
+                origine="filtri",
+                aggregati=tuple(risultati), grezzi=tuple(righe), totale=n)
+            self._ui(lambda: self._analisi_pubblica(risultato))
 
         run_in_thread(self, job, error_title=tr("analysis.error_title"),
                       on_error=lambda e: self._analisi_status.set(
@@ -259,8 +327,14 @@ class AnalysisTabMixin:
             if getattr(self, "_closing", False):
                 return
             n = sum(r["n_sim"] for r in risultati)
-            self._analisi_risultati = risultati
-            self._ui(lambda: self._analisi_populate(risultati, n))
+            # Un CSV di aggregati non porta con se' le righe grezze: restano
+            # vuote, e gli export che le richiedono si disabilitano. Prima
+            # sopravvivevano quelle dell'analisi precedente (B02).
+            risultato = RisultatoAnalisi(
+                origine="csv",
+                aggregati=tuple(risultati), grezzi=(), totale=n,
+                diagnostica=os.path.basename(path))
+            self._ui(lambda: self._analisi_pubblica(risultato))
 
         run_in_thread(self, job, error_title=tr("analysis.csv_read_error_title"),
                       on_error=lambda e: self._analisi_status.set(
@@ -303,8 +377,11 @@ class AnalysisTabMixin:
                 return
             n_perm = len(risultati)
             n_tot  = sum(r["n_sim"] for r in risultati)
-            self._analisi_risultati = risultati
-            self._ui(lambda: self._analisi_populate(risultati, n_tot))
+            risultato = RisultatoAnalisi(
+                origine="pipeline",
+                aggregati=tuple(risultati), grezzi=(), totale=n_tot,
+                diagnostica=_os.path.basename(inp))
+            self._ui(lambda: self._analisi_pubblica(risultato))
             msg = tr(
                 "analysis.completed_summary", permutations=f"{n_perm:,}",
                 sequences=f"{n_tot:,}", csv=_os.path.basename(out_csv),
@@ -329,8 +406,7 @@ class AnalysisTabMixin:
                       tags=(tag,), iid=str(idx))
         n_dist = len(risultati)
         min_m  = risultati[-1]["n_sim"] if risultati else 0
-        if hasattr(self, "_analisi_exp_mb"):
-            self._analisi_exp_mb.configure(state="normal")
+        self._analisi_aggiorna_export()
         self._analisi_status.set("✓  " + tr(
             "analysis.status.summary", combinations=f"{n_tot:,}",
             permutations=f"{n_dist:,}", minimum=min_m, maximum=max_m))

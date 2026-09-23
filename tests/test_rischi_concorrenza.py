@@ -46,6 +46,10 @@ class AppHarness:
     _ui = app_module.App._ui
     _fine_export = app_module.App._fine_export
     _run_generation = app_module.App._run_generation
+    # primitive del tab Analisi (compartimento C): l'harness le prende dal
+    # mixin come fa con i metodi di App.
+    _analisi_pubblica = analysis_tab.AnalysisTabMixin._analisi_pubblica
+    _analisi_aggiorna_export = analysis_tab.AnalysisTabMixin._analisi_aggiorna_export
 
     def __init__(self):
         self.destroyed = 0
