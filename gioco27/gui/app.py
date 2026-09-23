@@ -15,7 +15,7 @@ import threading
 from ..core.permutations import write_csv_parallel
 from ..core.combinations import count_combinations_ex, generate_pdf_ex_parallel
 from ..core.detail_pdf import MAX_DETAIL_COMBOS, generate_detail_pdf_parallel
-from ..core.config import get_config
+from ..core.config import ConfigNonSalvata, get_config
 from ..core.parallel import (MAX_EXPORT_ITEMS, ExportAnnullato,
                              ExportTooLarge)
 from ..core.log import get_logger
@@ -110,6 +110,11 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
             try:
                 self._cfg.save()
             except Exception:
+                # Migrazione una-tantum, durante la costruzione della finestra:
+                # non c'e' ancora una UI su cui mostrare un errore, e non aver
+                # potuto scrivere il flag non impedisce di partire. `save()` lo
+                # ha gia' registrato nel log. Qui il silenzio e' deliberato, non
+                # un falso successo: nulla viene annunciato all'utente.
                 pass
 
         # Font dei testi d'aiuto, scalabili dall'utente (utile su 4K)
@@ -1044,15 +1049,36 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
 
     # ── Impostazioni ──────────────────────────────────────────────────────────
     def _save_language_preference(self, language, parent):
-        """Persist a language choice; the current widget tree is unchanged."""
+        """Persist a language choice; the current widget tree is unchanged.
+
+        R07: se il salvataggio non riesce, l'utente non deve leggere «riavvia
+        per applicare la nuova lingua» — non c'e' nulla da applicare al
+        prossimo avvio. La scelta resta valida per questa sessione (nulla e'
+        stato annullato in memoria), ma il fallimento viene detto.
+        """
 
         if language not in ("it", "en"):
             return False
         self._cfg["language"] = language
-        self._cfg.save()
+        try:
+            self._cfg.save()
+        except ConfigNonSalvata as exc:
+            self._segnala_config_non_salvata(exc, parent)
+            return False
         messagebox.showinfo(tr("dialog.settings.title"),
                             tr("status.language_restart"), parent=parent)
         return True
+
+    def _segnala_config_non_salvata(self, exc, parent):
+        """Unico punto in cui un salvataggio fallito diventa visibile.
+
+        G2 si ferma qui: rendere osservabile il fallimento. La revisione del
+        testo e della sua collocazione nella UI appartiene al compartimento H.
+        """
+        messagebox.showerror(
+            tr("config.save_failed.title"),
+            tr("config.save_failed", path=exc.percorso, detail=exc.causa),
+            parent=parent)
 
     def _open_settings(self):
         """Dialog impostazioni: worker paralleli e cache."""
@@ -1175,7 +1201,14 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
             scale = _scale_map.get(hs_var.get(), 1.0)
             self._cfg["help_font_scale"] = scale
             uifont.apply_scale(scale, root=self)
-            self._cfg.save()
+            try:
+                self._cfg.save()
+            except ConfigNonSalvata as exc:
+                # R07: chiudere il dialogo significa «fatto». Se il file non
+                # e' stato scritto non e' fatto: l'errore si vede e il dialogo
+                # resta aperto, cosi' l'utente puo' riprovare o annullare.
+                self._segnala_config_non_salvata(exc, dlg)
+                return
             dlg.destroy()
 
         btn_row = ttk.Frame(fr)
@@ -1198,6 +1231,11 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
             self._cfg["window_geometry"] = self.geometry()
             self._cfg.save()
         except Exception:
+            # Un salvataggio fallito non deve impedire di chiudere, e in
+            # chiusura non c'e' piu' una finestra su cui mostrare un errore.
+            # Anche qui nulla viene annunciato come riuscito: l'unica cosa che
+            # si perde e' la geometria della finestra, e `save()` ha gia'
+            # registrato la causa nel log.
             pass
         if hasattr(self, "_analisi_risultati"):
             self._analisi_risultati.clear()

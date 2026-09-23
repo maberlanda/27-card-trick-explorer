@@ -396,7 +396,15 @@ def test_r2_salvataggio_preserva_file_e_rimuove_solo_il_proprio_temporaneo(kind,
     if fail:
         monkeypatch.setattr(json, "dump", dump_error)
     if kind == "config":
-        instance.save()
+        if fail:
+            # G2/R07: un salvataggio fallito non e' piu' silenzioso. Cio' che
+            # questo test verifica — file precedente intatto, temporaneo
+            # estraneo non toccato, solo il proprio rimosso — non cambia:
+            # cambia soltanto che ora il chiamante lo viene a sapere.
+            with pytest.raises(config.ConfigNonSalvata):
+                instance.save()
+        else:
+            instance.save()
     else:
         cache.save_decompositions(perm, [identity])
     assert bool(errors) == fail

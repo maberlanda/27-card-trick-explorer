@@ -60,6 +60,33 @@ _VALIDATORS = {
 }
 
 
+class ConfigNonSalvata(OSError):
+    """Il salvataggio della configurazione non e' riuscito (R07).
+
+    Prima di G2 `save()` registrava il traceback nel log e tornava come se
+    avesse salvato: il dialogo delle impostazioni si chiudeva e la preferenza
+    di lingua annunciava «riavvia», cioe' la GUI presentava un fallimento come
+    un successo. Il contratto e' ora quello gia' usato nel resto del
+    programma — un'eccezione applicativa esplicita, come `FiltroNonValido`,
+    `SchemaNonRiconosciuto` o `ExportTooLarge` — e non un valore di ritorno
+    che nessuno controllerebbe.
+
+    Porta con se' le tre informazioni che servono a chi deve riferirlo
+    all'utente (la formulazione localizzata resta un problema della
+    presentation): quale operazione, quale destinazione, quale causa.
+    E' un `OSError` perche' cio' che fallisce e' sempre un'operazione di I/O:
+    chi oggi intercetta `OSError` attorno a un salvataggio continua a
+    funzionare.
+    """
+
+    def __init__(self, percorso, causa,
+                 operazione="salvataggio della configurazione"):
+        self.percorso = percorso
+        self.causa = causa
+        self.operazione = operazione
+        super().__init__(f"{operazione}: {percorso} — {causa}")
+
+
 class Config:
     """Configurazione chiave-valore con persistenza JSON."""
 
@@ -93,14 +120,25 @@ class Config:
                            _CONFIG_FILE)
 
     def save(self) -> None:
+        """Salva la configurazione, o solleva `ConfigNonSalvata`.
+
+        La pubblicazione resta atomica — `parallel.atomic_write`, la stessa
+        primitiva di tutti gli export: temporaneo accanto alla destinazione e
+        `os.replace` a scrittura conclusa, quindi un guasto a meta' lascia
+        intatto il config.json precedente invece di troncarlo.
+
+        Cio' che cambia in G2 e' soltanto l'esito: l'errore viene ancora
+        registrato nel log, ma non si ferma li'.
+        """
         try:
             _CONFIG_DIR.mkdir(parents=True, exist_ok=True)
             # Scrittura atomica: file temporaneo + replace, così un crash a
             # metà scrittura non lascia mai un config.json troncato/corrotto.
             with atomic_write(_CONFIG_FILE, "w", encoding="utf-8") as f:
                 json.dump(self._data, f, indent=2, ensure_ascii=False)
-        except Exception:
+        except Exception as causa:
             _log.exception("Errore in salvataggio config %s", _CONFIG_FILE)
+            raise ConfigNonSalvata(_CONFIG_FILE, causa) from causa
 
     # ----------------------------------------------------------- accessors ---
 

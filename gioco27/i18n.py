@@ -80,6 +80,9 @@ _ITALIAN = {
     "status.cache_cleared": "Cache cancellata.",
     "status.saved": "Salvato: {filename} ({count})",
     "error.generic": "Errore",
+    "config.save_failed.title": "Impostazioni non salvate",
+    "config.save_failed": "Non è stato possibile salvare le impostazioni in "
+                          "{path}.\n\nDettaglio: {detail}",
     "distribution.title": "Distribuzione delle decomposizioni su tutti i T raggiungibili",
     "distribution.calculate": "Calcola distribuzione",
     "distribution.recalculate": "Ricalcola",
@@ -1378,6 +1381,9 @@ _ENGLISH = {
     "status.cache_cleared": "Cache cleared.",
     "status.saved": "Saved: {filename} ({count})",
     "error.generic": "Error",
+    "config.save_failed.title": "Settings not saved",
+    "config.save_failed": "The settings could not be saved to {path}.\n\n"
+                          "Details: {detail}",
     "distribution.title": "Decomposition distribution across all reachable T",
     "distribution.calculate": "Calculate distribution",
     "distribution.recalculate": "Recalculate",

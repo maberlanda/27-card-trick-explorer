@@ -122,8 +122,6 @@ def test_r07_la_configurazione_e_pubblicata_atomicamente(tmp_path, monkeypatch):
     assert residui == ["config.json"], residui
 
 
-@pytest.mark.xfail(strict=True, reason="R07: save() inghiotte l'errore e "
-                                       "torna come se avesse salvato")
 @pytest.mark.parametrize("nome,inietta", [
     ("cartella non creabile", None),
     ("errore durante la scrittura", "dump"),
@@ -155,12 +153,22 @@ def test_r07_il_fallimento_arriva_al_chiamante(nome, inietta, tmp_path,
         else:
             monkeypatch.setattr(config_mod, "atomic_write", _boom)
 
-    with pytest.raises(OSError):
+    with pytest.raises(config_mod.ConfigNonSalvata) as errore:
         cfg.save()
 
+    exc = errore.value
+    assert isinstance(exc, OSError), "resta un errore di I/O"
+    assert exc.operazione and exc.percorso and exc.causa is not None
+    assert str(exc.percorso) in str(exc)
+    assert exc.__cause__ is exc.causa, "la causa originale non si perde"
 
-@pytest.mark.xfail(strict=True, reason="R07: la preferenza di lingua annuncia "
-                                       "«riavvia» anche quando non ha salvato")
+
+def test_r07_il_salvataggio_riuscito_non_solleva(tmp_path, monkeypatch):
+    """Il contratto ha due esiti, non uno: riuscito e' silenzioso."""
+    cfg = _config_isolata(tmp_path, monkeypatch)
+    assert cfg.save() is None
+
+
 def test_r07_la_gui_non_dichiara_successo_dopo_il_fallimento(tmp_path,
                                                              monkeypatch):
     """La preferenza di lingua: se il salvataggio fallisce, niente «riavvia».
@@ -178,11 +186,78 @@ def test_r07_la_gui_non_dichiara_successo_dopo_il_fallimento(tmp_path,
         showwarning=lambda *a, **k: mostrati.append(("avviso", a)),
         askyesno=lambda *a, **k: True))
 
-    finto = SimpleNamespace(_cfg=cfg)
+    finto = SimpleNamespace(
+        _cfg=cfg,
+        _segnala_config_non_salvata=lambda exc, parent: (
+            app_module.App._segnala_config_non_salvata(finto, exc, parent)))
     esito = app_module.App._save_language_preference(finto, "en", parent=None)
 
     assert esito is False, "non ha salvato: non puo' dire di averlo fatto"
     assert [tipo for tipo, _ in mostrati] == ["errore"], mostrati
+
+
+def test_r07_ogni_salvataggio_nella_gui_e_gestito():
+    """G2-G2: nessun `save()` nella GUI lascia passare un fallimento in silenzio.
+
+    Due soli esiti ammessi per ciascun punto di chiamata: l'errore viene
+    mostrato, oppure e' deliberatamente ignorato in un contesto dove non c'e'
+    nulla da annunciare (avvio e chiusura). Cio' che non e' ammesso e' che il
+    fallimento passi inosservato mentre la UI dichiara di aver salvato.
+    """
+    import ast
+
+    albero = ast.parse((PACCHETTO / "gui" / "app.py").read_text(encoding="utf-8"))
+    genitori = {}
+    for nodo in ast.walk(albero):
+        for figlio in ast.iter_child_nodes(nodo):
+            genitori[figlio] = nodo
+
+    salvataggi = [n for n in ast.walk(albero)
+                  if isinstance(n, ast.Call)
+                  and isinstance(n.func, ast.Attribute) and n.func.attr == "save"
+                  and isinstance(n.func.value, ast.Attribute)
+                  and n.func.value.attr == "_cfg"]
+    assert len(salvataggi) == 4, f"punti di salvataggio: {len(salvataggi)}"
+
+    for chiamata in salvataggi:
+        nodo, protetto = chiamata, False
+        while nodo in genitori:
+            nodo = genitori[nodo]
+            if isinstance(nodo, ast.Try) and nodo.handlers:
+                protetto = True
+                break
+        assert protetto, ast.dump(chiamata)[:80]
+
+
+def test_r07_il_dialogo_impostazioni_non_si_chiude_se_non_ha_salvato():
+    """`do_save` chiude il dialogo solo dopo un salvataggio riuscito.
+
+    Il dialogo vive dentro `_open_settings` e si costruisce con widget veri:
+    qui si verifica la forma del flusso, che e' esattamente cio' che decide
+    se un fallimento viene presentato come un successo.
+    """
+    import ast
+
+    albero = ast.parse((PACCHETTO / "gui" / "app.py").read_text(encoding="utf-8"))
+    do_save = next(n for n in ast.walk(albero)
+                   if isinstance(n, ast.FunctionDef) and n.name == "do_save")
+
+    prove = [n for n in do_save.body if isinstance(n, ast.Try)]
+    assert len(prove) == 1, "un solo blocco protetto attorno al salvataggio"
+    prova = prove[0]
+
+    def chiamate(nodo):
+        return {n.func.attr for n in ast.walk(nodo)
+                if isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute)}
+
+    assert "save" in chiamate(prova)
+    assert "destroy" not in chiamate(prova), "chiudere non fa parte del tentativo"
+    assert any(isinstance(n, ast.Return) for h in prova.handlers
+               for n in ast.walk(h)), "il fallimento interrompe il flusso"
+    indice = do_save.body.index(prova)
+    coda = do_save.body[indice + 1:]
+    assert any("destroy" in chiamate(n) for n in coda), \
+        "il dialogo si chiude solo dopo il tentativo riuscito"
 
 
 # ═══════════════ lifecycle — i lavori asincroni reali ═══════════════════════
