@@ -26,11 +26,15 @@ class RisultatoAnalisi:
     """Un solo esperimento di analisi: aggregati e grezzi vengono da li' e basta.
 
     Modello locale al tab, deliberatamente piccolo (compartimento C): serve a
-    garantire la **provenienza unica** dei dati mostrati (B02). Prima gli
-    aggregati e le righe grezze erano due attributi indipendenti: dopo
-    un'analisi A seguita da un import CSV B, lo stato mostrava gli aggregati di
-    B con i grezzi di A, e l'export grezzo univa due esperimenti diversi. Qui
-    stanno insieme o non ci sono.
+    garantire due cose che prima non erano garantite.
+
+    * **Provenienza unica (B02).** Prima gli aggregati e le righe grezze erano
+      due attributi indipendenti: dopo un'analisi A seguita da un import CSV B,
+      lo stato mostrava gli aggregati di B con i grezzi di A, e l'export grezzo
+      univa due esperimenti diversi. Qui stanno insieme o non ci sono.
+    * **Identita' della richiesta (B03).** `revisione` dice quale richiesta ha
+      prodotto questo risultato: una risposta tardiva che non corrisponde alla
+      revisione corrente viene scartata invece di ripopolare lo stato.
 
     `grezzi` e' vuoto quando l'origine non ne fornisce (per esempio un import
     CSV di soli aggregati): in quel caso gli export che li richiedono vengono
@@ -40,6 +44,7 @@ class RisultatoAnalisi:
     schede) appartiene al compartimento G: qui non se ne anticipa la forma.
     """
 
+    revisione: int
     origine: str                       # "filtri" | "csv" | "pipeline"
     aggregati: tuple = ()
     grezzi: tuple = ()
@@ -199,21 +204,37 @@ class AnalysisTabMixin:
         self._analisi_detail_text.insert("1.0", _hint, "hint")
         self._analisi_detail_text.configure(state="disabled")
 
+        self._analisi_revisione = 0
         self._analisi_corrente = None
         self._analisi_risultati = []
         self._analisi_righe_raw = []
         self._analisi_aggiorna_export()
         return outer
 
-    # ── pubblicazione dello stato del tab (B02) ─────────────────────────────
+    # ── identita' della richiesta e pubblicazione dello stato (B02/B03) ──────
+    #
+    # Primitiva locale e minima: un contatore monotono. Ogni azione che cambia
+    # cio' che il tab sta calcolando ne apre una nuova, e con cio' rende
+    # obsolete tutte le risposte ancora in volo. Il gestore generale dei lavori
+    # appartiene al compartimento G: qui non viene costruito.
+
+    def _analisi_nuova_revisione(self):
+        """Apre una nuova richiesta: le precedenti diventano obsolete."""
+        self._analisi_revisione = getattr(self, "_analisi_revisione", 0) + 1
+        return self._analisi_revisione
+
+    def _analisi_e_corrente(self, revisione):
+        """La richiesta `revisione` e' ancora quella corrente, e la UI e' viva?"""
+        return (revisione == getattr(self, "_analisi_revisione", 0)
+                and not getattr(self, "_closing", False))
 
     def _analisi_pubblica(self, risultato):
         """Unico punto in cui aggregati e grezzi entrano nello stato del tab.
 
         Va chiamata sul thread Tk. Restituisce False — senza toccare nulla — se
-        nel frattempo la finestra si sta chiudendo.
+        nel frattempo c'e' stato un reset, una nuova richiesta o la chiusura.
         """
-        if getattr(self, "_closing", False):
+        if not self._analisi_e_corrente(risultato.revisione):
             return False
         self._analisi_corrente = risultato
         self._analisi_risultati = list(risultato.aggregati)
@@ -240,7 +261,12 @@ class AnalysisTabMixin:
                 return
 
     def _reset_analisi(self):
-        """Riporta il tab Analisi allo stato iniziale (per «Reset tutto»)."""
+        """Riporta il tab Analisi allo stato iniziale (per «Reset tutto»).
+
+        Apre una nuova revisione: un worker ancora in corso terminera', ma il
+        suo risultato non potra' piu' pubblicarsi (B03).
+        """
+        self._analisi_nuova_revisione()
         self._analisi_corrente = None
         self._analisi_risultati = []
         self._analisi_righe_raw = []
@@ -274,12 +300,13 @@ class AnalysisTabMixin:
         self.progress["maximum"] = n
         self.progress["value"]   = 0
         self.update_idletasks()
+        revisione = self._analisi_nuova_revisione()
 
         def job():
             _eta = EtaEstimator()
             righe = []
             for i, params in enumerate(iter_combinations_ex(filters), 1):
-                if getattr(self, "_closing", False):
+                if not self._analisi_e_corrente(revisione):
                     return
                 rd = make_csv_row(i, params)
                 righe.append({
@@ -288,21 +315,22 @@ class AnalysisTabMixin:
                     "T_simbolica": rd[7], "T_permutazione": rd[8],
                 })
                 if i % 200 == 0:
-                    self._ui(lambda v=i: (
+                    self._ui(lambda v=i: self._analisi_e_corrente(revisione) and (
                         self.progress.__setitem__("value", v),
                         self._analisi_status.set(tr(
                             "analysis.status.generation_progress",
                             done=f"{v:,}", total=f"{n:,}", eta=_eta.text(v, n)))))
-            if getattr(self, "_closing", False):
+            if not self._analisi_e_corrente(revisione):
                 return
-            self._ui(lambda: self._analisi_status.set(tr(
-                "analysis.status.analyzing_rows", count=f"{len(righe):,}")))
+            self._ui(lambda: self._analisi_e_corrente(revisione)
+                     and self._analisi_status.set(tr(
+                         "analysis.status.analyzing_rows", count=f"{len(righe):,}")))
             risultati = analizza_righe(righe)
-            if getattr(self, "_closing", False):
+            if not self._analisi_e_corrente(revisione):
                 return
             # Aggregati e grezzi entrano nello stato insieme, sul thread Tk.
             risultato = RisultatoAnalisi(
-                origine="filtri",
+                revisione=revisione, origine="filtri",
                 aggregati=tuple(risultati), grezzi=tuple(righe), totale=n)
             self._ui(lambda: self._analisi_pubblica(risultato))
 
@@ -321,17 +349,18 @@ class AnalysisTabMixin:
         self._analisi_status.set(tr(
             "analysis.status.reading_csv", filename=os.path.basename(path)))
         self.update_idletasks()
+        revisione = self._analisi_nuova_revisione()
 
         def job():
             risultati = analizza_csv(path)
-            if getattr(self, "_closing", False):
+            if not self._analisi_e_corrente(revisione):
                 return
             n = sum(r["n_sim"] for r in risultati)
             # Un CSV di aggregati non porta con se' le righe grezze: restano
             # vuote, e gli export che le richiedono si disabilitano. Prima
             # sopravvivevano quelle dell'analisi precedente (B02).
             risultato = RisultatoAnalisi(
-                origine="csv",
+                revisione=revisione, origine="csv",
                 aggregati=tuple(risultati), grezzi=(), totale=n,
                 diagnostica=os.path.basename(path))
             self._ui(lambda: self._analisi_pubblica(risultato))
@@ -364,21 +393,22 @@ class AnalysisTabMixin:
 
         self._analisi_status.set(tr("analysis.status.running"))
         self.update_idletasks()
+        revisione = self._analisi_nuova_revisione()
 
         def job():
             risultati = analizza_csv(inp)
-            if getattr(self, "_closing", False):
+            if not self._analisi_e_corrente(revisione):
                 return
             scrivi_output(risultati, out_csv)
-            if getattr(self, "_closing", False):
+            if not self._analisi_e_corrente(revisione):
                 return
             scrivi_excel(risultati, out_xlsx)
-            if getattr(self, "_closing", False):
+            if not self._analisi_e_corrente(revisione):
                 return
             n_perm = len(risultati)
             n_tot  = sum(r["n_sim"] for r in risultati)
             risultato = RisultatoAnalisi(
-                origine="pipeline",
+                revisione=revisione, origine="pipeline",
                 aggregati=tuple(risultati), grezzi=(), totale=n_tot,
                 diagnostica=_os.path.basename(inp))
             self._ui(lambda: self._analisi_pubblica(risultato))

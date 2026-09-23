@@ -1,7 +1,7 @@
-"""Compartimento C — stato e concorrenza: provenienza dei dati mostrati.
+"""Compartimento C — stato e concorrenza: provenienza e revisioni.
 
-Copre B02: gli aggregati e le righe grezze del tab Analisi vengono sempre
-dalla stessa richiesta, o non ci sono.
+Copre B02 (aggregati e grezzi della stessa richiesta) e B03 (risposte tardive
+e fuori ordine).
 
 Nessun test dipende dalla velocita' della macchina: i lavori vengono catturati e
 fatti avanzare esplicitamente.
@@ -74,6 +74,7 @@ class TabAnalisi(analysis_tab.AnalysisTabMixin):
 
     def __init__(self):
         self._closing = False
+        self._analisi_revisione = 0
         self._analisi_corrente = None
         self._analisi_risultati = []
         self._analisi_righe_raw = []
@@ -236,7 +237,7 @@ def test_b02_catena_a_b_c(tab, monkeypatch):
 
 def test_b02_aggregati_e_grezzi_vengono_sempre_dallo_stesso_risultato(tab):
     """La pubblicazione e' un unico punto: non esiste uno stato misto."""
-    risultato = RisultatoAnalisi(origine="csv",
+    risultato = RisultatoAnalisi(revisione=tab._analisi_revisione, origine="csv",
                                  aggregati=({"n_sim": 1, "perm_str": "[X]",
                                              "simboliche": []},),
                                  grezzi=({"Stage0": "X"},), totale=1)
@@ -244,3 +245,102 @@ def test_b02_aggregati_e_grezzi_vengono_sempre_dallo_stesso_risultato(tab):
     assert tab._analisi_corrente is risultato
     assert tab._analisi_risultati == list(risultato.aggregati)
     assert tab._analisi_righe_raw == list(risultato.grezzi)
+
+
+# ───────────────────────────── B03 ──────────────────────────────────────────
+
+def _prepara_due_analisi(tab, monkeypatch):
+    monkeypatch.setattr(analysis_tab, "count_combinations_ex", lambda f: 1)
+    monkeypatch.setattr(analysis_tab, "iter_combinations_ex", lambda f: iter([0]))
+    etichette = iter(["A", "B"])
+
+    def righe(i, p):
+        return [next(etichette)] * 9
+
+    monkeypatch.setattr(analysis_tab, "make_csv_row", righe)
+    monkeypatch.setattr(analysis_tab, "analizza_righe",
+                        lambda rows: _risultati(1, f"[{rows[0]['Stage0']}]"))
+
+
+def test_b03_completamenti_fuori_ordine_pubblicano_solo_il_corrente(tab, monkeypatch):
+    """Avvio A, avvio B, completa B, completa A -> resta B.
+
+    A e' un'analisi dai filtri, B un import CSV: due produttori distinti, cosi'
+    l'esito non dipende dall'ordine in cui i due job vengono fatti avanzare.
+    """
+    _prepara_due_analisi(tab, monkeypatch)
+    _csv_finto(monkeypatch)
+    monkeypatch.setattr(analysis_tab, "analizza_csv", lambda p: _risultati(9, "[B]"))
+
+    tab._run_analisi()                     # A parte per prima
+    tab._analisi_load_csv()                # B e' la richiesta corrente
+    lavoro_a, lavoro_b = tab.lavori
+
+    lavoro_b.esegui(); tab.esegui_coda()   # B finisce per prima
+    assert tab._analisi_risultati[0]["perm_str"] == "[B]"
+
+    lavoro_a.esegui(); tab.esegui_coda()   # risposta tardiva di A
+    assert tab._analisi_risultati[0]["perm_str"] == "[B]", "A non deve ripubblicarsi"
+    assert [p[0][0]["perm_str"] for p in tab.popolati] == ["[B]"]
+    assert tab.origine == "csv"
+
+
+def test_b03_pubblicazione_rifiuta_una_revisione_superata(tab):
+    """Il controllo di identita', isolato dal resto."""
+    rev_a = tab._analisi_nuova_revisione()
+    rev_b = tab._analisi_nuova_revisione()
+    risultato_a = RisultatoAnalisi(revisione=rev_a, origine="filtri",
+                                   aggregati=(), grezzi=(), totale=0)
+    risultato_b = RisultatoAnalisi(revisione=rev_b, origine="csv",
+                                   aggregati=(), grezzi=(), totale=0)
+    assert tab._analisi_pubblica(risultato_b) is True
+    assert tab._analisi_pubblica(risultato_a) is False
+    assert tab._analisi_corrente is risultato_b
+
+
+def test_b03_reset_invalida_il_lavoro_in_corso(tab, monkeypatch):
+    _prepara_due_analisi(tab, monkeypatch)
+    tab._run_analisi()
+    tab._reset_analisi()
+    stato_dopo_reset = (list(tab._analisi_risultati), list(tab._analisi_righe_raw))
+    tab.lavori[0].esegui(); tab.esegui_coda()
+    assert (tab._analisi_risultati, tab._analisi_righe_raw) == stato_dopo_reset == ([], [])
+    assert tab._analisi_corrente is None
+    assert tab.popolati == []
+
+
+def test_b03_reset_durante_import(tab, monkeypatch):
+    _csv_finto(monkeypatch)
+    monkeypatch.setattr(analysis_tab, "analizza_csv", lambda p: _risultati(5))
+    tab._analisi_load_csv()
+    tab._reset_analisi()
+    tab.lavori[0].esegui(); tab.esegui_coda()
+    assert tab._analisi_risultati == [] and tab._analisi_corrente is None
+
+
+def test_b03_nuova_richiesta_durante_import(tab, monkeypatch):
+    _csv_finto(monkeypatch)
+    monkeypatch.setattr(analysis_tab, "analizza_csv", lambda p: _risultati(5, "[CSV]"))
+    tab._analisi_load_csv()                       # import in corso
+    _prepara_due_analisi(tab, monkeypatch)
+    tab._run_analisi()                            # nuova richiesta dai filtri
+    tab.lavori[1].esegui(); tab.esegui_coda()     # la nuova finisce per prima
+    tab.lavori[0].esegui(); tab.esegui_coda()     # l'import arriva tardi
+    assert tab._analisi_risultati[0]["perm_str"] == "[A]"
+    assert tab.origine == "filtri"
+
+
+def test_b03_chiusura_durante_il_lavoro(tab, monkeypatch):
+    _prepara_due_analisi(tab, monkeypatch)
+    tab._run_analisi()
+    tab._closing = True
+    tab.lavori[0].esegui(); tab.esegui_coda()
+    assert tab.popolati == [] and tab._analisi_corrente is None
+
+
+def test_b03_la_revisione_e_monotona(tab):
+    prima = tab._analisi_revisione
+    assert tab._analisi_nuova_revisione() == prima + 1
+    assert tab._analisi_nuova_revisione() == prima + 2
+    assert tab._analisi_e_corrente(prima + 2) is True
+    assert tab._analisi_e_corrente(prima + 1) is False
