@@ -1120,6 +1120,200 @@ def test_l_export_multiplo_pubblica_ogni_file_atomicamente(tmp_path,
             for p in tmp_path.iterdir()} == contenuti
 
 
+# ═══════════════════════ confini architetturali di G ════════════════════════
+
+_MUTAZIONI_TK = {"configure", "config", "set", "insert", "delete", "destroy",
+                 "grid", "pack", "focus_force", "lift", "update_idletasks",
+                 "entryconfigure", "after_cancel"}
+#: Chi marshalla il lavoro sul thread Tk. Tutto cio' che tocca un widget deve
+#: passare da qui — oppure da una coda letta dal thread Tk.
+_PONTI = {"_ui", "ui_call", "after", "put", "put_nowait"}
+
+
+def _funzioni_di_lavoro(albero):
+    """Nomi delle funzioni avviate in un thread: `Thread(target=…)` e job."""
+    import ast
+
+    nomi = set()
+    for n in ast.walk(albero):
+        if not isinstance(n, ast.Call):
+            continue
+        f = n.func
+        chiamata = (f.id if isinstance(f, ast.Name)
+                    else f.attr if isinstance(f, ast.Attribute) else "")
+        candidati = []
+        if chiamata == "Thread":
+            candidati = [k.value for k in n.keywords if k.arg == "target"]
+        elif chiamata == "run_in_thread" and len(n.args) >= 2:
+            candidati = [n.args[1]]
+        for c in candidati:
+            if isinstance(c, ast.Name):
+                nomi.add(c.id)
+            elif isinstance(c, ast.Attribute):
+                nomi.add(c.attr)
+    return nomi
+
+
+def _mutazioni_proprie(nodo):
+    """Le mutazioni di widget al livello di `nodo`, escluse le callable interne."""
+    import ast
+
+    interne = set()
+    for n in ast.walk(nodo):
+        if isinstance(n, (ast.Lambda, ast.FunctionDef)) and n is not nodo:
+            interne.update(id(x) for x in ast.walk(n))
+    proprie = []
+    for n in ast.walk(nodo):
+        if id(n) in interne or not isinstance(n, ast.Call):
+            continue
+        f = n.func
+        if not (isinstance(f, ast.Attribute) and f.attr in _MUTAZIONI_TK):
+            continue
+        if isinstance(f.value, ast.Name) and f.value.id == "self":
+            continue                       # self.<metodo>(): non e' un widget
+        proprie.append(f.attr)
+    return proprie
+
+
+def test_nessun_worker_tocca_un_widget_tk():
+    """G2-G6: Tk non e' thread-safe, e questo e' il modo di non scoprirlo.
+
+    Per ogni funzione avviata in un thread — `Thread(target=…)` o job di
+    `run_in_thread` — si controlla che non modifichi un widget al proprio
+    livello, e che ogni callable annidata che ne modifica uno venga
+    consegnata al thread Tk (`_ui`, `ui_call`, `after`) o messa in una coda
+    che il thread Tk svuota.
+    """
+    import ast
+
+    violazioni, esaminate = [], []
+    for rel, sorgente in _moduli_del_pacchetto():
+        if not rel.startswith("gioco27/gui/"):
+            continue
+        albero = ast.parse(sorgente)
+        lavoratori = _funzioni_di_lavoro(albero)
+        if not lavoratori:
+            continue
+        for fn in ast.walk(albero):
+            if not (isinstance(fn, ast.FunctionDef) and fn.name in lavoratori):
+                continue
+            esaminate.append(f"{rel}:{fn.name}")
+            for attr in _mutazioni_proprie(fn):
+                violazioni.append(f"{rel}:{fn.name} tocca .{attr}() direttamente")
+
+            # Cio' che viene consegnato a un ponte verso il thread Tk.
+            consegnati = set()
+            for n in ast.walk(fn):
+                if not isinstance(n, ast.Call):
+                    continue
+                f = n.func
+                nome = (f.id if isinstance(f, ast.Name)
+                        else f.attr if isinstance(f, ast.Attribute) else "")
+                if nome not in _PONTI:
+                    continue
+                for a in list(n.args) + [k.value for k in n.keywords]:
+                    consegnati.add(id(a))
+                    if isinstance(a, ast.Name):
+                        consegnati.add(a.id)
+
+            for n in ast.walk(fn):
+                if not isinstance(n, (ast.Lambda, ast.FunctionDef)) or n is fn:
+                    continue
+                if not _mutazioni_proprie(n):
+                    continue
+                consegnata = id(n) in consegnati or (
+                    isinstance(n, ast.FunctionDef) and n.name in consegnati)
+                if not consegnata:
+                    violazioni.append(
+                        f"{rel}:{fn.name}: una callable che tocca widget non "
+                        f"passa da {sorted(_PONTI)}")
+
+    assert violazioni == [], violazioni
+    # Il test non deve passare perche' non ha trovato nessun worker.
+    assert len(esaminate) >= 7, esaminate
+    assert any("_compute_worker" in e for e in esaminate)
+
+
+def test_i_servizi_restano_sincroni_e_senza_gui():
+    """G2-G8/G2-G13: nessun servizio crea thread, tocca Tk o importa la GUI."""
+    import ast
+
+    for rel, sorgente in _moduli_del_pacchetto():
+        if not rel.startswith("gioco27/services/"):
+            continue
+        assert "tkinter" not in sorgente, rel
+        for modulo in _archi()[_nome_e_pacchetto(rel)[0]]:
+            assert not modulo.startswith("gioco27.gui"), (rel, modulo)
+        albero = ast.parse(sorgente)
+        creati = [n for n in ast.walk(albero) if isinstance(n, ast.Call)
+                  and isinstance(n.func, ast.Attribute)
+                  and n.func.attr in ("Thread", "ProcessPoolExecutor",
+                                      "ThreadPoolExecutor")]
+        assert creati == [], rel
+
+    # `services/lavoro.py` e' la primitiva del lifecycle: non dipende da nulla
+    # del programma, nemmeno dal core.
+    assert _archi()["gioco27.services.lavoro"] == set()
+
+
+def test_il_core_non_importa_i_servizi():
+    """G2-G14: la direzione stabilita in G1 non si e' invertita per comodita'."""
+    archi = _archi()
+    for nome, dipendenze in archi.items():
+        if not nome.startswith("gioco27.core"):
+            continue
+        for d in dipendenze:
+            assert not d.startswith("gioco27.services"), (nome, d)
+            assert not d.startswith("gioco27.gui"), (nome, d)
+
+
+def test_il_parser_autorevole_resta_uno():
+    """G2-G15: il linguaggio di E ha un solo lexer e un solo parser."""
+    import ast
+
+    definizioni = {"Lexer": [], "Parser": [], "Evaluator": []}
+    for rel, sorgente in _moduli_del_pacchetto():
+        for n in ast.walk(ast.parse(sorgente)):
+            if isinstance(n, ast.ClassDef) and n.name in definizioni:
+                definizioni[n.name].append(rel)
+    for nome, dove in definizioni.items():
+        assert dove == ["gioco27/core/algebra.py"], (nome, dove)
+
+
+def test_g2_non_ha_inventato_uno_scheduler():
+    """G2-G7: nessun framework di code o priorita' senza una necessita' reale.
+
+    L'inventario non ha trovato nessun flusso con una semantica di priorita'
+    fra lavori, ne' un punto che memorizzi o interroghi uno stato del lavoro:
+    un `JobManager` o un `JobState` sarebbero stati un tipo senza lettori.
+    Questo test rende esplicita la decisione, cosi' che reintrodurli sia una
+    scelta e non una svista.
+    """
+    import ast
+
+    vietati = {"JobManager", "GestoreLavori", "Scheduler", "Pianificatore",
+               "TaskQueue", "CodaLavori", "JobState", "StatoLavoro",
+               "PriorityQueue"}
+    trovati = []
+    for rel, sorgente in _moduli_del_pacchetto():
+        for n in ast.walk(ast.parse(sorgente)):
+            if isinstance(n, ast.ClassDef) and n.name in vietati:
+                trovati.append(f"{rel}:{n.name}")
+    assert trovati == [], trovati
+
+    # Nel codice (non nei commenti, dove la decisione e' spiegata) la
+    # primitiva non nomina code, priorita' o executor.
+    albero = ast.parse(
+        (PACCHETTO / "services" / "lavoro.py").read_text(encoding="utf-8"))
+    identificatori = {n.id for n in ast.walk(albero) if isinstance(n, ast.Name)}
+    identificatori |= {n.attr for n in ast.walk(albero)
+                       if isinstance(n, ast.Attribute)}
+    identificatori |= {n.name for n in ast.walk(albero)
+                       if isinstance(n, (ast.FunctionDef, ast.ClassDef))}
+    for parola in ("priorita", "priority", "queue", "coda", "executor", "pool"):
+        assert not any(parola in i.lower() for i in identificatori), parola
+
+
 def test_una_scrittura_fallita_non_tocca_il_file_precedente(tmp_path):
     """Il contratto della primitiva comune, su cui G2 porta le rotte residue."""
     dest = tmp_path / "uscita.txt"
