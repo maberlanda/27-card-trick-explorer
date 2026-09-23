@@ -2,7 +2,7 @@
 Scheda "🚀 Inizia qui": orientamento rapido, azioni rapide e glossario.
 
 Mixin per App: fornisce _build_onboarding_tab(). Richiede da App i metodi
-_preset_gioco_reale(), _select_tab_by_text() e _open_guide().
+_preset_gioco_reale(), _seleziona_scheda() e _open_guide().
 """
 import tkinter as tk
 from tkinter import ttk
@@ -94,7 +94,7 @@ class OnboardingTabMixin:
         qa = ttk.LabelFrame(body, text=f"  {tr('onboarding.quick_actions')}  ", padding=10)
         qa.grid(row=4, column=0, sticky="ew", pady=(14, 0))
         b0 = ttk.Button(qa, text="🎩  Prova il Simulatore",
-                        command=lambda: self._select_tab_by_text("Simulatore"))
+                        command=lambda: self._seleziona_scheda("simulatore"))
         b0.configure(text=f"🎩  {tr('onboarding.button.try_simulator')}")
         b0.pack(side="left", padx=(0, 8))
         _tip(b0, tr("tooltip.try_simulator"))
@@ -105,7 +105,7 @@ class OnboardingTabMixin:
         b1.pack(side="left", padx=8)
         _tip(b1, tr("tooltip.load_real_game"))
         b2 = ttk.Button(qa, text="🔍  Vai all'Anteprima",
-                        command=lambda: self._select_tab_by_text("Anteprima"))
+                        command=lambda: self._seleziona_scheda("anteprima"))
         b2.configure(text=f"🔍  {tr('onboarding.button.go_preview')}")
         b2.pack(side="left", padx=8)
         _tip(b2, tr("tooltip.preview"))

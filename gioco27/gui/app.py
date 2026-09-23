@@ -408,10 +408,14 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
         nb = ttk.Notebook(self)
         nb.pack(fill="both", expand=True, padx=10, pady=(4, 10))
         self._nb = nb
+        #: chiave stabile → widget della scheda. Le etichette sono tradotte,
+        #: le chiavi no: e' cio' che rende la navigazione indipendente dalla
+        #: lingua (H1).
+        self._schede = {}
 
         # Scheda introduttiva, in testa a tutto
-        nb.add(self._build_onboarding_tab(nb),
-               text=_shell_tab_text("tab.start", "🚀"))
+        self._aggiungi_scheda(nb, "inizio", self._build_onboarding_tab(nb),
+                              _shell_tab_text("tab.start", "🚀"))
 
         # Stadi (ciascuno con il suo banner d'aiuto)
         self.filter_frames = []
@@ -425,30 +429,38 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
             ff.pack(fill="both", expand=True)
             self.filter_frames.append(ff)
             self._stadi_wraps.append(wrap)
-            nb.add(wrap, text=_shell_tab_text("tab.stage", number=i))
+            self._aggiungi_scheda(nb, f"stadio{i}", wrap,
+                                  _shell_tab_text("tab.stage", number=i))
 
         # Percorso lineare del principiante: gioco → tavola → esplorazione
-        nb.add(self._wrap_tab(self._build_simulator_tab, "simulatore", "19"),
-               text=_shell_tab_text("tab.simulator", "🎩"))
-        nb.add(self._wrap_tab(self._build_tavola_tab, "tavola", "11"),
-               text=_shell_tab_text("tab.table", "📚"))
-        nb.add(self._wrap_tab(self._build_anteprima_tab, "anteprima", "14"),
-               text=_shell_tab_text("tab.preview", "🔍"))
-        nb.add(self._wrap_tab(self._build_analisi_tab, "analisi", "15"),
-               text=_shell_tab_text("tab.analysis", "📊"))
-        self._tab_explorer = self._wrap_tab(self._build_explorer_tab,
-                                            "explorer", "16")
-        nb.add(self._tab_explorer,
-               text=_shell_tab_text("tab.explorer", "🔬"))
-        nb.add(self._build_guide_tab(nb),
-               text=_shell_tab_text("tab.guide", "📖"))
-        self._tab_cycles = self._wrap_tab(self._build_cycles_tab, "cicli", "20")
-        nb.add(self._tab_cycles,
-               text=_shell_tab_text("tab.cycles", "🔄"))
-        self._tab_distrib = self._wrap_tab(self._build_distrib_tab,
-                                           "distribuzione", "21")
-        nb.add(self._tab_distrib,
-               text=_shell_tab_text("tab.distribution", "📊"))
+        self._aggiungi_scheda(
+            nb, "simulatore",
+            self._wrap_tab(self._build_simulator_tab, "simulatore", "19"),
+            _shell_tab_text("tab.simulator", "🎩"))
+        self._aggiungi_scheda(
+            nb, "tavola", self._wrap_tab(self._build_tavola_tab, "tavola", "11"),
+            _shell_tab_text("tab.table", "📚"))
+        self._aggiungi_scheda(
+            nb, "anteprima",
+            self._wrap_tab(self._build_anteprima_tab, "anteprima", "14"),
+            _shell_tab_text("tab.preview", "🔍"))
+        self._aggiungi_scheda(
+            nb, "analisi",
+            self._wrap_tab(self._build_analisi_tab, "analisi", "15"),
+            _shell_tab_text("tab.analysis", "📊"))
+        self._tab_explorer = self._aggiungi_scheda(
+            nb, "explorer",
+            self._wrap_tab(self._build_explorer_tab, "explorer", "16"),
+            _shell_tab_text("tab.explorer", "🔬"))
+        self._aggiungi_scheda(nb, "guida", self._build_guide_tab(nb),
+                              _shell_tab_text("tab.guide", "📖"))
+        self._tab_cycles = self._aggiungi_scheda(
+            nb, "cicli", self._wrap_tab(self._build_cycles_tab, "cicli", "20"),
+            _shell_tab_text("tab.cycles", "🔄"))
+        self._tab_distrib = self._aggiungi_scheda(
+            nb, "distribuzione",
+            self._wrap_tab(self._build_distrib_tab, "distribuzione", "21"),
+            _shell_tab_text("tab.distribution", "📊"))
 
         # Schede avanzate: nascoste in modalità principiante
         self._advanced_tabs = [self._tab_explorer, self._tab_cycles,
@@ -524,26 +536,29 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
         if hasattr(self, "_beginner_var"):
             self._beginner_var.set(beginner)
 
-    def _select_tab_by_text(self, substr):
-        """Seleziona la prima scheda il cui titolo contiene `substr`."""
+    def _aggiungi_scheda(self, nb, chiave, widget, testo):
+        """Aggiunge una scheda al notebook e ne registra la chiave stabile.
+
+        H1: l'etichetta e' tradotta, la chiave no. Cercare una scheda per
+        titolo funzionava finche' le due lingue scrivevano quella parola allo
+        stesso modo — «Explorer» lo faceva per caso, «Guida»/«Guide» no, e
+        infatti c'era gia' una tabella di alias per rimediare.
+        """
+        nb.add(widget, text=testo)
+        self._schede[chiave] = widget
+        return widget
+
+    def _seleziona_scheda(self, chiave):
+        """Porta in primo piano la scheda `chiave`. True se c'e' riuscita."""
         nb = getattr(self, "_nb", None)
-        if nb is None:
-            return
-        # L'onboarding usa ancora i nomi italiani come alias interni; il
-        # titolo visualizzato della scheda può invece essere inglese.
-        aliases = {
-            "Simulatore": "tab.simulator",
-            "Anteprima": "tab.preview",
-            "Guida": "tab.guide",
-        }
-        needle = tr(aliases[substr]) if substr in aliases else substr
-        for tab in nb.tabs():
-            if needle.lower() in nb.tab(tab, "text").lower():
-                try:
-                    nb.select(tab)
-                except tk.TclError:
-                    pass
-                return
+        widget = (getattr(self, "_schede", None) or {}).get(chiave)
+        if nb is None or widget is None:
+            return False
+        try:
+            nb.select(widget)
+        except tk.TclError:
+            return False
+        return True
 
     def _open_guide(self, section=None):
         """
@@ -555,7 +570,7 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
         link «Apri Guida» apriva la Guida in cima, qualunque fosse la scheda
         di partenza.
         """
-        self._select_tab_by_text("Guida")
+        self._seleziona_scheda("guida")
         if not section:
             return
         txt = getattr(self, "_guide_text", None)

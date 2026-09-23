@@ -111,12 +111,18 @@ def test_tab_alias_selection_works_with_english_shell_labels():
         def select(self, tab_id):
             self.selected = tab_id
 
-    harness = SimpleNamespace(_nb=Notebook())
-    select_tab = app_module.App._select_tab_by_text
+    # H1: la scheda si sceglie per chiave stabile, non piu' cercando il
+    # titolo tradotto. Il test resta lo stesso in sostanza — con la lingua
+    # inglese si arriva alla scheda giusta — ma non passa piu' dal testo.
+    harness = SimpleNamespace(_nb=Notebook(),
+                              _schede={"anteprima": "preview",
+                                       "inizio": "start"})
+    seleziona = app_module.App._seleziona_scheda
     set_language("en")
 
-    select_tab(harness, "Anteprima")
+    assert seleziona(harness, "anteprima") is True
     assert harness._nb.selected == "preview"
+    assert seleziona(harness, "scheda_che_non_esiste") is False
 
 
 def test_language_preference_saves_it_and_en(monkeypatch):

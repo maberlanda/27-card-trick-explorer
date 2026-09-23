@@ -751,9 +751,9 @@ class ExplorerTabMixin:
         self._update_matrix_tab(r)
 
     def _switch_to_explorer(self):
-        for w in self.winfo_children():
-            if isinstance(w, ttk.Notebook):
-                for i, tab in enumerate(w.tabs()):
-                    if "Explorer" in w.tab(tab, "text"):
-                        w.select(i)
-                        return
+        """H1: per chiave stabile, non cercando «Explorer» fra i titoli.
+
+        Funzionava perche' quella parola si scrive uguale nelle due lingue:
+        una coincidenza, non un contratto.
+        """
+        self._seleziona_scheda("explorer")

@@ -773,17 +773,59 @@ def test_le_schede_hanno_chiavi_stabili():
         assert chiave in it and chiave in en
 
 
-@pytest.mark.xfail(strict=True,
-                   reason="la selezione delle schede passa ancora dal titolo "
-                          "tradotto")
 def test_la_selezione_delle_schede_non_passa_dal_titolo():
-    sorgenti = {
-        "app": (PACCHETTO / "gui" / "app.py").read_text(encoding="utf-8"),
-        "explorer": (PACCHETTO / "gui" / "explorer_tab.py").read_text(
-            encoding="utf-8"),
-    }
-    assert 'w.tab(tab, "text")' not in sorgenti["explorer"]
-    assert 'nb.tab(tab, "text")' not in sorgenti["app"]
+    """Nessuna rotta di navigazione legge piu' l'etichetta di una scheda."""
+    for nome in ("app.py", "explorer_tab.py", "onboarding_tab.py"):
+        sorgente = (PACCHETTO / "gui" / nome).read_text(encoding="utf-8")
+        assert '.tab(tab, "text")' not in sorgente, nome
+        assert "_select_tab_by_text" not in sorgente, nome
+
+
+def test_le_schede_si_scelgono_per_chiave(lingua):
+    """La stessa chiave porta alla stessa scheda in ogni lingua."""
+    from types import SimpleNamespace
+
+    from gioco27.gui import app as app_module
+
+    class Notebook:
+        def __init__(self):
+            self.scelta = None
+
+        def select(self, widget):
+            self.scelta = widget
+
+    finto = SimpleNamespace(_nb=Notebook(),
+                            _schede={"guida": "<guida>", "explorer": "<expl>"})
+    for lingua_codice in ("it", "en"):
+        lingua(lingua_codice)
+        assert app_module.App._seleziona_scheda(finto, "guida") is True
+        assert finto._nb.scelta == "<guida>"
+    assert app_module.App._seleziona_scheda(finto, "mai_registrata") is False
+
+
+def test_ogni_scheda_ha_una_chiave_stabile():
+    """Le chiavi registrate coprono le rotte di navigazione esistenti."""
+    sorgente = (PACCHETTO / "gui" / "app.py").read_text(encoding="utf-8")
+    albero = ast.parse(sorgente)
+    registrate = set()
+    for n in ast.walk(albero):
+        if (isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute)
+                and n.func.attr == "_aggiungi_scheda" and len(n.args) >= 2):
+            chiave = n.args[1]
+            if isinstance(chiave, ast.Constant):
+                registrate.add(chiave.value)
+    assert {"inizio", "simulatore", "tavola", "anteprima", "analisi",
+            "explorer", "guida", "cicli", "distribuzione"} <= registrate
+
+    richieste = set()
+    for nome in ("app.py", "explorer_tab.py", "onboarding_tab.py"):
+        albero = ast.parse((PACCHETTO / "gui" / nome).read_text(encoding="utf-8"))
+        for n in ast.walk(albero):
+            if (isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute)
+                    and n.func.attr == "_seleziona_scheda" and n.args
+                    and isinstance(n.args[0], ast.Constant)):
+                richieste.add(n.args[0].value)
+    assert richieste and richieste <= registrate, richieste - registrate
 
 
 # ════════════════════════════ catalogo IT/EN ════════════════════════════════
