@@ -1,8 +1,9 @@
-"""Compartimento F — gli ingressi dell'analisi vengono validati (B05).
+"""Compartimento F — ingressi validati (B05) e filtri ancora incoerenti (B06).
 
-Schema riconosciuto, `T` validata dal contratto di dominio di D, formula
-verificata con il parser unico di E, righe scartate elencate con numero di riga
-e motivo. Nessun ingresso invalido puo' piu' valere «zero risultati».
+La prima meta' del compartimento e' chiusa: schema, `T` e formula hanno un
+contratto. La seconda e' qui misurata e non ancora corretta — conteggio,
+enumerazione e validazione dei filtri descrivono domini diversi — con prove
+`xfail(strict=True)` che dovranno smettere di fallire.
 """
 import pathlib
 from types import SimpleNamespace
@@ -11,6 +12,7 @@ import pytest
 
 from gioco27.core.algebra import analizza_csv, analizza_righe
 from gioco27.core.analisi import RisultatiImport, SchemaNonRiconosciuto, importa_csv, riconosci_schema
+from gioco27.core.combinations import count_combinations_ex, iter_combinations_ex
 from gioco27.core.constants import ANY
 from gioco27.core.permutations import CSV_HEADER
 from gioco27.gui import analysis_tab
@@ -384,3 +386,60 @@ def test_f_i_risultati_restano_una_lista(tmp_path):
     assert esito[0]["n_sim"] == 1 and len(esito) == 1
     percorso = _scrivi(tmp_path / "uno.csv", [_riga_csv()])
     assert isinstance(importa_csv(percorso), list)
+
+
+# ═════════════════ B06 — conteggio ed enumerazione divergono ════════════════
+#
+# `valida_filtri` non guarda ne' il numero di stadi ne' i valori;
+# `count_combinations_ex` percorre tutti gli stadi ricevuti mentre
+# `iter_combinations_ex` legge solo i primi tre. Tre descrizioni dello stesso
+# dominio, e nessuna che valga per le altre due.
+
+FILTRO_FISSO = dict(p0="SCD_U", p1="SCD_U", p2="SCD_U",
+                    j0="I_3", j1="I_3", j2="I_3")
+
+#: Strutture che non descrivono un dominio enumerabile a tre stadi.
+FILTRI_MALFORMATI = [
+    ("quattro stadi", [FILTRO_FISSO, FILTRO_FISSO, FILTRO_FISSO,
+                       dict(FILTRO_FISSO, p0="*")]),
+    ("due stadi",     [FILTRO_FISSO, FILTRO_FISSO]),
+    ("nessuno stadio", []),
+    ("chiave sconosciuta", [dict(FILTRO_FISSO, pX="SCD_U"),
+                            FILTRO_FISSO, FILTRO_FISSO]),
+    ("nome inesistente", [dict(FILTRO_FISSO, p0="NON_ESISTE"),
+                          FILTRO_FISSO, FILTRO_FISSO]),
+    ("tipo errato", [dict(FILTRO_FISSO, p0=3), FILTRO_FISSO, FILTRO_FISSO]),
+    ("elenco con duplicati", [dict(FILTRO_FISSO, p0=["SCD_U", "SCD_U"]),
+                              FILTRO_FISSO, FILTRO_FISSO]),
+    ("j_uniform non booleano", [dict(FILTRO_FISSO, j_uniform="si"),
+                                FILTRO_FISSO, FILTRO_FISSO]),
+]
+
+
+def _conta(filtri):
+    try:
+        return count_combinations_ex(filtri)
+    except Exception as errore:
+        return type(errore).__name__
+
+
+def _enumera(filtri):
+    try:
+        return sum(1 for _ in iter_combinations_ex(filtri))
+    except Exception as errore:
+        return type(errore).__name__
+
+
+@pytest.mark.xfail(strict=True, reason="B06: count=6 e iter=1 con quattro stadi")
+def test_b06_conteggio_ed_enumerazione_descrivono_lo_stesso_dominio():
+    discordi = [(nota, _conta(f), _enumera(f)) for nota, f in FILTRI_MALFORMATI
+                if _conta(f) != _enumera(f)]
+    assert discordi == []
+
+
+@pytest.mark.xfail(strict=True,
+                   reason="B06: valori e chiavi non validi passano senza un fiato")
+def test_b06_le_strutture_malformate_vengono_rifiutate():
+    accettate = [nota for nota, f in FILTRI_MALFORMATI
+                 if isinstance(_conta(f), int) and isinstance(_enumera(f), int)]
+    assert accettate == []
