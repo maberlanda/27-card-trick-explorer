@@ -1273,6 +1273,10 @@ _ITALIAN = {
     "filter.fixed": "Fissa",
     "filter.or_select": "oppure seleziona uno o più valori:",
     "filter.values": "Valori:",
+    "filter.never_empty": "Un livello non può restare senza valori: "
+                          "togliendo l'ultimo torna attivo {option}, "
+                          "l'identità. È sempre stato il comportamento del "
+                          "filtro, ora si vede.",
     "filter.uniform_j": "J UNIFORMI  —  J0 = J1 = J2",
     "filter.uniform_j_note": "2 combinazioni J invece di 8",
     "table.detail.heading": "Disposizione semplice #{number}",
@@ -2574,6 +2578,10 @@ _ENGLISH = {
     "filter.fixed": "Fix",
     "filter.or_select": "or select one or more values:",
     "filter.values": "Values:",
+    "filter.never_empty": "A level cannot be left with no values: clearing "
+                          "the last one turns {option} back on, the identity. "
+                          "The filter always behaved this way; now you can "
+                          "see it.",
     "filter.uniform_j": "UNIFORM J  —  J0 = J1 = J2",
     "filter.uniform_j_note": "2 J combinations instead of 8",
     "table.detail.heading": "Simple arrangement #{number}",

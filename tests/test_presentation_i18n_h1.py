@@ -123,9 +123,6 @@ def test_m01_il_fallback_e_la_prima_opzione(pannello, livello, opzioni):
     assert opzioni[0] in ("SCD_U", "I_3"), "la prima opzione e' l'identita'"
 
 
-@pytest.mark.xfail(strict=True,
-                   reason="M01: il fallback e' invisibile — il pannello mostra "
-                          "un livello vuoto e il filtro ne usa uno pieno")
 @pytest.mark.parametrize("livello,opzioni", [("P0", P_OPTS), ("J0", J_OPTS)])
 def test_m01_la_ui_mostra_cio_che_il_filtro_usa(pannello, livello, opzioni):
     """Quello che si vede e quello che si ottiene devono coincidere."""
@@ -134,6 +131,51 @@ def test_m01_la_ui_mostra_cio_che_il_filtro_usa(pannello, livello, opzioni):
     prodotto = pannello.get_filter()[livello.lower()]
     assert _selezionate(pannello, livello) == _attese_dal_filtro(prodotto,
                                                                 opzioni)
+
+
+@pytest.mark.parametrize("livello,opzioni", [("P0", P_OPTS), ("J0", J_OPTS)])
+def test_m01_togliendo_l_ultima_casella_la_prima_si_riaccende(pannello, livello,
+                                                              opzioni):
+    """La sostituzione avviene sotto gli occhi di chi guarda, non nel codice."""
+    for _, bv in pannello._vars[livello][1]:
+        bv.set(False)
+    assert _selezionate(pannello, livello) == {opzioni[0]}
+
+
+def test_m01_il_click_reale_non_svuota_il_livello(pannello):
+    """Non e' un effetto della scrittura diretta della variabile: si prova
+    invocando i Checkbutton veri, uno per uno, come farebbe l'utente."""
+    for casella in pannello._caselle["J0"]:
+        casella.invoke()
+    assert _selezionate(pannello, "J0") == {J_OPTS[0]}
+    assert pannello.get_filter()["j0"] == J_OPTS[0]
+
+
+def test_m01_il_riallineamento_notifica_una_volta_sola():
+    """`on_change` non deve partire due volte per un solo click."""
+    from gioco27.gui.filter_frame import FilterFrame
+
+    root = _radice_tk()
+    try:
+        conteggio = []
+        ff = FilterFrame(root, stage_num=0,
+                         on_change=lambda: conteggio.append(1))
+        for _, bv in ff._vars["J0"][1]:
+            bv.set(False)
+        # due scritture (J0 spenta due volte) piu' il riallineamento, che non
+        # deve produrre una notifica propria.
+        assert len(conteggio) == 2
+        assert _selezionate(ff, "J0") == {J_OPTS[0]}
+    finally:
+        root.destroy()
+
+
+def test_m01_la_regola_e_scritta_nell_interfaccia(lingua):
+    """Il perche' si legge nel pannello, localizzato, non solo nel codice."""
+    for codice, atteso in (("it", "identità"), ("en", "identity")):
+        lingua(codice)
+        testo = catalogo.tr("filter.never_empty", option="SCD_U")
+        assert "SCD_U" in testo and atteso in testo
 
 
 def test_m01_il_reset_riaccende_tutto(pannello):

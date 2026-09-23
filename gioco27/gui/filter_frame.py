@@ -54,6 +54,10 @@ class FilterFrame(ttk.LabelFrame):
         self._on_change = on_change   # callback per aggiornamento live
         self._vars = {}               # nome → (StringVar_dropdown, [(opt, BoolVar)])
         self._j_row_widgets = []      # widget J1 e J2 da disabilitare
+        self._caselle = {}            # nome → [Checkbutton] (per i test e M01)
+        # M01: guardia contro la ricorsione quando il pannello riaccende da se'
+        # l'ultima casella tolta.
+        self._riallineando = False
 
         # ── Pannello esplicativo (cosa sono questi controlli) ──────────────
         intro = tk.Frame(self, bg="#EFF5FB",
@@ -159,7 +163,10 @@ class FilterFrame(ttk.LabelFrame):
         lbl.grid(row=row, column=0, sticky="e", padx=(4, 2), pady=5)
         widgets.append(lbl)
         if name in _LEVEL_DESC:
-            _tip(lbl, tr(_LEVEL_DESC[name]))
+            # M01: la regola del livello mai vuoto si legge dove si legge il
+            # significato del livello, senza aggiungere widget al pannello.
+            _tip(lbl, tr(_LEVEL_DESC[name]) + "\n\n"
+                 + tr("filter.never_empty", option=opts[0]))
 
         dvar = tk.StringVar(value=ANY)
         if self._on_change:
@@ -173,15 +180,19 @@ class FilterFrame(ttk.LabelFrame):
         _tip(combo, tr("filter.combo.tooltip", name=name))
 
         bvars = []
+        caselle = []
         for k, opt in enumerate(opts):
             bv = tk.BooleanVar(value=True)
-            if self._on_change:
-                bv.trace_add("write", lambda *_: self._on_change())
+            # M01: la traccia c'e' sempre, anche senza `on_change`, perche' non
+            # serve solo a notificare: e' dove il pannello si riallinea.
+            bv.trace_add("write",
+                         lambda *_, n=name: self._dopo_cambio_casella(n))
             chk = ttk.Checkbutton(parent, text=opt,
                                   variable=bv,
                                   style=chk_style)
             chk.grid(row=row, column=2 + k, padx=4, pady=5, sticky="w")
             bvars.append((opt, bv))
+            caselle.append(chk)
             widgets.append(chk)
             _desc = _PERM3_DESC.get(opt) or _J_DESC.get(opt)
             if _desc:
@@ -189,7 +200,36 @@ class FilterFrame(ttk.LabelFrame):
                              description=tr(_desc)))
 
         self._vars[name] = (dvar, bvars)
+        self._caselle[name] = caselle
         return widgets
+
+    # ─────────────────────────────────────────────────────────────────────────
+
+    def _dopo_cambio_casella(self, name):
+        """M01 — un livello non resta mai senza valori, e si vede.
+
+        `get_filter` ha sempre sostituito la prima opzione quando nessuna
+        casella era accesa: il filtro prodotto era quello dell'identita'
+        (`SCD_U` per P, `I_3` per J) mentre il pannello mostrava sei caselle
+        spente. Il risultato era corretto e inspiegabile.
+
+        La semantica non cambia — il filtro prodotto resta esattamente lo
+        stesso — ma la sostituzione smette di essere invisibile: togliendo
+        l'ultimo valore, la prima opzione si riaccende sotto gli occhi di chi
+        guarda. Il fallback difensivo in `get_filter` resta al suo posto per
+        chi costruisce un pannello a mano.
+        """
+        _, caselle = self._vars[name]
+        if not self._riallineando and not any(bv.get() for _, bv in caselle):
+            self._riallineando = True
+            try:
+                caselle[0][1].set(True)
+            finally:
+                self._riallineando = False
+        if self._riallineando:
+            return                    # la notifica la manda la chiamata esterna
+        if self._on_change:
+            self._on_change()
 
     # ─────────────────────────────────────────────────────────────────────────
 
@@ -229,6 +269,11 @@ class FilterFrame(ttk.LabelFrame):
                 elif len(selected) == 1:
                     result[name.lower()] = selected[0]
                 elif len(selected) == 0:
+                    # M01: dal pannello questo caso non arriva piu' — togliendo
+                    # l'ultimo valore la prima opzione si riaccende, e si vede.
+                    # La riga resta perche' il filtro deve restare definito
+                    # anche per chi costruisce un pannello a mano: la semantica
+                    # e' quella di sempre, l'identita'.
                     result[name.lower()] = opts[0]   # fallback
                 else:
                     result[name.lower()] = selected
