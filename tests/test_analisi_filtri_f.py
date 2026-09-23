@@ -1,8 +1,18 @@
-"""Compartimento F — analisi, filtri, aggregazione e budget (B05, B06, R01).
+"""Compartimento F — analisi, filtri, aggregazione e budget.
 
-Il piano decide anche se le righe grezze verranno conservate, e l'aggregazione
-incrementale lo onora: sopra il limite restano gli aggregati, completi, e gli
-export dei grezzi si disabilitano da soli.
+Tre difetti, una sola pipeline:
+
+* **B05** — gli ingressi dell'analisi non venivano validati: `[0,0,99]` era una
+  `T` accettabile e un file con intestazione `foo;bar` produceva zero
+  risultati, indistinguibile da un dominio vuoto.
+* **B06** — validazione, conteggio ed enumerazione descrivevano domini diversi:
+  con quattro stadi il conteggio diceva 6 e l'iteratore produceva 1.
+* **R01** — l'analisi materializzava ogni riga prima di aggregare, e l'unica
+  difesa contro 5.159.780.352 combinazioni era una finestra «sei sicuro?».
+
+I test sono deterministici: nessuna attesa, nessuna soglia temporale, nessuna
+dipendenza dalla memoria della macchina. Il caso enorme si prova con una
+sentinella che esplode se qualcuno avvia l'enumerazione, non enumerando.
 """
 import ast
 import pathlib
@@ -640,6 +650,46 @@ def test_r01_nessun_risultato_parziale_presentato_come_completo(tab, monkeypatch
     tab.esegui_coda()
     assert ("disabled" in {stato for _, stato in disabilitate})
     assert tab._analisi_corrente.grezzi == ()
+
+
+# ═══════════════════════ kronecker — il ramo morto ══════════════════════════
+
+def test_kronecker_nessun_codice_dopo_un_return_incondizionato():
+    sorgente = (RADICE / "gioco27" / "core" / "kronecker.py").read_text(
+        encoding="utf-8")
+    albero = ast.parse(sorgente)
+    for funzione in [n for n in ast.walk(albero)
+                     if isinstance(n, ast.FunctionDef)]:
+        for i, istruzione in enumerate(funzione.body[:-1]):
+            assert not isinstance(istruzione, ast.Return), (
+                f"{funzione.name}: codice dopo un return incondizionato")
+
+
+def test_kronecker_il_worker_parallelo_non_esiste_piu():
+    from gioco27.core import kronecker
+    assert not hasattr(kronecker, "_worker_chunk")
+    sorgente = (RADICE / "gioco27" / "core" / "kronecker.py").read_text(
+        encoding="utf-8")
+    assert "ProcessPoolExecutor" not in sorgente
+    assert "as_completed" not in sorgente
+
+
+@pytest.mark.parametrize("n_workers", [None, 1, 2, 8])
+def test_kronecker_comportamento_pubblico_invariato(n_workers):
+    from gioco27.core import kronecker
+    identita = list(range(27))
+    attese = kronecker.find_all_kron_decompositions(identita)
+    assert len(attese) == 46_656 == kronecker.cardinalita_attesa(identita)
+    assert kronecker.find_all_kron_decompositions_parallel(
+        identita, n_workers=n_workers) == attese
+
+
+def test_kronecker_fuori_da_g_resta_vuoto():
+    from gioco27.core import kronecker
+    fuori = [(i * 2) % 27 for i in range(27)]
+    assert not kronecker.appartiene_a_G(fuori)
+    assert kronecker.cardinalita_attesa(fuori) == 0
+    assert kronecker.find_all_kron_decompositions(fuori) == []
 
 
 # ═════════════════════ contratti degli altri compartimenti ══════════════════

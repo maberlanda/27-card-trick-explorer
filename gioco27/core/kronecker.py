@@ -16,11 +16,10 @@ Algoritmo vettorizzato (numpy puro, niente loop Python sul 46k):
   Costo reale: 216 iterazioni Python x matmul numpy 216x27.
 
 Versione parallela:
-  find_all_kron_decompositions_parallel(target, n_workers)
-  usa ProcessPoolExecutor con worker top-level _worker_chunk.
+  find_all_kron_decompositions_parallel(target, n_workers) e' un alias storico:
+  delega sempre alla sequenziale, che a questi tempi e' piu' veloce.
 """
 import os
-from concurrent.futures import ProcessPoolExecutor, as_completed
 
 import numpy as np
 
@@ -250,103 +249,29 @@ def find_all_kron_decompositions(target_perm_27, progress_cb=None):
 
 # --------------------------------------------------------- parallel search ---
 
-def _worker_chunk(outer_indices, target_bytes, kron_arr_bytes, kron_names, msc_bytes):
-    """
-    Worker top-level per ProcessPoolExecutor.
-    Riceve dati come bytes per evitare problemi di serializzazione numpy.
-    """
-    import numpy as np
-    target   = np.frombuffer(target_bytes,   dtype=np.int32).copy()
-    kron_arr = np.frombuffer(kron_arr_bytes, dtype=np.int32).reshape(216, 27).copy()
-    msc      = np.frombuffer(msc_bytes,      dtype=np.int32).copy()
-
-    kron_lookup = {kron_arr[i].tobytes(): i for i in range(216)}
-
-    results = []
-    for outer_i in outer_indices:
-        A1    = kron_arr[outer_i]
-        step1 = A1[msc]
-        inner = kron_arr[:, msc[step1]]
-        C_all = msc[inner]
-        Cinv  = np.argsort(C_all, axis=1)
-        A3req = target[Cinv]
-        for j in range(216):
-            key = A3req[j].tobytes()
-            if key in kron_lookup:
-                results.append((kron_names[outer_i],
-                                kron_names[j],
-                                kron_names[kron_lookup[key]]))
-    return results
-
-
 def find_all_kron_decompositions_parallel(target_perm_27,
                                           n_workers=None,
                                           progress_cb=None):
-    """
-    Versione parallela della ricerca Kronecker.
-    Distribuisce i 216 indici outer su n_workers processi.
+    """Nome storico della ricerca: oggi delega sempre alla sequenziale.
 
-    n_workers=None -> tutti i core logici meno uno
-    Fallback automatico a sequenziale se n_workers==1 o spawn fallisce.
+    La versione parallela distribuiva i 216 indici esterni su piu' processi.
+    Dalle ottimizzazioni della 3.0.2 la ricerca completa costa ~0,025 s:
+    avviare processi che re-importano numpy costa da dieci a cento volte
+    tanto, e il parallelo risultava gia' piu' lento del sequenziale con due
+    soli worker. La delega era stata messa come primo `return`, ma il corpo
+    parallelo era rimasto sotto: quaranta righe irraggiungibili — pool,
+    serializzazione, deduplicazione — piu' il worker `_worker_chunk` che solo
+    loro usavano. Il compartimento F le ha rimosse.
 
-    progress_cb(completed_outer: int, found: int)
+    La firma resta invariata: `n_workers` viene accettato e ignorato, perche'
+    i chiamanti (la scheda Decomposizioni, i test) lo passano.
     """
     if n_workers is None:
         n_workers = max(1, (os.cpu_count() or 2) - 1)
-    if n_workers <= 1:
-        return find_all_kron_decompositions(target_perm_27, progress_cb=progress_cb)
-
-    # La ricerca completa costa ~0,025 s: avviare dei processi che
-    # re-importano numpy costerebbe da dieci a cento volte tanto. Misurato:
-    # il parallelo e' gia' piu' lento del sequenziale con due soli worker.
-    # (Prima delle ottimizzazioni della 3.0.2 questa ricerca durava secondi e
-    # il parallelo aveva senso; ora non piu'.)
-    _log.debug("Ricerca decomposizioni: sequenziale (lavoro troppo breve "
-               "per giustificare il multiprocessing)")
+    if n_workers > 1:
+        _log.debug("Ricerca decomposizioni: sequenziale (lavoro troppo breve "
+                   "per giustificare il multiprocessing)")
     return find_all_kron_decompositions(target_perm_27, progress_cb=progress_cb)
-
-    kron_arr, kron_names, kron_lookup = _get_kron_table()
-    msc    = np.array(_MSC_PERM, dtype=np.int32)
-    target = np.array(target_perm_27, dtype=np.int32)
-
-    # Serializza come bytes per IPC
-    target_bytes   = target.tobytes()
-    kron_arr_bytes = kron_arr.tobytes()
-    msc_bytes      = msc.tobytes()
-
-    # Distribuisce gli indici in n_workers chunk (round-robin per bilanciare)
-    chunks = [list(range(i, 216, n_workers)) for i in range(n_workers)]
-    chunks = [c for c in chunks if c]   # rimuovi chunk vuoti
-
-    results   = []
-    completed = 0
-
-    try:
-        with ProcessPoolExecutor(max_workers=n_workers) as pool:
-            future_to_size = {
-                pool.submit(_worker_chunk, chunk,
-                            target_bytes, kron_arr_bytes, kron_names, msc_bytes): len(chunk)
-                for chunk in chunks
-            }
-            for future in as_completed(future_to_size):
-                chunk_results = future.result()
-                results.extend(chunk_results)
-                completed += future_to_size[future]
-                if progress_cb is not None:
-                    progress_cb(completed, len(results))
-    except Exception:
-        # Fallback sequenziale in caso di errore multiprocessing
-        _log.exception("Ricerca decomposizioni parallela fallita: fallback sequenziale")
-        return find_all_kron_decompositions(target_perm_27, progress_cb=progress_cb)
-
-    # Deduplicazione (improbabile ma sicura)
-    seen    = set()
-    deduped = []
-    for t in results:
-        if t not in seen:
-            seen.add(t)
-            deduped.append(t)
-    return deduped
 
 
 # ─────────────────────────── single Kronecker decomposition ──────────────────
