@@ -35,6 +35,7 @@ from gioco27.core.combinations import (FiltroNonValido, N_STADI, cardinalita,
 from gioco27.core.constants import ANY, J_OPTS, P_OPTS
 from gioco27.core.permutations import CSV_HEADER
 from gioco27.gui import analysis_tab
+from gioco27.services import analisi as servizio_analisi
 
 RADICE = pathlib.Path(__file__).resolve().parents[1]
 
@@ -569,7 +570,9 @@ def test_r01_la_scheda_rifiuta_il_dominio_enorme_senza_enumerare(tab, monkeypatc
     def esplode(*a, **k):
         raise AssertionError("enumeratore avviato")
 
-    monkeypatch.setattr(analysis_tab, "iter_combinations_ex", esplode)
+    # G1: enumerazione e aggregazione vivono nel servizio applicativo; la
+    # sentinella si sposta li', il comportamento verificato resta lo stesso.
+    monkeypatch.setattr(servizio_analisi, "iter_combinations_ex", esplode)
     tab._filtri = [{k: ANY for k in FISSO} for _ in range(3)]
     tab._run_analisi()
     assert tab.lavori == []                      # nessun lavoro avviato
@@ -581,7 +584,7 @@ def test_r01_la_scheda_rifiuta_un_filtro_non_valido(tab, monkeypatch):
     def esplode(*a, **k):
         raise AssertionError("enumeratore avviato")
 
-    monkeypatch.setattr(analysis_tab, "iter_combinations_ex", esplode)
+    monkeypatch.setattr(servizio_analisi, "iter_combinations_ex", esplode)
     tab._filtri = [dict(FISSO, p0="NON_ESISTE"), dict(FISSO), dict(FISSO)]
     tab._run_analisi()
     assert tab.lavori == []
@@ -601,7 +604,7 @@ def test_r01_analisi_piccola_pubblica_aggregati_e_grezzi(tab):
 
 def test_r01_analisi_grande_pubblica_solo_aggregati(tab, monkeypatch):
     """Sopra il limite dei grezzi: aggregati completi, grezzi assenti e detto."""
-    monkeypatch.setattr(analysis_tab, "pianifica_analisi",
+    monkeypatch.setattr(servizio_analisi, "pianifica_analisi",
                         lambda f: PianoAnalisi(combinazioni=6, grezzi=False))
     tab._filtri = [dict(FISSO, p0=ANY), dict(FISSO), dict(FISSO)]
     tab._run_analisi()
@@ -647,7 +650,7 @@ def test_r01_nessun_risultato_parziale_presentato_come_completo(tab, monkeypatch
     disabilitate = []
     tab._analisi_exp_menu = SimpleNamespace(
         entryconfigure=lambda indice, state: disabilitate.append((indice, state)))
-    monkeypatch.setattr(analysis_tab, "pianifica_analisi",
+    monkeypatch.setattr(servizio_analisi, "pianifica_analisi",
                         lambda f: PianoAnalisi(combinazioni=6, grezzi=False))
     tab._filtri = [dict(FISSO, p0=ANY), dict(FISSO), dict(FISSO)]
     tab._run_analisi()

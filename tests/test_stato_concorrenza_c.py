@@ -131,7 +131,9 @@ def tab(monkeypatch):
     monkeypatch.setattr(analysis_tab, "messagebox", SimpleNamespace(
         showinfo=lambda *a, **k: None, showwarning=lambda *a, **k: None,
         showerror=lambda *a, **k: None, askyesno=lambda *a, **k: True))
-    t.lavori = lavori
+    servizio = _ServizioFinto()
+    monkeypatch.setattr(analysis_tab, "SERVIZIO", servizio)
+    t.lavori, t.servizio = lavori, servizio
     return t
 
 
@@ -144,28 +146,58 @@ def _risultati(n_sim, perm="[0]"):
     return [{"n_sim": n_sim, "perm_str": perm, "simboliche": [f"S{n_sim}"]}]
 
 
-def _piano(monkeypatch, combinazioni, grezzi=True):
-    """Finge il preflight dell'analisi.
+def _risultato(n_sim, perm="[0]", origine=Provenienza.FILTRI, grezzi=(),
+               totale=None):
+    """Un risultato applicativo pronto, come lo restituirebbe il servizio."""
+    aggregati = tuple(_risultati(n_sim, perm))
+    return RisultatoAnalisi(origine=origine, aggregati=aggregati,
+                            totale=n_sim if totale is None else totale,
+                            grezzi=tuple(grezzi))
 
-    Il compartimento F ha sostituito il conteggio nudo del dominio con un piano
-    calcolato prima di enumerare: e' li' che la scheda decide quante
-    combinazioni ci sono e se terra' le righe grezze. I test che qui fingono un
-    dominio piccolo fingono il piano; il contratto di C — revisioni,
-    pubblicazione unica, RisultatoAnalisi — non cambia.
+
+class _ServizioFinto:
+    """Il servizio dell'analisi ridotto a cio' che i test di C guardano.
+
+    Dal compartimento G1 la scheda non enumera, non costruisce righe e non
+    aggrega: chiede il lavoro a un servizio applicativo e ne pubblica il
+    risultato. Questi test fingono quindi il servizio invece dei singoli pezzi
+    dell'algoritmo (`iter_combinations_ex`, `make_csv_row`, `analizza_righe`,
+    `analizza_csv`). Il contratto di C — revisione, pubblicazione unica,
+    risultato coerente — sta sopra al servizio e non cambia.
     """
-    monkeypatch.setattr(analysis_tab, "pianifica_analisi",
-                        lambda f: PianoAnalisi(combinazioni=combinazioni,
-                                               grezzi=grezzi))
+
+    def __init__(self, piano=None):
+        self.piano = piano or PianoAnalisi(combinazioni=1, grezzi=True)
+        self.filtri, self.csv, self.pipeline = [], [], []
+
+    def pianifica(self, filtri):
+        return self.piano
+
+    def da_filtri(self, filtri, *, piano=None, progresso=None,
+                  ancora_valida=None):
+        return self._prossimo(self.filtri)
+
+    def da_csv(self, percorso):
+        return self._prossimo(self.csv)
+
+    def pipeline_csv(self, ingresso, csv_uscita, excel_uscita, *,
+                     ancora_valida=None):
+        return self._prossimo(self.pipeline)
+
+    @staticmethod
+    def _prossimo(coda):
+        assert coda, "il servizio finto e' stato chiamato piu' volte del previsto"
+        esito = coda.pop(0)
+        if isinstance(esito, Exception):
+            raise esito
+        return esito
 
 
 # ───────────────────────────── B02 ──────────────────────────────────────────
 
 def test_b02_analisi_dai_filtri_porta_con_se_i_grezzi(tab, monkeypatch):
-    _piano(monkeypatch, 2)
-    monkeypatch.setattr(analysis_tab, "iter_combinations_ex", lambda f: iter([0, 1]))
-    monkeypatch.setattr(analysis_tab, "make_csv_row",
-                        lambda i, p: [str(i)] * 9)
-    monkeypatch.setattr(analysis_tab, "analizza_righe", lambda righe: _risultati(2))
+    tab.servizio.filtri.append(_risultato(
+        2, grezzi=({"Stage0": "1"}, {"Stage0": "2"})))
 
     tab._run_analisi()
     tab.lavori[0].esegui()
@@ -179,17 +211,14 @@ def test_b02_analisi_dai_filtri_porta_con_se_i_grezzi(tab, monkeypatch):
 
 def test_b02_import_csv_non_eredita_i_grezzi_precedenti(tab, monkeypatch):
     """A -> import B: gli aggregati sono di B, i grezzi di A spariscono."""
-    _piano(monkeypatch, 1)
-    monkeypatch.setattr(analysis_tab, "iter_combinations_ex", lambda f: iter([0]))
-    monkeypatch.setattr(analysis_tab, "make_csv_row", lambda i, p: ["A"] * 9)
-    monkeypatch.setattr(analysis_tab, "analizza_righe", lambda righe: _risultati(1, "[A]"))
+    tab.servizio.filtri.append(_risultato(1, "[A]", grezzi=({"Stage0": "A"},)))
     tab._run_analisi()
     tab.lavori[0].esegui()
     tab.esegui_coda()
     assert tab._analisi_righe_raw and tab._analisi_righe_raw[0]["Stage0"] == "A"
 
     _csv_finto(monkeypatch)
-    monkeypatch.setattr(analysis_tab, "analizza_csv", lambda p: _risultati(7, "[B]"))
+    tab.servizio.csv.append(_risultato(7, "[B]", origine=Provenienza.CSV))
     tab._analisi_load_csv()
     tab.lavori[1].esegui()
     tab.esegui_coda()
@@ -203,7 +232,7 @@ def test_b02_import_csv_non_eredita_i_grezzi_precedenti(tab, monkeypatch):
 
 def test_b02_import_vuoto(tab, monkeypatch):
     _csv_finto(monkeypatch)
-    monkeypatch.setattr(analysis_tab, "analizza_csv", lambda p: [])
+    tab.servizio.csv.append(RisultatoAnalisi(origine=Provenienza.CSV))
     tab._analisi_load_csv()
     tab.lavori[0].esegui()
     tab.esegui_coda()
@@ -212,21 +241,14 @@ def test_b02_import_vuoto(tab, monkeypatch):
 
 
 def test_b02_import_fallito_lascia_lo_stato_precedente_coerente(tab, monkeypatch):
-    _piano(monkeypatch, 1)
-    monkeypatch.setattr(analysis_tab, "iter_combinations_ex", lambda f: iter([0]))
-    monkeypatch.setattr(analysis_tab, "make_csv_row", lambda i, p: ["A"] * 9)
-    monkeypatch.setattr(analysis_tab, "analizza_righe", lambda righe: _risultati(1, "[A]"))
+    tab.servizio.filtri.append(_risultato(1, "[A]", grezzi=({"Stage0": "A"},)))
     tab._run_analisi()
     tab.lavori[0].esegui()
     tab.esegui_coda()
     prima = (list(tab._analisi_risultati), list(tab._analisi_righe_raw))
 
     _csv_finto(monkeypatch)
-
-    def rotto(_p):
-        raise OSError("file illeggibile")
-
-    monkeypatch.setattr(analysis_tab, "analizza_csv", rotto)
+    tab.servizio.csv.append(OSError("file illeggibile"))
     tab._analisi_load_csv()
     tab.lavori[1].esegui()
     tab.esegui_coda()
@@ -240,18 +262,14 @@ def test_b02_import_fallito_lascia_lo_stato_precedente_coerente(tab, monkeypatch
 
 def test_b02_catena_a_b_c(tab, monkeypatch):
     """A (filtri) -> B (csv) -> C (filtri): nessun dato di A riappare con C."""
-    _piano(monkeypatch, 1)
-    monkeypatch.setattr(analysis_tab, "make_csv_row", lambda i, p: ["A"] * 9)
-    monkeypatch.setattr(analysis_tab, "iter_combinations_ex", lambda f: iter([0]))
-    monkeypatch.setattr(analysis_tab, "analizza_righe", lambda righe: _risultati(1, "[A]"))
+    tab.servizio.filtri.append(_risultato(1, "[A]", grezzi=({"Stage0": "A"},)))
     tab._run_analisi(); tab.lavori[-1].esegui(); tab.esegui_coda()
 
     _csv_finto(monkeypatch)
-    monkeypatch.setattr(analysis_tab, "analizza_csv", lambda p: _risultati(2, "[B]"))
+    tab.servizio.csv.append(_risultato(2, "[B]", origine=Provenienza.CSV))
     tab._analisi_load_csv(); tab.lavori[-1].esegui(); tab.esegui_coda()
 
-    monkeypatch.setattr(analysis_tab, "make_csv_row", lambda i, p: ["C"] * 9)
-    monkeypatch.setattr(analysis_tab, "analizza_righe", lambda righe: _risultati(3, "[C]"))
+    tab.servizio.filtri.append(_risultato(3, "[C]", grezzi=({"Stage0": "C"},)))
     tab._run_analisi(); tab.lavori[-1].esegui(); tab.esegui_coda()
 
     assert tab._analisi_risultati[0]["perm_str"] == "[C]"
@@ -274,16 +292,11 @@ def test_b02_aggregati_e_grezzi_vengono_sempre_dallo_stesso_risultato(tab):
 # ───────────────────────────── B03 ──────────────────────────────────────────
 
 def _prepara_due_analisi(tab, monkeypatch):
-    _piano(monkeypatch, 1)
-    monkeypatch.setattr(analysis_tab, "iter_combinations_ex", lambda f: iter([0]))
-    etichette = iter(["A", "B"])
-
-    def righe(i, p):
-        return [next(etichette)] * 9
-
-    monkeypatch.setattr(analysis_tab, "make_csv_row", righe)
-    monkeypatch.setattr(analysis_tab, "analizza_righe",
-                        lambda rows: _risultati(1, f"[{rows[0]['Stage0']}]"))
+    """Due analisi dai filtri, la prima etichettata A e la seconda B."""
+    tab.servizio.filtri.extend([
+        _risultato(1, "[A]", grezzi=({"Stage0": "A"},)),
+        _risultato(1, "[B]", grezzi=({"Stage0": "B"},)),
+    ])
 
 
 def test_b03_completamenti_fuori_ordine_pubblicano_solo_il_corrente(tab, monkeypatch):
@@ -294,7 +307,7 @@ def test_b03_completamenti_fuori_ordine_pubblicano_solo_il_corrente(tab, monkeyp
     """
     _prepara_due_analisi(tab, monkeypatch)
     _csv_finto(monkeypatch)
-    monkeypatch.setattr(analysis_tab, "analizza_csv", lambda p: _risultati(9, "[B]"))
+    tab.servizio.csv.append(_risultato(9, "[B]", origine=Provenienza.CSV))
 
     tab._run_analisi()                     # A parte per prima
     tab._analisi_load_csv()                # B e' la richiesta corrente
@@ -333,7 +346,7 @@ def test_b03_reset_invalida_il_lavoro_in_corso(tab, monkeypatch):
 
 def test_b03_reset_durante_import(tab, monkeypatch):
     _csv_finto(monkeypatch)
-    monkeypatch.setattr(analysis_tab, "analizza_csv", lambda p: _risultati(5))
+    tab.servizio.csv.append(_risultato(5, origine=Provenienza.CSV))
     tab._analisi_load_csv()
     tab._reset_analisi()
     tab.lavori[0].esegui(); tab.esegui_coda()
@@ -342,7 +355,7 @@ def test_b03_reset_durante_import(tab, monkeypatch):
 
 def test_b03_nuova_richiesta_durante_import(tab, monkeypatch):
     _csv_finto(monkeypatch)
-    monkeypatch.setattr(analysis_tab, "analizza_csv", lambda p: _risultati(5, "[CSV]"))
+    tab.servizio.csv.append(_risultato(5, "[CSV]", origine=Provenienza.CSV))
     tab._analisi_load_csv()                       # import in corso
     _prepara_due_analisi(tab, monkeypatch)
     tab._run_analisi()                            # nuova richiesta dai filtri

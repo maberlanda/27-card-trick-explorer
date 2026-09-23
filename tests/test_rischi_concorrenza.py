@@ -12,7 +12,8 @@ import tkinter as tk
 import pytest
 
 from gioco27.core import cache, config, parallel
-from gioco27.core.analisi import PianoAnalisi
+from gioco27.core.analisi import PianoAnalisi, RisultatiImport
+from gioco27.services import analisi as servizio_analisi
 from gioco27.gui import app as app_module, common, analysis_tab
 
 
@@ -179,18 +180,22 @@ def test_r1_analisi_si_ferma_fra_due_elementi(close, monkeypatch):
         calls.append(i)
         return [str(i)] * 9
 
-    # F: il preflight ha preso il posto del conteggio nudo
-    monkeypatch.setattr(analysis_tab, "pianifica_analisi",
+    # G1: l'enumerazione e l'aggregazione sono passate al servizio applicativo;
+    # il controllo «questa richiesta e' ancora corrente?» resta della scheda e
+    # arriva al servizio come `ancora_valida`. I finti si spostano dove ora
+    # vive il lavoro, e il comportamento verificato e' lo stesso: fra un
+    # elemento e l'altro la chiusura ferma tutto.
+    monkeypatch.setattr(servizio_analisi, "pianifica_analisi",
                         lambda f: PianoAnalisi(combinazioni=2, grezzi=True))
-    monkeypatch.setattr(analysis_tab, "iter_combinations_ex", params)
-    monkeypatch.setattr(analysis_tab, "make_csv_row", row)
+    monkeypatch.setattr(servizio_analisi, "iter_combinations_ex", params)
+    monkeypatch.setattr(servizio_analisi, "make_csv_row", row)
     def analyze(rows):
         assert not app._closing
         assert len(rows) == 2
         assert rows[0]["Stage0"] == "1" and rows[1]["Stage2"] == "2"
-        return expected
+        return RisultatiImport(expected)
 
-    monkeypatch.setattr(analysis_tab, "analizza_righe", analyze)
+    monkeypatch.setattr(servizio_analisi, "_aggrega", analyze)
     monkeypatch.setattr(analysis_tab, "run_in_thread", lambda widget, job, **kw: job())
     analysis_tab.AnalysisTabMixin._run_analisi(app)
     for callback in app.scheduled:
@@ -240,17 +245,17 @@ def test_r1_analisi_csv_completa_o_interrotta(pipeline, close, monkeypatch, tmp_
     monkeypatch.setattr(analysis_tab.filedialog, "askopenfilename", lambda **kw: "input.csv")
     monkeypatch.setattr(analysis_tab.filedialog, "asksaveasfilename", lambda **kw: str(tmp_path / "out.csv"))
     monkeypatch.setattr(analysis_tab, "run_in_thread", lambda widget, job, **kw: job())
-    monkeypatch.setattr(analysis_tab, "scrivi_output", lambda *args: saved.append("csv"))
-    monkeypatch.setattr(analysis_tab, "scrivi_excel", lambda *args: saved.append("excel"))
+    monkeypatch.setattr(servizio_analisi, "scrivi_output", lambda *args: saved.append("csv"))
+    monkeypatch.setattr(servizio_analisi, "scrivi_excel", lambda *args: saved.append("excel"))
     monkeypatch.setattr(analysis_tab.messagebox, "showinfo", lambda *args: displayed.append("message"))
 
     def analyze(path):
         if close:
             with pytest.raises(SystemExit):
                 app._on_close()
-        return result
+        return RisultatiImport(result)
 
-    monkeypatch.setattr(analysis_tab, "analizza_csv", analyze)
+    monkeypatch.setattr(servizio_analisi, "importa_csv", analyze)
     method = (analysis_tab.AnalysisTabMixin._analisi_csv_pipeline if pipeline
               else analysis_tab.AnalysisTabMixin._analisi_load_csv)
     method(app)

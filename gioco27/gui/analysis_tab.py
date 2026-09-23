@@ -10,36 +10,27 @@ import pathlib
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
 
-from ..core.analisi import (AnalisiTroppoGrande, Aggregatore,
-                            analizza_csv, analizza_righe, pianifica_analisi)
+from ..core.analisi import AnalisiTroppoGrande
 from ..core.algebra import _prep_explorer_expr
 from ..core.export_analisi import (EXCEL_MAX_CELL_CHARS, scrivi_excel,
                                    scrivi_output)
-from ..core.combinations import iter_combinations_ex
 from ..core.parallel import atomic_write
-from ..core.permutations import make_csv_row
-from ..services.modelli import Provenienza, RisultatoAnalisi
+from ..services import RisultatoAnalisi, servizio_analisi
 from .common import configure_matrix_tags, insert_colored, EtaEstimator, run_in_thread
 from .i18n import tr
 from .i18n import get_language
 
 
+#: Il servizio che esegue l'analisi. E' un attributo di modulo perche' la
+#: scheda ne ha uno solo e perche' cosi' resta sostituibile nei test, come lo
+#: erano le funzioni che chiamava prima.
+SERVIZIO = servizio_analisi()
+
 #: `RisultatoAnalisi` era un modello locale di questa scheda (compartimento C).
 #: Dal compartimento G1 e' il contratto applicativo condiviso di
 #: `gioco27.services.modelli`: viene ri-esportato qui perche' e' da qui che
 #: moduli e test lo importano.
-__all__ = ["AnalysisTabMixin", "RisultatoAnalisi"]
-
-
-def _diagnostica_import(risultati):
-    """Riassunto delle righe scartate, quando il risultato se lo porta dietro.
-
-    L'import restituisce una `RisultatiImport` (una lista con in piu' la
-    diagnostica); un risultato qualunque — per esempio quello di un test che
-    sostituisce l'analisi — resta una lista e non ha nulla da dire.
-    """
-    riassunto = getattr(risultati, "diagnostica", None)
-    return riassunto() if callable(riassunto) else ""
+__all__ = ["AnalysisTabMixin", "RisultatoAnalisi", "SERVIZIO"]
 
 
 class AnalysisTabMixin:
@@ -225,9 +216,9 @@ class AnalysisTabMixin:
         nel frattempo c'e' stato un reset, una nuova richiesta o la chiusura.
 
         La revisione e' un argomento e non piu' un campo del risultato: dal
-        compartimento G1 il risultato e' un modello applicativo condiviso, e chi
-        lo produce non ha modo di sapere quale richiesta sia corrente. Chi
-        decide se pubblicare resta questa scheda, con le primitive di C.
+        compartimento G1 il risultato e' un modello applicativo condiviso, e un
+        servizio non ha modo di sapere quale richiesta sia corrente. Chi decide
+        se pubblicare resta questa scheda, con le primitive di C.
         """
         if not self._analisi_e_corrente(revisione):
             return False
@@ -284,14 +275,17 @@ class AnalysisTabMixin:
         self._analisi_status.set(tr("analysis.status.prompt"))
 
     def _run_analisi(self):
-        # Preflight (R01): i filtri vengono validati e il dominio contato
-        # PRIMA di toccare l'enumeratore. Un piano non eseguibile non fa
-        # partire nulla: prima l'unica difesa era una finestra «sei sicuro?»,
-        # e con i filtri liberi (5.159.780.352 combinazioni) il «si'» portava
-        # a riempire la memoria.
+        """Raccoglie i filtri, chiede il lavoro al servizio, pubblica il risultato.
+
+        Dal compartimento G1 questa scheda non enumera, non costruisce righe e
+        non aggrega: erano `iter_combinations_ex`, `make_csv_row`,
+        `Aggregatore` e `analizza_righe` chiamati da qui. Restano suoi il
+        preflight mostrato all'utente, l'avanzamento, la revisione (C) e la
+        decisione di pubblicare.
+        """
         filters = self._get_filters()
         try:
-            piano = pianifica_analisi(filters)
+            piano = SERVIZIO.pianifica(filters)
         except AnalisiTroppoGrande as troppo:
             messagebox.showwarning(
                 tr("analysis.too_large_title"),
@@ -323,55 +317,23 @@ class AnalysisTabMixin:
 
         def job():
             _eta = EtaEstimator()
-            # Aggregazione incrementale: le righe entrano nei contatori una per
-            # volta. Sopra il limite del piano NON vengono trattenute, e i
-            # grezzi restano vuoti — il modello di C disabilita da solo gli
-            # export che li richiedono.
-            # In modalita' completa le righe restano comunque tutte: validarle
-            # e aggregarle due volte sarebbe spreco, quindi qui l'aggregatore
-            # si limita a trattenerle e il lavoro lo fa `analizza_righe` alla
-            # fine — lo stesso codice, chiamato piu' tardi.
-            aggregatore = Aggregatore(tieni_grezzi=piano.grezzi,
-                                      aggrega=not piano.grezzi)
-            for i, params in enumerate(iter_combinations_ex(filters), 1):
-                if not self._analisi_e_corrente(revisione):
-                    return
-                rd = make_csv_row(i, params)
-                aggregatore.aggiungi({
-                    "Stage0": rd[1], "Stage1": rd[2], "Stage2": rd[3],
-                    "A0": rd[4], "A1": rd[5], "A2": rd[6],
-                    "T_simbolica": rd[7], "T_permutazione": rd[8],
-                })
-                if i % 200 == 0:
-                    self._ui(lambda v=i: self._analisi_e_corrente(revisione) and (
-                        self.progress.__setitem__("value", v),
-                        self._analisi_status.set(tr(
-                            "analysis.status.generation_progress",
-                            done=f"{v:,}", total=f"{n:,}", eta=_eta.text(v, n)))))
-            if not self._analisi_e_corrente(revisione):
+
+            def avanzamento(fatte, totale):
+                self._ui(lambda v=fatte: self._analisi_e_corrente(revisione) and (
+                    self.progress.__setitem__("value", v),
+                    self._analisi_status.set(tr(
+                        "analysis.status.generation_progress",
+                        done=f"{v:,}", total=f"{totale:,}",
+                        eta=_eta.text(v, totale)))))
+
+            risultato = SERVIZIO.da_filtri(
+                filters, piano=piano, progresso=avanzamento,
+                ancora_valida=lambda: self._analisi_e_corrente(revisione))
+            if risultato is None:             # richiesta superata: niente da dire
                 return
-            self._ui(lambda: self._analisi_e_corrente(revisione)
-                     and self._analisi_status.set(tr(
-                         "analysis.status.analyzing_rows",
-                         count=f"{aggregatore.lette:,}")))
-            risultati = (analizza_righe(aggregatore.grezzi) if piano.grezzi
-                         else aggregatore.risultati())
-            if not self._analisi_e_corrente(revisione):
-                return
-            note = [] if piano.grezzi else [
-                tr("analysis.raw_not_kept", limit=f"{piano.limite_grezzi:,}")]
-            esito = (risultati if piano.grezzi else aggregatore.esito())
-            riassunto = getattr(esito, "diagnostica", lambda: "")()
-            if riassunto:
-                note.append(riassunto)
-            # Aggregati e grezzi entrano nello stato insieme, sul thread Tk.
-            risultato = RisultatoAnalisi(
-                origine=Provenienza.FILTRI, aggregati=tuple(risultati),
-                totale=n, grezzi=aggregatore.grezzi,
-                grezzi_scartati=not piano.grezzi,
-                lette=getattr(esito, "lette", 0),
-                scartate=getattr(esito, "scartate", ()),
-                nota="   ".join(note))
+            if risultato.grezzi_scartati:
+                risultato = risultato.con_nota(tr(
+                    "analysis.raw_not_kept", limit=f"{piano.limite_grezzi:,}"))
             self._ui(lambda: self._analisi_pubblica(risultato, revisione))
 
         run_in_thread(self, job, error_title=tr("analysis.error_title"),
@@ -392,28 +354,14 @@ class AnalysisTabMixin:
         revisione = self._analisi_nuova_revisione()
 
         def job():
-            risultati = analizza_csv(path)
+            risultato = SERVIZIO.da_csv(path)
             if not self._analisi_e_corrente(revisione):
                 return
-            n = sum(r["n_sim"] for r in risultati)
-            # Un CSV di aggregati non porta con se' le righe grezze: restano
-            # vuote, e gli export che le richiedono si disabilitano. Prima
-            # sopravvivevano quelle dell'analisi precedente (B02).
-            note = [os.path.basename(path)]
-            riassunto = _diagnostica_import(risultati)
-            if riassunto:
-                note.append(riassunto)
-            risultato = RisultatoAnalisi(
-                origine=Provenienza.CSV, aggregati=tuple(risultati), totale=n,
-                lette=getattr(risultati, "lette", 0),
-                scartate=getattr(risultati, "scartate", ()),
-                nota="   —   ".join(note))
             self._ui(lambda: self._analisi_pubblica(risultato, revisione))
 
         run_in_thread(self, job, error_title=tr("analysis.csv_read_error_title"),
                       on_error=lambda e: self._analisi_status.set(
                           tr("analysis.status.error")))
-
 
     def _analisi_csv_pipeline(self):
         """Pipeline completa: carica COMBINAZIONI CSV → analisi → salva CSV + Excel.
@@ -425,54 +373,39 @@ class AnalysisTabMixin:
         if not inp:
             return
 
-        import os as _os
-        base, _ = _os.path.splitext(inp)
+        base, _ = os.path.splitext(inp)
         out_csv  = filedialog.asksaveasfilename(
             title=tr("analysis.save_pipeline"),
-            initialfile=_os.path.basename(base) + "_analisi.csv",
+            initialfile=os.path.basename(base) + "_analisi.csv",
             defaultextension=".csv",
             filetypes=[("CSV", "*.csv")])
         if not out_csv:
             return
-        out_xlsx = _os.path.splitext(out_csv)[0] + ".xlsx"
+        out_xlsx = os.path.splitext(out_csv)[0] + ".xlsx"
 
         self._analisi_status.set(tr("analysis.status.running"))
         self.update_idletasks()
         revisione = self._analisi_nuova_revisione()
 
         def job():
-            risultati = analizza_csv(inp)
-            if not self._analisi_e_corrente(revisione):
+            risultato = SERVIZIO.pipeline_csv(
+                inp, out_csv, out_xlsx,
+                ancora_valida=lambda: self._analisi_e_corrente(revisione))
+            if risultato is None:
                 return
-            scrivi_output(risultati, out_csv)
-            if not self._analisi_e_corrente(revisione):
-                return
-            scrivi_excel(risultati, out_xlsx)
-            if not self._analisi_e_corrente(revisione):
-                return
-            n_perm = len(risultati)
-            n_tot  = sum(r["n_sim"] for r in risultati)
-            note = [_os.path.basename(inp)]
-            riassunto = _diagnostica_import(risultati)
-            if riassunto:
-                note.append(riassunto)
-            risultato = RisultatoAnalisi(
-                origine=Provenienza.PIPELINE, aggregati=tuple(risultati),
-                totale=n_tot, lette=getattr(risultati, "lette", 0),
-                scartate=getattr(risultati, "scartate", ()),
-                nota="   —   ".join(note))
             self._ui(lambda: self._analisi_pubblica(risultato, revisione))
             msg = tr(
-                "analysis.completed_summary", permutations=f"{n_perm:,}",
-                sequences=f"{n_tot:,}", csv=_os.path.basename(out_csv),
-                excel=_os.path.basename(out_xlsx))
+                "analysis.completed_summary",
+                permutations=f"{len(risultato.aggregati):,}",
+                sequences=f"{risultato.totale:,}",
+                csv=os.path.basename(out_csv),
+                excel=os.path.basename(out_xlsx))
             self._ui(lambda m=msg: messagebox.showinfo(
                 tr("analysis.completed_title"), m))
 
         run_in_thread(self, job, error_title=tr("error.generic"),
                       on_error=lambda e: self._analisi_status.set(
                           tr("analysis.status.error")))
-
 
     def _analisi_populate(self, risultati, n_tot):
         self.progress["value"] = n_tot

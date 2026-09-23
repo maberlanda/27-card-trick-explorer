@@ -1,20 +1,25 @@
-"""Compartimento G1 — modello condiviso e linguaggio separato dall'I/O.
+"""Compartimento G1 — servizio dell'analisi, con prova di equivalenza.
 
-Oltre alla caratterizzazione e al modello: `core.algebra` non scrive piu' su
-disco, e i nomi storici che se ne sono andati restano raggiungibili da li'
-attraverso una facciata che non ricrea il ciclo d'importazione.
+Il percorso vecchio e' scritto per esteso in questo file (`_percorso_storico`)
+e confrontato con il servizio su ingressi rappresentativi: non e' la stessa
+funzione chiamata due volte. Piu' la caratterizzazione del comportamento, il
+modello condiviso e la separazione del linguaggio.
 """
 import ast
+import importlib
 import pathlib
 from types import SimpleNamespace
 
 import pytest
 
-from gioco27.core.analisi import Aggregatore, SchemaNonRiconosciuto, aggrega_righe
-from gioco27.core.combinations import iter_combinations_ex
+from gioco27.core.analisi import (Aggregatore, PianoAnalisi, RisultatiImport,
+                                  SchemaNonRiconosciuto, aggrega_righe,
+                                  analizza_csv, importa_csv, pianifica_analisi)
+from gioco27.core.combinations import FiltroNonValido, iter_combinations_ex
 from gioco27.core.constants import ANY
 from gioco27.core.permutations import CSV_HEADER, make_csv_row
-from gioco27.services import Provenienza, RisultatoAnalisi
+from gioco27.services import (Provenienza, RisultatoAnalisi, ServizioAnalisi,
+                              servizio_analisi)
 
 RADICE = pathlib.Path(__file__).resolve().parents[1]
 PACCHETTO = RADICE / "gioco27"
@@ -69,6 +74,147 @@ def _scrivi_csv(percorso, righe, intestazione=None):
 
 def _riga_csv(perm=IDENTITA, formula="T = MSC o MSC o MSC", numero=1):
     return [str(numero), "", "", "", "", "", "", formula, perm]
+
+
+@pytest.fixture
+def servizio():
+    return ServizioAnalisi()
+
+
+# ═══════════════════════════════ equivalenza ════════════════════════════════
+
+@pytest.mark.parametrize("nota,filtri", PICCOLI, ids=[n for n, _ in PICCOLI])
+def test_equivalenza_analisi_dai_filtri(servizio, nota, filtri):
+    attesi, grezzi = _percorso_storico(filtri)
+    risultato = servizio.da_filtri(filtri)
+
+    assert list(risultato.aggregati) == attesi
+    assert list(risultato.grezzi) == list(grezzi)
+    assert risultato.totale == servizio.pianifica(filtri).combinazioni
+    assert risultato.origine == Provenienza.FILTRI == "filtri"
+    assert risultato.completo and not risultato.parziale
+    assert risultato.grezzi_disponibili and not risultato.grezzi_scartati
+
+
+@pytest.mark.parametrize("nota,filtri", PICCOLI, ids=[n for n, _ in PICCOLI])
+def test_equivalenza_modalita_aggregata(servizio, nota, filtri):
+    """Sopra il limite dei grezzi gli aggregati sono gli stessi, i grezzi no."""
+    attesi, _ = _percorso_storico(filtri)
+    senza_grezzi, grezzi = _percorso_storico(filtri, tieni_grezzi=False)
+    assert senza_grezzi == attesi and grezzi == ()
+
+    piano = PianoAnalisi(combinazioni=servizio.pianifica(filtri).combinazioni,
+                         grezzi=False)
+    risultato = servizio.da_filtri(filtri, piano=piano)
+    assert list(risultato.aggregati) == attesi
+    assert risultato.grezzi == () and risultato.grezzi_scartati
+    assert not risultato.grezzi_disponibili
+    assert not risultato.completo          # qualcosa non e' stato conservato
+    assert not risultato.parziale          # ma nessuna riga e' stata rifiutata
+
+
+def test_equivalenza_import_csv(servizio, tmp_path):
+    percorso = _scrivi_csv(tmp_path / "combinazioni.csv",
+                           [_riga_csv(numero=1), _riga_csv(numero=2)])
+    atteso = analizza_csv(percorso)          # il percorso storico, ancora vivo
+    risultato = servizio.da_csv(percorso)
+
+    assert list(risultato.aggregati) == list(atteso)
+    assert risultato.totale == sum(r["n_sim"] for r in atteso)
+    assert risultato.origine == Provenienza.CSV == "csv"
+    assert risultato.grezzi == () and not risultato.grezzi_scartati
+    assert "combinazioni.csv" in risultato.diagnostica
+
+
+def test_equivalenza_import_parziale(servizio, tmp_path):
+    percorso = _scrivi_csv(tmp_path / "misto.csv",
+                           [_riga_csv(numero=1),
+                            _riga_csv("[0,0,99]", numero=2),
+                            _riga_csv(numero=3)])
+    atteso = importa_csv(percorso)
+    risultato = servizio.da_csv(percorso)
+
+    assert list(risultato.aggregati) == list(atteso)
+    assert risultato.lette == atteso.lette == 3
+    assert risultato.scartate == atteso.scartate
+    assert risultato.parziale and not risultato.completo
+    assert "riga 3" in risultato.diagnostica
+
+
+def test_import_di_schema_invalido_resta_un_errore(servizio, tmp_path):
+    percorso = _scrivi_csv(tmp_path / "ignoto.csv", [["1", "2"]],
+                           intestazione=["foo", "bar"])
+    with pytest.raises(SchemaNonRiconosciuto):
+        analizza_csv(percorso)
+    with pytest.raises(SchemaNonRiconosciuto):
+        servizio.da_csv(percorso)
+
+
+def test_export_analisi_resta_non_importabile(servizio, tmp_path):
+    """F lo ha deciso, G1 non lo cambia."""
+    percorso = _scrivi_csv(
+        tmp_path / "analisi.csv", [[IDENTITA, "T = MSC", "1"]],
+        intestazione=["T_permutazione  [lista 0..26]",
+                      "T_simboliche_distinte  [separate da , ]",
+                      "n_sim_distinte"])
+    with pytest.raises(SchemaNonRiconosciuto):
+        servizio.da_csv(percorso)
+
+
+def test_pipeline_scrive_e_restituisce_lo_stesso_risultato(servizio, tmp_path):
+    ingresso = _scrivi_csv(tmp_path / "in.csv", [_riga_csv(numero=1)])
+    uscita_csv = tmp_path / "out.csv"
+    uscita_xlsx = tmp_path / "out.xlsx"
+    risultato = servizio.pipeline_csv(ingresso, uscita_csv, uscita_xlsx)
+
+    assert uscita_csv.exists() and uscita_xlsx.exists()
+    assert risultato.origine == Provenienza.PIPELINE == "pipeline"
+    assert list(risultato.aggregati) == list(servizio.da_csv(ingresso).aggregati)
+    intestazione = uscita_csv.read_text(encoding="utf-8").splitlines()[0]
+    assert "T_permutazione" in intestazione and "n_sim_distinte" in intestazione
+
+
+def test_il_piano_e_quello_di_f(servizio):
+    """Il servizio non ha una policy propria: usa quella del compartimento F."""
+    filtri = _filtri(p0=ANY)
+    assert servizio.pianifica(filtri) == pianifica_analisi(filtri)
+    with pytest.raises(FiltroNonValido):
+        servizio.pianifica([dict(FISSO), dict(FISSO)])
+
+
+def test_le_soglie_non_sono_cambiate():
+    from gioco27.core import analisi
+    assert analisi.LIMITE_GREZZI == 100_000
+    assert analisi.LIMITE_ANALISI == 1_000_000
+
+
+# ═════════════════════ interruzione e avanzamento ═══════════════════════════
+
+def test_il_servizio_si_ferma_quando_la_richiesta_non_e_piu_corrente(servizio):
+    """`ancora_valida` e' l'unico modo che il servizio ha di sapere di smettere."""
+    visti = []
+
+    def valida():
+        visti.append(1)
+        return len(visti) <= 2          # smette al terzo controllo
+
+    assert servizio.da_filtri(_filtri(p0=ANY), ancora_valida=valida) is None
+
+
+def test_il_servizio_riporta_l_avanzamento(servizio, monkeypatch):
+    monkeypatch.setattr("gioco27.services.analisi.PASSO_AVANZAMENTO", 2)
+    passi = []
+    risultato = servizio.da_filtri(_filtri(p0=ANY),
+                                   progresso=lambda f, t: passi.append((f, t)))
+    assert passi == [(2, 6), (4, 6), (6, 6)]
+    assert risultato.totale == 6
+
+
+def test_il_servizio_non_sa_nulla_di_thread():
+    """Sincrono: chi vuole un thread se lo mette lui attorno."""
+    sorgente = (PACCHETTO / "services" / "analisi.py").read_text(encoding="utf-8")
+    for vietato in ("threading", "Thread", "after(", "run_in_thread"):
+        assert vietato not in sorgente
 
 
 # ═══════════════════════ il modello e i suoi stati ══════════════════════════
@@ -223,6 +369,65 @@ class TabG1:
 
     def _analisi_aggiorna_export(self):
         pass
+
+
+def test_la_scheda_pubblica_cio_che_il_servizio_restituisce(monkeypatch):
+    from gioco27.gui import analysis_tab
+    lavori = []
+    monkeypatch.setattr(analysis_tab, "run_in_thread",
+                        lambda widget, job, **kw: lavori.append(job) or None)
+    monkeypatch.setattr(analysis_tab, "messagebox", SimpleNamespace(
+        showinfo=lambda *a, **k: None, showwarning=lambda *a, **k: None,
+        showerror=lambda *a, **k: None, askyesno=lambda *a, **k: True))
+
+    tab = TabG1(_filtri(p0=ANY))
+    tab._analisi_aggiorna_export = lambda: None
+    tab._run_analisi()
+    lavori[0]()
+    tab.esegui_coda()
+
+    atteso, grezzi = _percorso_storico(_filtri(p0=ANY))
+    assert tab._analisi_risultati == atteso
+    assert tab._analisi_righe_raw == list(grezzi)
+    assert tab._analisi_corrente.origine == "filtri"
+    assert tab.popolati == [(atteso, 6)]
+
+
+def test_la_revisione_continua_a_decidere_la_pubblicazione(monkeypatch):
+    from gioco27.gui import analysis_tab
+    lavori = []
+    monkeypatch.setattr(analysis_tab, "run_in_thread",
+                        lambda widget, job, **kw: lavori.append(job) or None)
+    monkeypatch.setattr(analysis_tab, "messagebox", SimpleNamespace(
+        showinfo=lambda *a, **k: None, showwarning=lambda *a, **k: None,
+        showerror=lambda *a, **k: None, askyesno=lambda *a, **k: True))
+
+    tab = TabG1(_filtri())
+    tab._analisi_aggiorna_export = lambda: None
+    tab._run_analisi()
+    tab._analisi_nuova_revisione()          # una richiesta piu' nuova
+    lavori[0]()                             # il lavoro vecchio finisce ora
+    tab.esegui_coda()
+    assert tab.popolati == [] and tab._analisi_corrente is None
+
+
+def test_il_servizio_condiviso_e_quello_usato_dalla_scheda():
+    from gioco27.gui import analysis_tab
+    assert analysis_tab.SERVIZIO is servizio_analisi()
+    assert isinstance(analysis_tab.SERVIZIO, ServizioAnalisi)
+
+
+def test_i_moduli_del_servizio_si_importano_da_soli():
+    """Nessun import ciclico nascosto: ogni modulo si carica isolato."""
+    for nome in ("gioco27.services.modelli", "gioco27.services.analisi",
+                 "gioco27.core.export_analisi", "gioco27.core.analisi"):
+        assert importlib.import_module(nome) is not None
+
+
+def test_risultati_import_resta_il_contratto_interno():
+    """Il modello applicativo non sostituisce quello dell'import (F)."""
+    esito = aggrega_righe([{"T_permutazione": IDENTITA}])
+    assert isinstance(esito, RisultatiImport) and isinstance(esito, list)
 
 
 # ══════ caratterizzazione: il comportamento osservabile della scheda ════════
