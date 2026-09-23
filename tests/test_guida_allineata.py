@@ -307,9 +307,33 @@ def _pulsanti_barra_azioni():
     Etichette di tutti i pulsanti della barra azioni e della barra preset,
     estratte da _build_ui() con l'AST (niente regex sulle emoji).
     """
+    from gioco27.i18n import CATALOGS
+
     tree = ast.parse(APP.read_text(encoding="utf-8"))
     fn = next(n for n in ast.walk(tree)
               if isinstance(n, ast.FunctionDef) and n.name == "_build_ui")
+
+    def _testo(nodo):
+        """Il testo di un `text=`: costante, oppure f-string con un tr()."""
+        if isinstance(nodo, ast.Constant) and isinstance(nodo.value, str):
+            return nodo.value
+        if isinstance(nodo, ast.JoinedStr):
+            # H2: le etichette sono f-string con dentro tr("button.x"). Prima
+            # c'era anche il testo italiano scritto a mano, poi sovrascritto
+            # da `.configure(text=...)`: era quello che questo test leggeva.
+            pezzi = []
+            for pezzo in nodo.values:
+                if isinstance(pezzo, ast.Constant):
+                    pezzi.append(str(pezzo.value))
+                elif (isinstance(pezzo, ast.FormattedValue)
+                        and isinstance(pezzo.value, ast.Call)
+                        and getattr(pezzo.value.func, "id", "") == "tr"
+                        and pezzo.value.args
+                        and isinstance(pezzo.value.args[0], ast.Constant)):
+                    pezzi.append(CATALOGS["it"].get(pezzo.value.args[0].value, ""))
+            return "".join(pezzi)
+        return None
+
     etichette = []
     for node in ast.walk(fn):
         if not isinstance(node, ast.Call):
@@ -319,8 +343,19 @@ def _pulsanti_barra_azioni():
         if nome not in ("Button", "Checkbutton", "Menubutton"):
             continue
         for kw in node.keywords:
-            if kw.arg == "text" and isinstance(kw.value, ast.Constant):
-                etichette.append(kw.value.value)
+            if kw.arg == "text":
+                testo = _testo(kw.value)
+                if testo:
+                    etichette.append(testo)
+    # Le etichette costruite in ciclo (barra preset) stanno in una tupla di
+    # f-string: si leggono allo stesso modo, fuori dalle chiamate a Button.
+    for node in ast.walk(fn):
+        if isinstance(node, ast.Tuple):
+            for elemento in node.elts:
+                if isinstance(elemento, ast.Tuple) and elemento.elts:
+                    testo = _testo(elemento.elts[0])
+                    if testo:
+                        etichette.append(testo)
     return etichette
 
 

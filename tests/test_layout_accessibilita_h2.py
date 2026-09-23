@@ -165,15 +165,49 @@ def test_m04_a_1920x1080_tutto_c_e(applicazione):
     assert presenti == attese, sorted(attese - presenti)
 
 
-@pytest.mark.xfail(strict=True,
-                   reason="M04: la barra azioni non va a capo, e i pulsanti "
-                          "impacchettati a destra spariscono")
-@pytest.mark.parametrize("geometria", ["1280x720", "1366x768"])
+@pytest.mark.parametrize("geometria", list(TARGET))
 def test_m04_le_azioni_essenziali_restano_raggiungibili(applicazione,
                                                         geometria):
     _dimensiona(applicazione, geometria)
     presenti, attese = _azioni_essenziali_presenti(applicazione)
     assert presenti == attese, sorted(attese - presenti)
+
+
+@pytest.mark.parametrize("geometria", list(TARGET))
+def test_le_barre_vanno_a_capo_invece_di_perdere_pulsanti(applicazione,
+                                                          geometria):
+    """Nessun pulsante scompare: la barra occupa una riga in più."""
+    _dimensiona(applicazione, geometria)
+    for barra in (applicazione._barra_azioni, applicazione._barra_preset):
+        assert barra.numero_di_righe() >= 1
+        assert all(w.winfo_ismapped() for w in barra.voci()), geometria
+
+
+def test_la_disposizione_delle_barre_non_innesca_un_ciclo(applicazione):
+    """H2: un `<Configure>` che non cambia nulla non tocca nessun widget."""
+    eventi = {"n": 0}
+    barra = applicazione._barra_azioni
+    identificatore = barra.bind(
+        "<Configure>", lambda _e: eventi.__setitem__("n", eventi["n"] + 1),
+        add="+")
+    try:
+        for geometria in ("1280x750", "1366x768", "1920x1080", "1280x750"):
+            _dimensiona(applicazione, geometria)
+        assert eventi["n"] <= 8, eventi["n"]
+    finally:
+        barra.unbind("<Configure>", identificatore)
+
+
+def test_con_una_finestra_larga_le_azioni_tornano_su_una_riga(applicazione):
+    """Il gruppo di destra resta a destra finché tutto ci sta."""
+    larghezza, _ = _dimensiona(applicazione, "2200x900")
+    barra = applicazione._barra_azioni
+    assert barra.numero_di_righe() == 1
+    ultimo = max(barra.voci(),
+                 key=lambda w: w.winfo_rootx() - applicazione.winfo_rootx())
+    destra = (ultimo.winfo_rootx() - applicazione.winfo_rootx()
+              + ultimo.winfo_width())
+    assert destra > larghezza - 80, "il gruppo di destra non è allineato a destra"
 
 
 @pytest.mark.xfail(strict=True,

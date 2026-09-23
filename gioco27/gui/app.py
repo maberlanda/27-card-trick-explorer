@@ -33,6 +33,7 @@ from .protocol_dialog import ProtocolDialog
 from .guide import build_guide_content
 from .preview_tab import PreviewTabMixin
 from .analysis_tab import AnalysisTabMixin
+from .barra import BarraAdattiva
 from .explorer_tab import ExplorerTabMixin
 from .onboarding_tab import OnboardingTabMixin
 from . import tooltip as _tooltip
@@ -254,99 +255,88 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
                               bd=0, highlightthickness=0)
         action_bar.pack(fill="x")
 
-        inner = ttk.Frame(action_bar, padding=(10, 8))
+        # H2: la barra va a capo invece di lasciar fuori i pulsanti. Prima era
+        # una riga di `pack(side=...)`: a 1280x720 cinque azioni — Verifica,
+        # Presentazione, Protocollo, Cayley, Coniugio — sparivano del tutto.
+        inner = BarraAdattiva(action_bar, padding=(10, 8))
         inner.pack(fill="x")
+        self._barra_azioni = inner
 
-        _b = ttk.Button(inner, text="🔢  Conta",
-                   style="Action.TButton",
-                   command=self._count)
-        _b.configure(text=f"🔢  {tr('button.count')}")
-        _b.pack(side="left", padx=4)
-        _tooltip.attach(_b, tr("tooltip.count"))
-        gen_mb = tk.Menubutton(inner, text="⬇  Genera…", relief="raised")
-        gen_mb.configure(text=f"⬇  {tr('button.generate')}")
+        def _azione(widget, suggerimento=None, padx=4, a_destra=False,
+                    elastico=False):
+            inner.aggiungi(widget, padx=padx, a_destra=a_destra,
+                           elastico=elastico)
+            if suggerimento:
+                _tooltip.attach(widget, suggerimento)
+            return widget
+
+        _azione(ttk.Button(inner, text=f"🔢  {tr('button.count')}",
+                           style="Action.TButton", command=self._count),
+                tr("tooltip.count"))
+        gen_mb = tk.Menubutton(inner, text=f"⬇  {tr('button.generate')}",
+                               relief="raised")
         gen_menu = tk.Menu(gen_mb, tearoff=0)
         gen_menu.add_command(label="📄  PDF",    command=self._gen_pdf)
         gen_menu.add_command(label=f"📄  {tr('menu.pdf_detailed')}", command=self._gen_pdf_detail)
         gen_menu.add_command(label="📊  CSV (;)", command=self._gen_csv)
         gen_mb["menu"] = gen_menu
-        gen_mb.pack(side="left", padx=4)
-        _tooltip.attach(gen_mb, tr("tooltip.generate"))
-        _b = ttk.Button(inner, text="↺  Reset tutto",
-                   style="Action.TButton",
-                   command=self._reset)
-        _b.configure(text=f"↺  {tr('button.reset_all')}")
-        _b.pack(side="left", padx=4)
-        _tooltip.attach(_b, tr("tooltip.reset_all"))
+        _azione(gen_mb, tr("tooltip.generate"))
+        _azione(ttk.Button(inner, text=f"↺  {tr('button.reset_all')}",
+                           style="Action.TButton", command=self._reset),
+                tr("tooltip.reset_all"))
 
-        ttk.Separator(inner, orient="vertical").pack(
-            side="left", fill="y", padx=10)
+        inner.separatore()
         self._beginner_var = tk.BooleanVar(
             value=(self._livello == "principiante"))
         self._beginner_chk = ttk.Checkbutton(
-            inner, text="🎓  Modalità principiante",
+            inner, text=f"🎓  {tr('button.beginner_mode')}",
             variable=self._beginner_var, command=self._toggle_livello)
-        self._beginner_chk.configure(text=f"🎓  {tr('button.beginner_mode')}")
-        self._beginner_chk.pack(side="left", padx=4)
-        _tooltip.attach(self._beginner_chk, tr("tooltip.beginner_mode"))
+        _azione(self._beginner_chk, tr("tooltip.beginner_mode"))
 
-        ttk.Separator(inner, orient="vertical").pack(
-            side="left", fill="y", padx=10)
+        inner.separatore()
 
         # Contatore live (aggiornato al cambio di qualsiasi filtro)
         count_frame = ttk.Frame(inner, style="Action.TFrame")
-        count_frame.pack(side="left", padx=4)
         ttk.Label(count_frame, text=tr("label.combinations"),
                   style="Status.TLabel").pack(side="left")
         self.count_var = tk.StringVar(value="—")
         ttk.Label(count_frame, textvariable=self.count_var,
                   style="Count.TLabel").pack(side="left", padx=(6, 0))
+        _azione(count_frame, None)
 
         self.status_var = tk.StringVar(value="")
-        ttk.Label(inner, textvariable=self.status_var,
-                  style="Status.TLabel",
-                  wraplength=380).pack(side="left", padx=14)
+        self._status_lbl = ttk.Label(inner, textvariable=self.status_var,
+                                     style="Status.TLabel", wraplength=380)
+        # La riga di stato è l'elemento che cede: è l'unico che può stare
+        # stretto senza che si perda un'azione.
+        _azione(self._status_lbl, None, padx=14, elastico=True)
 
-        ttk.Separator(inner, orient="vertical").pack(
-            side="right", fill="y", padx=10)
-        _b = ttk.Button(inner, text="⏻  Esci",
-                   style="Quit.TButton",
-                   command=self._on_close)
-        _b.configure(text=f"⏻  {tr('button.exit')}")
-        _b.pack(side="right", padx=(0, 4))
-        _tooltip.attach(_b, tr("tooltip.exit"))
-
-        # ── Strumenti avanzati (destra) ───────────────────────────────────────
-        _b = ttk.Button(inner, text="⚙️  Impostazioni",
-                   command=self._open_settings)
-        _b.configure(text=f"⚙️  {tr('button.settings')}")
-        _b.pack(side="right", padx=2)
-        _tooltip.attach(_b, tr("tooltip.settings"))
-        _b = ttk.Button(inner, text="✔  Verifica",
-                   command=self._run_selftest)
-        _b.configure(text=f"✔  {tr('button.verify')}")
-        _b.pack(side="right", padx=2)
-        _tooltip.attach(_b, tr("tooltip.verify"))
-        _b = ttk.Button(inner, text=f"🖥️  {tr('button.presentation')}",
-                   command=self._open_presentation)
-        _b.pack(side="right", padx=2)
-        _tooltip.attach(_b, tr("tooltip.presentation"))
-        _b = ttk.Button(inner, text=f"📋  {tr('button.protocol')}",
-                   command=self._open_protocol)
-        _b.pack(side="right", padx=2)
-        _tooltip.attach(_b, tr("tooltip.protocol"))
-        ttk.Separator(inner, orient="vertical").pack(
-            side="right", fill="y", padx=6)
-        _b = ttk.Button(inner, text=f"🔮  {tr('button.cayley')}",
-                   command=self._open_cayley)
-        _b.pack(side="right", padx=2)
-        _tooltip.attach(_b, tr("tooltip.cayley"))
-        _b = ttk.Button(inner, text=f"🔬  {tr('button.conjugacy')}",
-                   command=self._open_conjugacy)
-        _b.pack(side="right", padx=2)
-        _tooltip.attach(_b, tr("tooltip.conjugacy"))
-        ttk.Separator(inner, orient="vertical").pack(
-            side="right", fill="y", padx=6)
+        # ── Strumenti avanzati: a destra quando tutto sta su una riga ─────────
+        inner.separatore(padx=6, a_destra=True)
+        _azione(ttk.Button(inner, text=f"🔬  {tr('button.conjugacy')}",
+                           command=self._open_conjugacy),
+                tr("tooltip.conjugacy"), padx=2, a_destra=True)
+        _azione(ttk.Button(inner, text=f"🔮  {tr('button.cayley')}",
+                           command=self._open_cayley),
+                tr("tooltip.cayley"), padx=2, a_destra=True)
+        inner.separatore(padx=6, a_destra=True)
+        _azione(ttk.Button(inner, text=f"📋  {tr('button.protocol')}",
+                           command=self._open_protocol),
+                tr("tooltip.protocol"), padx=2, a_destra=True)
+        _azione(ttk.Button(inner, text=f"🖥️  {tr('button.presentation')}",
+                           command=self._open_presentation),
+                tr("tooltip.presentation"), padx=2, a_destra=True)
+        _azione(ttk.Button(inner, text=f"✔  {tr('button.verify')}",
+                           command=self._run_selftest),
+                tr("tooltip.verify"), padx=2, a_destra=True)
+        _azione(ttk.Button(inner, text=f"⚙️  {tr('button.settings')}",
+                           command=self._open_settings),
+                tr("tooltip.settings"), padx=2, a_destra=True)
+        _azione(ttk.Button(inner, text=f"⏻  {tr('button.exit')}",
+                           style="Quit.TButton", command=self._on_close),
+                tr("tooltip.exit"), padx=2, a_destra=True)
+        # Il separatore che chiudeva la barra all'estremo destro non separava
+        # nulla: costava 42 px di larghezza e non portava informazione.
 
         # ── Barra preset ──────────────────────────────────────────────────────
         preset_bar = tk.Frame(self, bg=self.C_PRESET_BG,
@@ -354,36 +344,28 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
                               highlightbackground="#E65100")
         preset_bar.pack(fill="x")
 
-        pinner = ttk.Frame(preset_bar, padding=(10, 6))
+        pinner = BarraAdattiva(preset_bar, padding=(10, 6))
         pinner.pack(fill="x")
+        self._barra_preset = pinner
 
-        ttk.Label(pinner, text=tr("label.quick_presets"),
-                  font=("Segoe UI", 10, "bold"),
-                  foreground="#7b4000",
-                  background=self.C_PRESET_BG).pack(side="left", padx=(0, 8))
+        pinner.aggiungi(ttk.Label(pinner, text=tr("label.quick_presets"),
+                                  font=("Segoe UI", 10, "bold"),
+                                  foreground="#7b4000",
+                                  background=self.C_PRESET_BG), padx=0)
 
-        _b = ttk.Button(pinner,
-                   text="🎴  Gioco Reale  (1 728 combinazioni)",
-                   style="GiocoReale.TButton",
-                   command=self._preset_gioco_reale)
-        _b.configure(text=f"🎴  {tr('button.real_game')}")
-        _b.pack(side="left", padx=4)
+        _b = pinner.aggiungi(ttk.Button(
+            pinner, text=f"🎴  {tr('button.real_game')}",
+            style="GiocoReale.TButton", command=self._preset_gioco_reale))
         _tooltip.attach(_b, tr("tooltip.real_game"))
 
-        _b = ttk.Button(pinner,
-                   text="⚡  J Uniformi per tutti gli stadi",
-                   style="Preset.TButton",
-                   command=self._preset_j_uniform)
-        _b.configure(text=f"⚡  {tr('button.uniform_j')}")
-        _b.pack(side="left", padx=4)
+        _b = pinner.aggiungi(ttk.Button(
+            pinner, text=f"⚡  {tr('button.uniform_j')}",
+            style="Preset.TButton", command=self._preset_j_uniform))
         _tooltip.attach(_b, tr("tooltip.uniform_j"))
 
-        _b = ttk.Button(pinner,
-                   text="↺  Reset filtri",
-                   style="Preset.TButton",
-                   command=self._reset)
-        _b.configure(text=f"↺  {tr('button.quick_reset')}")
-        _b.pack(side="left", padx=4)
+        _b = pinner.aggiungi(ttk.Button(
+            pinner, text=f"↺  {tr('button.quick_reset')}",
+            style="Preset.TButton", command=self._reset))
         _tooltip.attach(_b, tr("tooltip.quick_reset"))
 
         # ── Progress bar + Annulla ────────────────────────────────────────────
