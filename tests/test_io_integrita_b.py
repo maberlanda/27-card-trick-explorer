@@ -312,7 +312,11 @@ def test_b11_tutte_le_rotte_pubbliche_hanno_il_preflight():
     import ast
 
     rotte = {
-        "gioco27/core/permutations.py": ["write_csv", "write_csv_parallel"],
+        # G2: le due rotte CSV sono passate a core/export_combinazioni.py
+        # insieme al resto dell'orchestrazione degli export. Il preflight
+        # e' lo stesso, nello stesso punto: prima di aprire il file.
+        "gioco27/core/export_combinazioni.py": ["write_csv",
+                                                "write_csv_parallel"],
         "gioco27/core/combinations.py": ["generate_pdf", "generate_pdf_ex",
                                          "_pdf_parallel"],
     }

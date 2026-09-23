@@ -12,7 +12,7 @@ from tkinter import ttk, messagebox, filedialog
 import os
 import threading
 
-from ..core.permutations import write_csv_parallel
+from ..core.export_combinazioni import write_csv_parallel
 from ..core.combinations import count_combinations_ex, generate_pdf_ex_parallel
 from ..core.detail_pdf import MAX_DETAIL_COMBOS, generate_detail_pdf_parallel
 from ..core.config import ConfigNonSalvata, get_config

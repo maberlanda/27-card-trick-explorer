@@ -1,9 +1,15 @@
 """
 Utilità sulle permutazioni: perm_to_mat3, build_P27, build_J27,
-compute_stage, compute_R, compute_T_full, make_csv_row, write_csv.
+compute_stage, compute_R, compute_T_full, make_csv_row.
+
+Il modulo costruisce UNA riga (`CSV_HEADER`, `make_csv_row`); non sa quante
+righe esistano ne' da dove vengano. L'export CSV del dominio dei filtri —
+preflight, enumerazione, parallelismo, pubblicazione atomica — sta in
+`core.export_combinazioni` dal compartimento G2, che e' cio' che ha tolto
+l'ultimo ciclo dal grafo delle importazioni. I nomi storici `write_csv` e
+`write_csv_parallel` restano importabili da qui (facciata in fondo al file).
 """
 import numpy as np
-import csv
 
 from .constants import (PERM3, PERM3_J, PERM3_COLORS, _MSC_PERM)
 from .log import get_logger
@@ -408,142 +414,37 @@ def make_csv_row(combo_idx, params):
 
     return [str(combo_idx)] + stage_cols + ai_labels + [T_label, perm_str]
 
-def write_csv(path, filters, progress_cb=None, annullato=None):
-    """
-    Scrive il CSV con separatore ; e campi tra doppi apici.
-
-    `annullato()` viene interrogata ogni 200 righe: se vera, solleva
-    ExportAnnullato e — grazie alla scrittura atomica — non lascia alcun file.
-
-    Solleva ExportTooLarge se il numero di righe supera il limite di sicurezza
-    (B11): la stessa policy di `write_csv_parallel` e delle rotte della GUI,
-    applicata con lo stesso `check_export_size` e PRIMA di aprire il file o di
-    avviare l'enumerazione. Con i filtri tutti liberi sarebbero 5.159.780.352
-    righe, e questo percorso ci entrava dentro senza alcun preflight.
-    """
-    # Import locale per evitare un import circolare con combinations.py
-    from .combinations import count_combinations_ex, iter_combinations_ex
-    from .parallel import (ExportAnnullato, atomic_write, check_export_size,
-                           mai_annullato, _check_cancelled)
-    if annullato is None:
-        annullato = mai_annullato
-    # Preflight: nessun file aperto, nessun elemento enumerato se e' troppo.
-    check_export_size(count_combinations_ex(filters))
-    count = 0
-    with atomic_write(path, "w", annullato=annullato,
-                      newline="", encoding="utf-8") as f:
-        w = csv.writer(f, delimiter=";", quotechar='"',
-                       quoting=csv.QUOTE_ALL, lineterminator="\n")
-        w.writerow(CSV_HEADER)
-        for params in iter_combinations_ex(filters):
-            count += 1
-            w.writerow(make_csv_row(count, params))
-            if progress_cb:
-                progress_cb(count)
-            if count % 200 == 0 and annullato():
-                raise ExportAnnullato(count, 0)
-        _check_cancelled(annullato, count)
-    return count
-
 # ─────────────────────────────────────────────────────────────────────────────
-# GENERATORE DI COMBINAZIONI CON FILTRO
-# ─────────────────────────────────────────────────────────────────────────────
-
-
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# CSV — versione parallela (multiprocessing)
+# Facciata di compatibilita' (G2)
 #
-# Il costo per riga è in make_csv_row -> compute_T_full (CPU-bound). I processi
-# figli calcolano blocchi di righe; la scrittura su file resta ordinata nel
-# processo principale. pool.map preserva l'ordine di sottomissione.
+# `write_csv` e `write_csv_parallel` erano qui, e per funzionare chiedevano
+# l'enumeratore a `core.combinations` — che a sua volta importa questo modulo.
+# Era l'unico ciclo rimasto nel grafo delle importazioni. L'orchestrazione e'
+# ora in `core.export_combinazioni`; i due nomi storici restano importabili da
+# qui, risolti solo quando qualcuno li chiede.
+#
+# La risoluzione differita e' cio' che tiene aciclico il grafo: importare
+# `core.permutations` NON importa `core.export_combinazioni` ne'
+# `core.combinations`. L'import per nome (invece di un `from ... import`) e'
+# deliberato: un import scritto qui, anche dentro una funzione, sarebbe di
+# nuovo una freccia verso i moduli che dipendono da questo.
 # ─────────────────────────────────────────────────────────────────────────────
 
-def _csv_rows_chunk(task):
-    """
-    Worker top-level (picklable): calcola le righe CSV di un blocco.
-    `task` = (start_index, blocco_di_params) — l'ordine dei due elementi
-    è quello richiesto da parallel.run_export.
-    """
-    start_index, params_chunk = task
-    return [make_csv_row(start_index + k, params)
-            for k, params in enumerate(params_chunk)]
+#: nome storico -> modulo che oggi lo possiede.
+_TRASLOCHI = {
+    "write_csv": "export_combinazioni",
+    "write_csv_parallel": "export_combinazioni",
+}
 
 
-def _csv_chunk_worker(start_index, params_chunk):
-    """Adattatore per run_export: (start, blocco) -> righe."""
-    return _csv_rows_chunk((start_index, params_chunk))
+def __getattr__(nome):
+    modulo = _TRASLOCHI.get(nome)
+    if modulo is None:
+        raise AttributeError(
+            f"module {__name__!r} has no attribute {nome!r}")
+    from importlib import import_module
+    return getattr(import_module(f".{modulo}", __package__), nome)
 
 
-def write_csv_parallel(path, filters, n_workers=None, progress_cb=None,
-                       annullato=None):
-    """
-    Scrive il CSV calcolando le righe in parallelo su n_workers processi.
-    La scrittura su disco resta sequenziale e ordinata.
-
-    Le combinazioni NON vengono materializzate in una lista: `run_export`
-    consuma il generatore a blocchi con una finestra limitata di task in volo.
-    Con i filtri di default sarebbero 5.159.780.352 righe, e il vecchio
-    `list(iter_combinations_ex(filters))` esauriva la RAM prima di scrivere
-    un byte.
-
-    Fallback automatico al sequenziale (write_csv) se: n_workers<=1, poche
-    righe, o errore di multiprocessing.
-    Solleva ExportTooLarge se il numero di righe supera il limite di sicurezza.
-    """
-    from .combinations import count_combinations_ex, iter_combinations_ex
-    from .parallel import (COSTO_RIGA_CSV, ExportAnnullato, atomic_write,
-                           check_export_size, mai_annullato, run_export,
-                           _check_cancelled)
-    if annullato is None:
-        annullato = mai_annullato
-
-    _check_cancelled(annullato)
-    total = count_combinations_ex(filters)
-    # Il controllo va fatto PRIMA di aprire il file: se l'export e' rifiutato
-    # non deve restare in giro un CSV con la sola intestazione.
-    check_export_size(total)
-
-    with atomic_write(path, "w", annullato=annullato,
-                      newline="", encoding="utf-8") as f:
-        w = csv.writer(f, delimiter=";", quotechar='"',
-                       quoting=csv.QUOTE_ALL, lineterminator="\n")
-        w.writerow(CSV_HEADER)
-
-        state = {"written": 0, "fallback": False}
-
-        def consume(rows, _n):
-            for row in rows:
-                w.writerow(row)
-                state["written"] += 1
-
-        def sequential():
-            # Il file è già aperto con l'intestazione scritta: continuiamo qui
-            # invece di riaprirlo, così il fallback non perde l'header.
-            _check_cancelled(annullato, 0, total)
-            state["fallback"] = True
-            count = 0
-            for params in iter_combinations_ex(filters):
-                count += 1
-                w.writerow(make_csv_row(count, params))
-                if progress_cb and count % 500 == 0:
-                    progress_cb(count)
-                if count % 200 == 0 and annullato():
-                    raise ExportAnnullato(count, total)
-            _check_cancelled(annullato, count, total)
-            return count
-
-        n = run_export(total=total,
-                       items_iter=iter_combinations_ex(filters),
-                       sequential=sequential,
-                       parallel_worker=_csv_chunk_worker,
-                       consume=consume,
-                       n_workers=n_workers, cost_per_item=COSTO_RIGA_CSV,
-                       progress_cb=progress_cb, annullato=annullato,
-                       what="Export CSV")
-
-        if progress_cb:
-            progress_cb(n)
-        _check_cancelled(annullato, n, total)
-    return n
+def __dir__():
+    return sorted(set(globals()) | set(_TRASLOCHI))

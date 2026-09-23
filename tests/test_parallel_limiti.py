@@ -3,7 +3,8 @@ import concurrent.futures as futures
 
 import pytest
 
-from gioco27.core import combinations, detail_pdf, parallel, permutations
+from gioco27.core import (combinations, detail_pdf, export_combinazioni,
+                          parallel, permutations)
 
 
 class _ImmediatePool:
@@ -104,7 +105,11 @@ def test_b6_worker_csv_ordine_e_copertura_dei_blocchi(total, monkeypatch):
     assert parallel.run_export(
         total=total, items_iter=iter(range(total)), n_workers=2,
         sequential=lambda: pytest.fail("fallback inatteso"),
-        parallel_worker=permutations._csv_chunk_worker, consume=consume) == total
+        # G2: l'orchestrazione dell'export CSV — e con essa il worker dei
+        # blocchi — e' in core.export_combinazioni; `make_csv_row`, che
+        # questo test sostituisce, resta in core.permutations.
+        parallel_worker=export_combinazioni._csv_chunk_worker,
+        consume=consume) == total
     assert rows == list(enumerate(range(total), 1))
     assert sum(sizes) == total
     assert max(sizes) <= parallel.MAX_CHUNK_ITEMS

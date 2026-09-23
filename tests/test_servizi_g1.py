@@ -416,21 +416,27 @@ def test_nessun_ciclo_fra_i_moduli_del_linguaggio_e_dell_analisi():
         assert modulo not in raggiungibili(modulo), f"ciclo che passa da {modulo}"
 
 
-def test_il_ciclo_storico_combinations_permutations_e_dichiarato():
-    """Resta, ed e' un debito esplicito di G2, non una svista.
+def test_il_ciclo_storico_combinations_permutations_e_stato_sciolto():
+    """Il debito dichiarato da G1 e' stato pagato in G2.
 
-    `core.permutations` chiede l'enumeratore a `core.combinations` dentro
-    `write_csv`, e `core.combinations` usa le primitive di disegno di
-    `core.permutations`. Spezzarlo significa spostare l'orchestrazione degli
-    export, che G1 non fa.
+    Era: `core.permutations` chiedeva l'enumeratore a `core.combinations`
+    dentro `write_csv` e `write_csv_parallel`, mentre `core.combinations`
+    usa le primitive di `core.permutations`. Spezzarlo significava spostare
+    l'orchestrazione degli export, che G1 non faceva.
+
+    Ora quelle due funzioni sono in `core.export_combinazioni` e nessun
+    import — nemmeno differito dentro una funzione — porta da `permutations`
+    a `combinations`. La verifica dell'intero grafo sta in
+    `tests/test_lifecycle_persistenza_g2.py`.
     """
     sorgente = (PACCHETTO / "core" / "permutations.py").read_text(encoding="utf-8")
     albero = ast.parse(sorgente)
-    differiti = [f.name for f in ast.walk(albero)
-                 if isinstance(f, ast.FunctionDef)
-                 for n in ast.walk(f)
-                 if isinstance(n, ast.ImportFrom) and n.module == "combinations"]
-    assert sorted(set(differiti)) == ["write_csv", "write_csv_parallel"]
+    verso_combinations = [n for n in ast.walk(albero)
+                          if isinstance(n, ast.ImportFrom)
+                          and n.module == "combinations"]
+    assert verso_combinations == []
+    assert _importati("gioco27/core/permutations.py", sorgente) == {
+        "gioco27.core.constants", "gioco27.core.log"}
 
 
 # ═══════════════ la scheda come adattatore (senza aprire Tk) ════════════════

@@ -711,6 +711,181 @@ def test_le_due_schede_condividono_la_primitiva():
         encoding="utf-8")
 
 
+# ═══════════════ il grafo delle importazioni: nessun ciclo ══════════════════
+#
+# La misura e' fatta sull'AST e conta ANCHE gli import scritti dentro una
+# funzione: un import differito e' comunque una dipendenza, e nasconderlo
+# dietro a un `def` non scioglie un ciclo, lo rende solo piu' difficile da
+# vedere. Le uniche eccezioni sono le due facciate di compatibilita', che
+# risolvono per nome e sono elencate qui sotto una per una.
+
+def _moduli_del_pacchetto():
+    for percorso in sorted(PACCHETTO.rglob("*.py")):
+        yield percorso.relative_to(RADICE).as_posix(), percorso.read_text(
+            encoding="utf-8")
+
+
+def _nome_e_pacchetto(rel):
+    """Nome del modulo e pacchetto contro cui risolvere gli import relativi.
+
+    Per un `__init__.py` il pacchetto e' se stesso; per ogni altro modulo e'
+    quello che lo contiene. Sbagliare questa distinzione fa sparire gli archi
+    che partono dagli `__init__`.
+    """
+    nome = rel[:-3].replace("/", ".")
+    if nome.endswith(".__init__"):
+        nome = nome[:-len(".__init__")]
+        return nome, nome
+    return nome, nome.rsplit(".", 1)[0]
+
+
+def _archi():
+    import ast
+
+    archi = {}
+    for rel, sorgente in _moduli_del_pacchetto():
+        nome, pacchetto = _nome_e_pacchetto(rel)
+        fuori = set()
+        for n in ast.walk(ast.parse(sorgente)):
+            if isinstance(n, ast.ImportFrom):
+                if n.level:
+                    base = pacchetto.split(".")
+                    base = base[:len(base) - (n.level - 1)] if n.level > 1 else base
+                    if n.module:
+                        fuori.add(".".join(base + [n.module]))
+                    else:
+                        # `from . import a, b`: i nomi importati SONO i moduli.
+                        # Trattarli come un import del solo pacchetto farebbe
+                        # sparire archi veri dal grafo.
+                        fuori.update(".".join(base + [a.name]) for a in n.names)
+                    continue
+                fuori.add(n.module or "")
+            elif isinstance(n, ast.Import):
+                fuori.update(a.name for a in n.names)
+        archi[nome] = {m for m in fuori if m.startswith("gioco27")} - {nome}
+    noti = set(archi)
+    return {k: {m for m in v if m in noti} for k, v in archi.items()}
+
+
+def _cicli(archi):
+    """Cicli elementari, ciascuno contato una volta dal suo nodo minimo."""
+    trovati = set()
+
+    def esplora(inizio, nodo, cammino, visti):
+        for d in sorted(archi.get(nodo, ())):
+            if d == inizio:
+                trovati.add(tuple(cammino))
+            elif d not in visti and d > inizio:
+                esplora(inizio, d, cammino + [d], visti | {d})
+
+    for nodo in sorted(archi):
+        esplora(nodo, nodo, [nodo], {nodo})
+    return trovati
+
+
+def test_nessun_ciclo_statico_fra_i_moduli_applicativi():
+    """G2-G11/G2-G12: zero cicli, e non uno piu' lungo al posto di quello vecchio."""
+    cicli = _cicli(_archi())
+    leggibili = sorted(" -> ".join(c) for c in cicli)
+    assert leggibili == [], leggibili
+
+
+def test_il_grafo_e_quello_atteso_attorno_all_export_csv():
+    """La direzione delle frecce, non solo l'assenza di cicli."""
+    archi = _archi()
+    assert "gioco27.core.permutations" in archi["gioco27.core.combinations"]
+    assert archi["gioco27.core.permutations"] == {
+        "gioco27.core.constants", "gioco27.core.log"}
+    assert {"gioco27.core.combinations", "gioco27.core.permutations"} <= \
+        archi["gioco27.core.export_combinazioni"]
+
+
+def test_importare_permutations_non_tira_dentro_l_enumeratore():
+    """La prova che conta: a runtime, non solo nell'AST.
+
+    Se la facciata di compatibilita' importasse davvero i moduli traslocati,
+    il ciclo sarebbe ancora li' — solo spostato dentro un `def`.
+    """
+    import subprocess
+    import sys
+
+    codice = ("import sys, gioco27.core.permutations; "
+              "print(any(m.endswith(('core.combinations', "
+              "'core.export_combinazioni')) for m in sys.modules))")
+    esito = subprocess.run([sys.executable, "-c", codice], cwd=str(RADICE),
+                           capture_output=True, text=True, timeout=120)
+    assert esito.returncode == 0, esito.stderr
+    assert esito.stdout.split() == ["False"], esito.stdout
+
+
+def test_i_nomi_storici_dell_export_csv_restano_importabili():
+    """G2 non fa una migrazione flag-day: l'API pubblica non si sposta."""
+    from gioco27.core import permutations
+
+    for nome in ("write_csv", "write_csv_parallel"):
+        funzione = getattr(permutations, nome)
+        assert funzione.__module__ == "gioco27.core.export_combinazioni"
+        assert nome in dir(permutations)
+
+    from gioco27.core.permutations import write_csv          # noqa: F401
+    from gioco27.core.export_combinazioni import write_csv as diretto
+    assert write_csv is diretto
+
+    with pytest.raises(AttributeError):
+        permutations.nome_che_non_esiste
+
+
+def test_le_facciate_di_compatibilita_sono_dichiarate():
+    """Due sole, ed entrambe elencano per nome cio' che risolvono.
+
+    Una facciata differita e' una dipendenza che il grafo statico non vede:
+    l'unico modo perche' non diventi un ciclo nascosto e' che siano poche,
+    dichiarate e verificate. Questo test fallisce se ne compare una terza.
+    """
+    import ast
+
+    con_getattr, facciate = [], {}
+    for rel, sorgente in _moduli_del_pacchetto():
+        albero = ast.parse(sorgente)
+        if not any(isinstance(n, ast.FunctionDef) and n.name == "__getattr__"
+                   for n in albero.body):
+            continue
+        con_getattr.append(rel)
+        traslochi = next(
+            (n for n in ast.walk(albero) if isinstance(n, ast.Assign)
+             and any(getattr(t, "id", "") == "_TRASLOCHI" for t in n.targets)),
+            None)
+        if traslochi is not None:
+            facciate[rel] = {k.value for k in traslochi.value.keys}
+
+    assert sorted(con_getattr) == ["gioco27/core/algebra.py",
+                                   "gioco27/core/permutations.py",
+                                   "gioco27/gui/i18n.py"], con_getattr
+    # Le due facciate di traslocazione elencano per nome cio' che risolvono.
+    assert facciate["gioco27/core/permutations.py"] == {
+        "write_csv", "write_csv_parallel"}
+    assert facciate["gioco27/core/algebra.py"] == {
+        "analizza_righe", "analizza_csv", "scrivi_output", "scrivi_excel",
+        "EXCEL_MAX_CELL_CHARS"}
+    # `gui.i18n` non e' una traslocazione ma un proxy di un solo proprietario:
+    # riesporta `gioco27.i18n` per intero, e non nasconde nessun arco perche'
+    # quel proprietario e' importato in cima al file.
+    assert "gioco27/gui/i18n.py" not in facciate
+    assert "gioco27.i18n" in _archi()["gioco27.gui.i18n"]
+
+
+def test_la_matematica_non_si_e_spostata():
+    """Il ciclo si e' sciolto spostando l'orchestrazione, non i conti."""
+    from gioco27.core import permutations
+
+    for nome in ("compute_stage", "compute_R", "compute_T_perm",
+                 "compute_T_full", "compose3", "build_P27", "build_J27",
+                 "perm_to_mat3", "mat_to_perm27", "make_csv_row"):
+        assert getattr(permutations, nome).__module__ == \
+            "gioco27.core.permutations", nome
+    assert permutations.CSV_HEADER[0] == "#"
+
+
 # ══════════════════ pubblicazione: la destinazione precedente ═══════════════
 
 def test_una_scrittura_fallita_non_tocca_il_file_precedente(tmp_path):
