@@ -1,13 +1,24 @@
-"""Compartimento G1 — servizio dell'analisi, con prova di equivalenza.
+"""Compartimento G1 — modelli applicativi e confini dei servizi.
 
-Il percorso vecchio e' scritto per esteso in questo file (`_percorso_storico`)
-e confrontato con il servizio su ingressi rappresentativi: non e' la stessa
-funzione chiamata due volte. Piu' la caratterizzazione del comportamento, il
-modello condiviso e la separazione del linguaggio.
+Tre cose vengono verificate qui:
+
+* **equivalenza** — il servizio dell'analisi produce esattamente cio' che
+  produceva l'orchestrazione dentro la scheda. Il percorso vecchio e' scritto
+  per esteso in questo file (`_percorso_storico`) e confrontato con il nuovo su
+  ingressi rappresentativi: non e' la stessa funzione chiamata due volte;
+* **modello** — `RisultatoAnalisi` distingue gli stati che prima la vista
+  doveva indovinare da attributi indipendenti, e non ne ammette di impossibili;
+* **architettura** — la direzione delle dipendenze (`gui → services → core`),
+  l'unico proprietario del modello, la facciata di compatibilita' di
+  `core.algebra` e l'assenza di cicli d'importazione.
+
+Nessun test dipende da Tk: il servizio si prova come una funzione qualunque.
 """
 import ast
 import importlib
 import pathlib
+import subprocess
+import sys
 from types import SimpleNamespace
 
 import pytest
@@ -279,6 +290,73 @@ def _importati(rel, sorgente):
     return {m for m in fuori if m.startswith("gioco27")}
 
 
+def test_i_servizi_non_importano_la_gui():
+    for rel, sorgente in _moduli():
+        if not rel.startswith("gioco27/services/"):
+            continue
+        for modulo in _importati(rel, sorgente):
+            assert not modulo.startswith("gioco27.gui"), (rel, modulo)
+        assert "tkinter" not in sorgente, rel
+
+
+def test_il_core_non_importa_i_servizi_ne_la_gui():
+    for rel, sorgente in _moduli():
+        if not rel.startswith("gioco27/core/"):
+            continue
+        for modulo in _importati(rel, sorgente):
+            assert not modulo.startswith("gioco27.services"), (rel, modulo)
+            assert not modulo.startswith("gioco27.gui"), (rel, modulo)
+
+
+def test_il_linguaggio_non_dipende_da_servizi_o_gui():
+    for nome in ("core/algebra.py", "core/espressione.py"):
+        sorgente = (PACCHETTO / nome).read_text(encoding="utf-8")
+        for modulo in _importati("gioco27/" + nome, sorgente):
+            assert not modulo.startswith(("gioco27.gui", "gioco27.services"))
+
+
+def test_importare_un_servizio_non_importa_la_gui():
+    codice = ("import sys; import gioco27.services as s; "
+              "print(any(m.startswith('gioco27.gui') for m in sys.modules), "
+              "any(m.startswith('tkinter') for m in sys.modules))")
+    esito = subprocess.run([sys.executable, "-c", codice], cwd=str(RADICE),
+                           capture_output=True, text=True, timeout=120)
+    assert esito.returncode == 0, esito.stderr
+    assert esito.stdout.split() == ["False", "False"], esito.stdout
+
+
+def test_un_solo_proprietario_del_risultato():
+    """`RisultatoAnalisi` e' definito una volta sola; la scheda lo ri-esporta."""
+    definizioni = []
+    for rel, sorgente in _moduli():
+        for n in ast.walk(ast.parse(sorgente)):
+            if isinstance(n, ast.ClassDef) and n.name == "RisultatoAnalisi":
+                definizioni.append(rel)
+    assert definizioni == ["gioco27/services/modelli.py"], definizioni
+
+    from gioco27.gui import analysis_tab
+    from gioco27.services import modelli
+    assert analysis_tab.RisultatoAnalisi is modelli.RisultatoAnalisi
+
+
+def test_la_scheda_non_ricostruisce_piu_gli_aggregati():
+    """Nel tab Analisi non restano chiamate al motore dell'analisi."""
+    sorgente = (PACCHETTO / "gui" / "analysis_tab.py").read_text(encoding="utf-8")
+    albero = ast.parse(sorgente)
+    vietate = {"analizza_righe", "analizza_csv", "importa_csv", "aggrega_righe",
+               "pianifica_analisi", "iter_combinations_ex", "make_csv_row",
+               "Aggregatore", "normalizza_filtri"}
+    chiamate = set()
+    for n in ast.walk(albero):
+        if isinstance(n, ast.Call):
+            f = n.func
+            nome = (f.id if isinstance(f, ast.Name)
+                    else f.attr if isinstance(f, ast.Attribute) else None)
+            if nome in vietate:
+                chiamate.add(nome)
+    assert chiamate == set(), chiamate
+
+
 def test_il_linguaggio_non_scrive_piu_su_disco():
     """`core.algebra` non contiene piu' export: solo il linguaggio."""
     sorgente = (PACCHETTO / "core" / "algebra.py").read_text(encoding="utf-8")
@@ -313,6 +391,46 @@ def test_la_facciata_non_ricrea_il_ciclo_di_importazione():
     for modulo in _importati("gioco27/core/algebra.py", sorgente):
         assert not modulo.endswith(("core.analisi", "core.export_analisi")), modulo
     assert "def __getattr__(nome):" in sorgente
+
+
+def test_nessun_ciclo_fra_i_moduli_del_linguaggio_e_dell_analisi():
+    archi = {}
+    for rel, sorgente in _moduli():
+        nome = rel[:-3].replace("/", ".").removesuffix(".__init__")
+        archi[nome] = _importati(rel, sorgente) - {nome}
+    interessanti = {"gioco27.core.algebra", "gioco27.core.espressione",
+                    "gioco27.core.analisi", "gioco27.core.export_analisi",
+                    "gioco27.services.analisi", "gioco27.services.modelli"}
+
+    def raggiungibili(partenza):
+        visti, pila = set(), [partenza]
+        while pila:
+            m = pila.pop()
+            for d in archi.get(m, ()):
+                if d not in visti:
+                    visti.add(d)
+                    pila.append(d)
+        return visti
+
+    for modulo in sorted(interessanti):
+        assert modulo not in raggiungibili(modulo), f"ciclo che passa da {modulo}"
+
+
+def test_il_ciclo_storico_combinations_permutations_e_dichiarato():
+    """Resta, ed e' un debito esplicito di G2, non una svista.
+
+    `core.permutations` chiede l'enumeratore a `core.combinations` dentro
+    `write_csv`, e `core.combinations` usa le primitive di disegno di
+    `core.permutations`. Spezzarlo significa spostare l'orchestrazione degli
+    export, che G1 non fa.
+    """
+    sorgente = (PACCHETTO / "core" / "permutations.py").read_text(encoding="utf-8")
+    albero = ast.parse(sorgente)
+    differiti = [f.name for f in ast.walk(albero)
+                 if isinstance(f, ast.FunctionDef)
+                 for n in ast.walk(f)
+                 if isinstance(n, ast.ImportFrom) and n.module == "combinations"]
+    assert sorted(set(differiti)) == ["write_csv", "write_csv_parallel"]
 
 
 # ═══════════════ la scheda come adattatore (senza aprire Tk) ════════════════
