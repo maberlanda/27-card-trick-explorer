@@ -1,19 +1,23 @@
-"""Compartimento F — ingressi validati (B05) e filtri ancora incoerenti (B06).
+"""Compartimento F — ingressi e filtri hanno un contratto (B05, B06).
 
-La prima meta' del compartimento e' chiusa: schema, `T` e formula hanno un
-contratto. La seconda e' qui misurata e non ancora corretta — conteggio,
-enumerazione e validazione dei filtri descrivono domini diversi — con prove
-`xfail(strict=True)` che dovranno smettere di fallire.
+Un solo modello di filtro validato alimenta conteggio, enumerazione, export e
+analisi: `count == iter` per costruzione, non per coincidenza.
 """
+import ast
 import pathlib
 from types import SimpleNamespace
 
 import pytest
 
+from gioco27.core import combinations
 from gioco27.core.algebra import analizza_csv, analizza_righe
 from gioco27.core.analisi import RisultatiImport, SchemaNonRiconosciuto, importa_csv, riconosci_schema
-from gioco27.core.combinations import count_combinations_ex, iter_combinations_ex
-from gioco27.core.constants import ANY
+from gioco27.core.combinations import (FiltroNonValido, N_STADI, cardinalita,
+                                       count_combinations,
+                                       count_combinations_ex,
+                                       iter_combinations, iter_combinations_ex,
+                                       normalizza_filtri)
+from gioco27.core.constants import ANY, J_OPTS, P_OPTS
 from gioco27.core.permutations import CSV_HEADER
 from gioco27.gui import analysis_tab
 
@@ -21,7 +25,7 @@ RADICE = pathlib.Path(__file__).resolve().parents[1]
 
 IDENTITA = "[" + ",".join(str(i) for i in range(27)) + "]"
 FISSO = dict(p0="SCD_U", p1="SCD_U", p2="SCD_U", j0="I_3", j1="I_3", j2="I_3")
-FILTRI_FISSI = [dict(FISSO) for _ in range(3)]
+FILTRI_FISSI = [dict(FISSO) for _ in range(N_STADI)]
 
 
 def _riga(perm=IDENTITA, **extra):
@@ -231,6 +235,65 @@ def test_b05_un_export_reale_si_rilegge(tmp_path):
     assert sum(r["n_sim"] for r in esito) == 6
 
 
+# ═════════════════════════ B06 — contratto dei filtri ═══════════════════════
+
+@pytest.mark.parametrize("n_stadi", [0, 1, 2, 4, 5])
+def test_b06_numero_di_stadi_non_supportato(n_stadi):
+    filtri = [dict(FISSO) for _ in range(n_stadi)]
+    for funzione in (count_combinations_ex, count_combinations,
+                     lambda f: list(iter_combinations_ex(f)),
+                     lambda f: list(iter_combinations(f)),
+                     normalizza_filtri):
+        with pytest.raises(FiltroNonValido):
+            funzione(filtri)
+
+
+def test_b06_il_caso_di_regressione_a_quattro_stadi():
+    """Il caso che divergeva: count=6, iter=1."""
+    filtri = [dict(FISSO), dict(FISSO), dict(FISSO), dict(FISSO, p0=ANY)]
+    with pytest.raises(FiltroNonValido) as errore:
+        count_combinations_ex(filtri)
+    assert "4" in str(errore.value) and "tre stadi" in str(errore.value)
+    with pytest.raises(FiltroNonValido):
+        list(iter_combinations_ex(filtri))
+
+
+@pytest.mark.parametrize("modifica,nota", [
+    ({"pX": "SCD_U"},                 "chiave sconosciuta"),
+    ({"p3": "SCD_U"},                 "chiave legacy a base 1"),
+    ({"j3": "I_3"},                   "chiave legacy J"),
+    ({"p0": "NON_ESISTE"},            "nome di permutazione inesistente"),
+    ({"j0": "SCD_U"},                 "nome P al posto di un J"),
+    ({"p0": 3},                       "tipo errato: intero"),
+    ({"p0": None},                    "tipo errato: None"),
+    ({"p0": True},                    "tipo errato: booleano"),
+    ({"p0": []},                      "elenco vuoto"),
+    ({"p0": ["SCD_U", "SCD_U"]},      "duplicato nell'elenco"),
+    ({"p0": ["SCD_U", 3]},            "elenco con valore non testuale"),
+    ({"j_uniform": "si"},             "j_uniform non booleano"),
+])
+def test_b06_valori_e_chiavi_non_ammessi(modifica, nota):
+    filtri = [dict(FISSO, **modifica), dict(FISSO), dict(FISSO)]
+    with pytest.raises(FiltroNonValido):
+        count_combinations_ex(filtri)
+    with pytest.raises(FiltroNonValido):
+        list(iter_combinations_ex(filtri))
+
+
+def test_b06_chiave_mancante():
+    incompleto = {k: v for k, v in FISSO.items() if k != "j2"}
+    with pytest.raises(FiltroNonValido) as errore:
+        normalizza_filtri([incompleto, dict(FISSO), dict(FISSO)])
+    assert "j2" in str(errore.value)
+
+
+def test_b06_filtro_non_dizionario():
+    with pytest.raises(FiltroNonValido):
+        normalizza_filtri([FISSO, FISSO, ["p0"]])
+    with pytest.raises(FiltroNonValido):
+        normalizza_filtri(dict(FISSO))
+
+
 def _famiglia_di_filtri():
     """Famiglia deterministica di filtri validi, tutti piccoli abbastanza."""
     famiglia = []
@@ -269,6 +332,85 @@ def _famiglia_di_filtri():
 
 
 FAMIGLIA = _famiglia_di_filtri()
+
+
+@pytest.mark.parametrize("nota,filtri", FAMIGLIA, ids=[n for n, _ in FAMIGLIA])
+def test_b06_count_uguale_a_iter(nota, filtri):
+    atteso = count_combinations_ex(filtri)
+    enumerate_ = list(iter_combinations_ex(filtri))
+    assert atteso == len(enumerate_), nota
+    # gli stessi filtri, letti dai nomi storici: stesso contratto
+    assert count_combinations(filtri) == atteso
+    assert len(list(iter_combinations(filtri))) == atteso
+    # ogni combinazione e' fatta di tre stadi da sei nomi ammessi
+    for combinazione in enumerate_:
+        assert len(combinazione) == N_STADI
+        for stadio in combinazione:
+            assert len(stadio) == 6
+            assert all(n in P_OPTS for n in stadio[:3])
+            assert all(n in J_OPTS for n in stadio[3:])
+
+
+@pytest.mark.parametrize("nota,filtri", FAMIGLIA, ids=[n for n, _ in FAMIGLIA])
+def test_b06_nessuna_combinazione_ripetuta(nota, filtri):
+    prodotte = [tuple(tuple(s) for s in c) for c in iter_combinations_ex(filtri)]
+    assert len(set(prodotte)) == len(prodotte)
+
+
+def test_b06_j_uniforme_produce_solo_triple_uguali():
+    filtri = [dict(FISSO, j0=ANY, j1=ANY, j2=ANY, j_uniform=True),
+              dict(FISSO), dict(FISSO)]
+    for combinazione in iter_combinations_ex(filtri):
+        j0, j1, j2 = combinazione[0][3:]
+        assert j0 == j1 == j2
+
+
+def test_b06_ordine_di_emissione_invariato():
+    """La numerazione «Combinazione #N» di CSV e PDF dipende da quest'ordine."""
+    import itertools
+    filtri = [{"p0": ANY, "p1": "SCD_U", "p2": "SDC_U",
+               "j0": ANY, "j1": ANY, "j2": "I_3"} for _ in range(3)]
+
+    def scelte(valore, opzioni):
+        return opzioni if valore == ANY else [valore]
+
+    assi = [scelte(filtri[s][k], P_OPTS if k[0] == "p" else J_OPTS)
+            for s in range(3) for k in ("p0", "p1", "p2", "j0", "j1", "j2")]
+    attese = [[c[0:6], c[6:12], c[12:18]] for c in itertools.product(*assi)]
+    prodotte = [[tuple(s) for s in c] for c in iter_combinations_ex(filtri)]
+    assert prodotte == [[tuple(s) for s in c] for c in attese]
+
+
+def test_b06_il_conteggio_non_enumera(monkeypatch):
+    """Contare e' un prodotto di lunghezze: l'iteratore non viene toccato."""
+    def esplode(*args, **kwargs):
+        raise AssertionError("enumerazione avviata per contare")
+
+    monkeypatch.setattr(combinations, "_combinazioni", esplode)
+    assert count_combinations_ex(FILTRI_FISSI) == 1
+    liberi = [{k: ANY for k in FISSO} for _ in range(3)]
+    assert count_combinations_ex(liberi) == 5_159_780_352
+
+
+def test_b06_un_solo_contratto_alimenta_tutti():
+    """Conteggio, enumerazione, export e analisi passano dalla stessa porta."""
+    sorgente = (RADICE / "gioco27" / "core" / "combinations.py").read_text(
+        encoding="utf-8")
+    albero = ast.parse(sorgente)
+    for nome in ("iter_combinations", "count_combinations",
+                 "iter_combinations_ex", "count_combinations_ex"):
+        funzione = next(n for n in albero.body
+                        if isinstance(n, ast.FunctionDef) and n.name == nome)
+        chiamate = {c.func.id for c in ast.walk(funzione)
+                    if isinstance(c, ast.Call) and isinstance(c.func, ast.Name)}
+        assert "normalizza_filtri" in chiamate, nome
+
+
+def test_b06_il_filtro_normalizzato_e_immutabile():
+    filtri = normalizza_filtri(FILTRI_FISSI)
+    with pytest.raises(Exception):
+        filtri[0].j_uniform = True
+    assert cardinalita(filtri) == 1
 
 
 # ═════════════════════════ R01 — la scheda Analisi ══════════════════════════
@@ -386,60 +528,3 @@ def test_f_i_risultati_restano_una_lista(tmp_path):
     assert esito[0]["n_sim"] == 1 and len(esito) == 1
     percorso = _scrivi(tmp_path / "uno.csv", [_riga_csv()])
     assert isinstance(importa_csv(percorso), list)
-
-
-# ═════════════════ B06 — conteggio ed enumerazione divergono ════════════════
-#
-# `valida_filtri` non guarda ne' il numero di stadi ne' i valori;
-# `count_combinations_ex` percorre tutti gli stadi ricevuti mentre
-# `iter_combinations_ex` legge solo i primi tre. Tre descrizioni dello stesso
-# dominio, e nessuna che valga per le altre due.
-
-FILTRO_FISSO = dict(p0="SCD_U", p1="SCD_U", p2="SCD_U",
-                    j0="I_3", j1="I_3", j2="I_3")
-
-#: Strutture che non descrivono un dominio enumerabile a tre stadi.
-FILTRI_MALFORMATI = [
-    ("quattro stadi", [FILTRO_FISSO, FILTRO_FISSO, FILTRO_FISSO,
-                       dict(FILTRO_FISSO, p0="*")]),
-    ("due stadi",     [FILTRO_FISSO, FILTRO_FISSO]),
-    ("nessuno stadio", []),
-    ("chiave sconosciuta", [dict(FILTRO_FISSO, pX="SCD_U"),
-                            FILTRO_FISSO, FILTRO_FISSO]),
-    ("nome inesistente", [dict(FILTRO_FISSO, p0="NON_ESISTE"),
-                          FILTRO_FISSO, FILTRO_FISSO]),
-    ("tipo errato", [dict(FILTRO_FISSO, p0=3), FILTRO_FISSO, FILTRO_FISSO]),
-    ("elenco con duplicati", [dict(FILTRO_FISSO, p0=["SCD_U", "SCD_U"]),
-                              FILTRO_FISSO, FILTRO_FISSO]),
-    ("j_uniform non booleano", [dict(FILTRO_FISSO, j_uniform="si"),
-                                FILTRO_FISSO, FILTRO_FISSO]),
-]
-
-
-def _conta(filtri):
-    try:
-        return count_combinations_ex(filtri)
-    except Exception as errore:
-        return type(errore).__name__
-
-
-def _enumera(filtri):
-    try:
-        return sum(1 for _ in iter_combinations_ex(filtri))
-    except Exception as errore:
-        return type(errore).__name__
-
-
-@pytest.mark.xfail(strict=True, reason="B06: count=6 e iter=1 con quattro stadi")
-def test_b06_conteggio_ed_enumerazione_descrivono_lo_stesso_dominio():
-    discordi = [(nota, _conta(f), _enumera(f)) for nota, f in FILTRI_MALFORMATI
-                if _conta(f) != _enumera(f)]
-    assert discordi == []
-
-
-@pytest.mark.xfail(strict=True,
-                   reason="B06: valori e chiavi non validi passano senza un fiato")
-def test_b06_le_strutture_malformate_vengono_rifiutate():
-    accettate = [nota for nota, f in FILTRI_MALFORMATI
-                 if isinstance(_conta(f), int) and isinstance(_enumera(f), int)]
-    assert accettate == []

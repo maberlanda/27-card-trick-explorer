@@ -1,8 +1,10 @@
 """
 Generazione e conteggio combinazioni filtrate; export PDF/CSV.
 """
+from dataclasses import dataclass
 from importlib.util import find_spec
 from itertools import product as iproduct
+from typing import Tuple
 
 from .constants import P_OPTS, J_OPTS, ANY
 from .log import get_logger
@@ -33,27 +35,191 @@ CHIAVI_FILTRO = CHIAVI_P + CHIAVI_J
 
 _CHIAVI_LEGACY = {'p3', 'j3'}
 
+#: Numero di stadi del gioco. Non e' un parametro: la matematica del mazzo di
+#: 27 carte e' definita su tre stadi (T = S2 o S1 o S0), tutti gli export hanno
+#: tre colonne Stage e il dominio verificato in `tests/test_baseline_matematica`
+#: conta 1.728 configurazioni **per stadio**. Generalizzare a N stadi sarebbe un
+#: gioco diverso: qui il numero viene reso esplicito e imposto.
+N_STADI = 3
 
-def valida_filtri(filters):
-    """
-    Controlla che i filtri usino le chiavi a base 0.
+#: Chiave booleana opzionale: vincola le triple J alla forma (v, v, v).
+CHIAVE_UNIFORME = 'j_uniform'
 
-    Solleva ValueError se trova le chiavi della vecchia numerazione: sono
-    sfasate di uno, quindi accettarle darebbe risultati sbagliati senza alcun
-    segnale.
+
+class FiltroNonValido(ValueError):
+    """Il filtro non rispetta il contratto: stadi, chiavi, valori o tipi.
+
+    Sottoclasse di ValueError perche' `valida_filtri` sollevava gia' ValueError
+    per le chiavi legacy e i chiamanti la intercettano cosi'.
     """
-    for n, f in enumerate(filters):
+
+
+@dataclass(frozen=True)
+class FiltroStadio:
+    """Il filtro di **uno** stadio, gia' validato e normalizzato.
+
+    Un solo oggetto alimenta conteggio, enumerazione, export e analisi: e' il
+    rimedio a B06, dove `valida_filtri`, `count_combinations_ex` e
+    `iter_combinations_ex` descrivevano tre domini diversi — il conteggio
+    percorreva tutti gli stadi ricevuti, l'enumerazione solo i primi tre, e la
+    validazione non guardava ne' il numero di stadi ne' i valori. Con quattro
+    stadi il conteggio diceva 6 e l'iteratore ne produceva 1.
+
+    `p` e `j` sono triple di tuple di nomi ammissibili, gia' espanse: `ANY` e'
+    diventato l'elenco completo delle opzioni, un valore singolo una tupla di
+    uno. Da qui in poi non esistono piu' wildcard da interpretare.
+    """
+
+    p: Tuple[Tuple[str, ...], ...]
+    j: Tuple[Tuple[str, ...], ...]
+    j_uniform: bool = False
+
+    def cardinalita(self) -> int:
+        """Quante combinazioni produce questo stadio. Non enumera nulla."""
+        totale = 1
+        for scelte in self.p:
+            totale *= len(scelte)
+        if self.j_uniform:
+            # solo le triple (v, v, v): tante quante i valori ammissibili di j0
+            totale *= len(self.j[0])
+        else:
+            for scelte in self.j:
+                totale *= len(scelte)
+        return totale
+
+    def combinazioni(self):
+        """Le tuple (p0, p1, p2, j0, j1, j2) dello stadio, in ordine stabile.
+
+        L'ordine e' quello storico — il fattore piu' a destra varia piu'
+        rapidamente — perche' la numerazione «Combinazione #N» di CSV e PDF ci
+        si appoggia.
+        """
+        if self.j_uniform:
+            for p in iproduct(*self.p):
+                for v in self.j[0]:
+                    yield p + (v, v, v)
+        else:
+            for p in iproduct(*self.p):
+                for j in iproduct(*self.j):
+                    yield p + j
+
+
+def _scelte(valore, opzioni, stadio, chiave):
+    """Normalizza il valore di una chiave nella tupla dei nomi ammessi."""
+    if valore == ANY:
+        return tuple(opzioni)
+    if isinstance(valore, str):
+        candidati = (valore,)
+    elif isinstance(valore, (list, tuple)):
+        candidati = tuple(valore)
+    else:
+        raise FiltroNonValido(
+            f"stadio {stadio}, {chiave}: tipo non ammesso "
+            f"{type(valore).__name__}; attesi {ANY!r}, un nome o una lista di nomi")
+    if not candidati:
+        raise FiltroNonValido(
+            f"stadio {stadio}, {chiave}: elenco vuoto; nessun valore "
+            "selezionabile non e' un filtro, e' un dominio impossibile")
+    visti = set()
+    for nome in candidati:
+        if not isinstance(nome, str):
+            raise FiltroNonValido(
+                f"stadio {stadio}, {chiave}: valore non testuale {nome!r} "
+                f"(tipo {type(nome).__name__})")
+        if nome not in opzioni:
+            raise FiltroNonValido(
+                f"stadio {stadio}, {chiave}: nome sconosciuto {nome!r}; "
+                f"ammessi {sorted(opzioni)}")
+        if nome in visti:
+            raise FiltroNonValido(
+                f"stadio {stadio}, {chiave}: valore {nome!r} ripetuto; "
+                "enumererebbe due volte le stesse combinazioni")
+        visti.add(nome)
+    return candidati
+
+
+def normalizza_filtri(filtri) -> Tuple[FiltroStadio, ...]:
+    """Valida i filtri e li restituisce come contratto immutabile.
+
+    Unico ingresso di conteggio, enumerazione, export e analisi. Controlla, in
+    quest'ordine: il numero di stadi, le chiavi (legacy, mancanti, sconosciute),
+    il tipo di `j_uniform` e infine il dominio di ogni valore.
+    """
+    if isinstance(filtri, dict) or isinstance(filtri, (str, bytes)):
+        raise FiltroNonValido(
+            f"attesa una sequenza di {N_STADI} filtri, ricevuto "
+            f"{type(filtri).__name__}")
+    try:
+        stadi = list(filtri)
+    except TypeError:
+        raise FiltroNonValido(
+            f"attesa una sequenza di {N_STADI} filtri, ricevuto "
+            f"{type(filtri).__name__}") from None
+
+    if len(stadi) != N_STADI:
+        raise FiltroNonValido(
+            f"attesi esattamente {N_STADI} stadi, ricevuti {len(stadi)}. "
+            "Il gioco delle 27 carte e' definito su tre stadi: un numero "
+            "diverso non descrive un dominio enumerabile.")
+
+    normalizzati = []
+    for n, f in enumerate(stadi):
+        if not isinstance(f, dict):
+            raise FiltroNonValido(
+                f"stadio {n}: atteso un dizionario, ricevuto {type(f).__name__}")
         legacy = _CHIAVI_LEGACY & set(f)
         if legacy:
-            raise ValueError(
+            raise FiltroNonValido(
                 f"stadio {n}: chiavi filtro obsolete {sorted(legacy)}. "
                 f"La numerazione e' passata a base 0: usa {CHIAVI_FILTRO}. "
                 "Attenzione, non e' una semplice rinomina: la vecchia p2 "
                 "(terzine) e' la nuova p1.")
         mancanti = set(CHIAVI_FILTRO) - set(f)
         if mancanti:
-            raise ValueError(
+            raise FiltroNonValido(
                 f"stadio {n}: chiavi filtro mancanti {sorted(mancanti)}")
+        sconosciute = set(f) - set(CHIAVI_FILTRO) - {CHIAVE_UNIFORME}
+        if sconosciute:
+            raise FiltroNonValido(
+                f"stadio {n}: chiavi filtro sconosciute {sorted(sconosciute)}; "
+                f"ammesse {CHIAVI_FILTRO + (CHIAVE_UNIFORME,)}")
+        uniforme = f.get(CHIAVE_UNIFORME, False)
+        if not isinstance(uniforme, bool):
+            raise FiltroNonValido(
+                f"stadio {n}, {CHIAVE_UNIFORME}: atteso un booleano, "
+                f"ricevuto {uniforme!r} ({type(uniforme).__name__})")
+        normalizzati.append(FiltroStadio(
+            p=tuple(_scelte(f[k], P_OPTS, n, k) for k in CHIAVI_P),
+            j=tuple(_scelte(f[k], J_OPTS, n, k) for k in CHIAVI_J),
+            j_uniform=uniforme))
+    return tuple(normalizzati)
+
+
+def valida_filtri(filtri):
+    """Valida i filtri e scarta il risultato: conservata come nome storico."""
+    normalizza_filtri(filtri)
+
+
+def _combinazioni(filtri):
+    """Enumera le combinazioni dei tre stadi a partire dal contratto.
+
+    Ordine storico: lo stadio 0 varia piu' lentamente. Le combinazioni di ogni
+    stadio vengono materializzate (al massimo 6³·2³ = 1.728 per stadio) perche'
+    i cicli annidati le riattraversano; il prodotto fra stadi resta pigro.
+    """
+    per_stadio = [list(f.combinazioni()) for f in filtri]
+    for s0 in per_stadio[0]:
+        for s1 in per_stadio[1]:
+            for s2 in per_stadio[2]:
+                yield [s0, s1, s2]
+
+
+def cardinalita(filtri) -> int:
+    """Quante combinazioni producono i filtri gia' normalizzati. Non enumera."""
+    totale = 1
+    for f in filtri:
+        totale *= f.cardinalita()
+    return totale
 
 
 #: reportlab disponibile? `find_spec` non esegue l'import (nessun costo di
@@ -61,37 +227,25 @@ def valida_filtri(filters):
 _HAS_REPORTLAB = find_spec("reportlab") is not None
 
 def iter_combinations(filters):
+    """Combinazioni filtrate, una lista di tre tuple per volta.
+
+    Nome storico: fino al compartimento F questa variante ignorava le liste di
+    valori e `j_uniform`, che invece la variante `_ex` rispettava. Due
+    semantiche per lo stesso filtro erano meta' di B06; ora c'e' un solo
+    contratto (`normalizza_filtri`) e le due coppie di funzioni sono la stessa
+    cosa, conservate con entrambi i nomi per i chiamanti esistenti.
+
+    L'ordine di emissione e' invariato — il fattore piu' a destra varia piu'
+    rapidamente — quindi la numerazione «Combinazione #N» nei PDF e nei CSV non
+    cambia.
     """
-    filters: lista di 3 dizionari (uno per stadio), ciascuno con chiavi:
-        p0, p1, p2, j0, j1, j2  → valore fisso oppure ANY="*"
-    Yield: (params_list)  dove params_list = [(p0,p1,p2,j0,j1,j2) x3]
-
-    Sostituisce 18 cicli `for` annidati con un unico prodotto cartesiano.
-    L'ORDINE DI EMISSIONE E' IDENTICO a quello dei cicli annidati (il fattore
-    piu' a destra varia piu' rapidamente), quindi la numerazione
-    «Combinazione #N» nei PDF e nei CSV non cambia.
-    """
-    valida_filtri(filters)
-
-    def choices(val, opts):
-        return opts if val == ANY else [val]
-
-    KEYS = CHIAVI_FILTRO
-    axes = [choices(filters[s][k], P_OPTS if k[0] == 'p' else J_OPTS)
-            for s in range(3) for k in KEYS]
-
-    for combo in iproduct(*axes):
-        yield [combo[0:6], combo[6:12], combo[12:18]]
+    return _combinazioni(normalizza_filtri(filters))
 
 
 def count_combinations(filters):
-    valida_filtri(filters)
-    total = 1
-    for f in filters:
-        for key, opts in [('p0',P_OPTS),('p1',P_OPTS),('p2',P_OPTS),
-                          ('j0',J_OPTS),('j1',J_OPTS),('j2',J_OPTS)]:
-            total *= 1 if f[key] != ANY else len(opts)
-    return total
+    """Quante combinazioni producono i filtri. Non enumera nulla."""
+    return cardinalita(normalizza_filtri(filters))
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # PDF GENERATION (filtro base)
@@ -379,99 +533,26 @@ def _pdf_parallel(path, filters, *, total, items_iter, sequential, worker,
     return n
 
 
-def _j_uniform_triples(f):
-    """
-    Dato il filtro di uno stadio con j_uniform=True, restituisce la lista
-    delle triple (j0,j1,j2) ammissibili — sempre della forma (v,v,v).
-
-    Il valore comune è determinato dal filtro su j0 (dropdown o checkbox):
-      • j0 fisso a "I_3" → solo [(I_3, I_3, I_3)]
-      • j0 fisso a "R_U" → solo [(R_U, R_U, R_U)]
-      • j0 = ANY (o lista) → una tripla per ciascun valore ammissibile di j0
-    """
-    j1_val = f.get('j0', ANY)
-    if j1_val == ANY:
-        values = J_OPTS
-    elif isinstance(j1_val, list):
-        values = j1_val
-    else:
-        values = [j1_val]
-    return [(v, v, v) for v in values]
-
-
 def iter_combinations_ex(filters):
-    """
-    Generatore di combinazioni con filtro esteso.
+    """Combinazioni filtrate (nome esteso: stessa semantica di `iter_combinations`).
 
-    Ogni filtro (uno per stadio) è un dict con chiavi:
-        p0, p1, p2  → ANY | stringa | lista
-        j0, j1, j2  → ANY | stringa | lista
+    Ogni filtro (uno per stadio) e' un dict con chiavi:
+        p0, p1, p2  → ANY | nome | lista di nomi
+        j0, j1, j2  → ANY | nome | lista di nomi
         j_uniform   → bool  (default False)
 
-    Quando j_uniform=True per uno stadio, le triple (j0,j1,j2) prodotte
-    per quello stadio sono solo quelle della forma (v,v,v), con v scelto
-    in base al filtro su j0. Le chiavi j1 e j2 vengono ignorate.
+    Con `j_uniform=True` le triple (j0, j1, j2) dello stadio sono solo quelle
+    della forma (v, v, v), con v preso dal filtro su j0; j1 e j2 vengono
+    ignorate. Il contratto e' validato una sola volta da `normalizza_filtri`, e
+    il conteggio usa lo stesso oggetto: non possono piu' descrivere domini
+    diversi (B06).
     """
-    valida_filtri(filters)
-
-    def choices(val, opts):
-        if val == ANY:            return opts
-        if isinstance(val, list): return val
-        return [val]
-
-    results = []
-    for s in range(3):
-        f = filters[s]
-        p_opts = [choices(f[k], P_OPTS) for k in CHIAVI_P]
-
-        if f.get('j_uniform', False):
-            # Triple J vincolate: solo (v,v,v)
-            j_triples = _j_uniform_triples(f)
-            # Prodotto cartesiano solo sui P, poi appendi ogni tripla J
-            combos = [
-                p + jt
-                for p in iproduct(*p_opts)
-                for jt in j_triples
-            ]
-        else:
-            # Prodotto cartesiano libero su tutti e 6 i parametri
-            j_opts = [choices(f[k], J_OPTS) for k in CHIAVI_J]
-            combos = list(iproduct(*p_opts, *j_opts))
-
-        results.append(combos)
-
-    for s1 in results[0]:
-        for s2 in results[1]:
-            for s3 in results[2]:
-                yield [s1, s2, s3]
+    return _combinazioni(normalizza_filtri(filters))
 
 
 def count_combinations_ex(filters):
-    """
-    Conta le combinazioni senza generarle.
-    Rispetta il vincolo j_uniform: se attivo per uno stadio, conta
-    solo le triple (v,v,v) ammissibili invece di 2³ = 8.
-    """
-    valida_filtri(filters)
-
-    def n_choices(val, opts):
-        if val == ANY:            return len(opts)
-        if isinstance(val, list): return len(val)
-        return 1
-
-    total = 1
-    for f in filters:
-        # Contributo fattori P
-        for k in CHIAVI_P:
-            total *= n_choices(f[k], P_OPTS)
-        # Contributo fattori J
-        if f.get('j_uniform', False):
-            # Solo le triple (v,v,v): tante quante i valori ammissibili di j1
-            total *= n_choices(f.get('j0', ANY), J_OPTS)
-        else:
-            for k in CHIAVI_J:
-                total *= n_choices(f[k], J_OPTS)
-    return total
+    """Conta le combinazioni senza generarle, dal contratto validato."""
+    return cardinalita(normalizza_filtri(filters))
 
 
 # ─────────────────────────────────────────────────────────────────────────────
