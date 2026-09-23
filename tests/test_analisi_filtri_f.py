@@ -1,8 +1,8 @@
-"""Compartimento F — ingressi, filtri e preflight dell'analisi (B05, B06, R01).
+"""Compartimento F — analisi, filtri, aggregazione e budget (B05, B06, R01).
 
-Il dominio viene validato e contato prima di enumerare: un piano non eseguibile
-non fa partire nulla. Il caso da 5.159.780.352 combinazioni viene provato con
-una sentinella che esplode se qualcuno avvia l'enumerazione.
+Il piano decide anche se le righe grezze verranno conservate, e l'aggregazione
+incrementale lo onora: sopra il limite restano gli aggregati, completi, e gli
+export dei grezzi si disabilitano da soli.
 """
 import ast
 import pathlib
@@ -12,7 +12,11 @@ import pytest
 
 from gioco27.core import combinations
 from gioco27.core.algebra import analizza_csv, analizza_righe
-from gioco27.core.analisi import AnalisiTroppoGrande, LIMITE_ANALISI, LIMITE_GREZZI, RisultatiImport, SchemaNonRiconosciuto, importa_csv, pianifica_analisi, riconosci_schema
+from gioco27.core.analisi import (Aggregatore, AnalisiTroppoGrande,
+                                  LIMITE_ANALISI, LIMITE_GREZZI, PianoAnalisi,
+                                  RisultatiImport, SchemaNonRiconosciuto,
+                                  importa_csv, pianifica_analisi,
+                                  riconosci_schema)
 from gioco27.core.combinations import (FiltroNonValido, N_STADI, cardinalita,
                                        count_combinations,
                                        count_combinations_ex,
@@ -449,6 +453,26 @@ def test_r01_le_soglie_sono_ordinate_e_dichiarate():
     assert "5.159.780.352" in sorgente
 
 
+def test_r01_aggregazione_senza_materializzare_i_grezzi():
+    aggregatore = Aggregatore(tieni_grezzi=False)
+    for _ in range(50):
+        aggregatore.aggiungi(_riga(Stage0="(SCD_U x SCD_U x SCD_U)"))
+    for k in range(10):
+        aggregatore.aggiungi(_riga(Stage0=f"(SCD_U x SCD_U x SCD_U) #{k}"))
+    assert aggregatore.grezzi == ()
+    risultati = aggregatore.risultati()
+    assert len(risultati) == 1 and risultati[0]["n_sim"] == 11
+    assert aggregatore.lette == 60
+
+
+def test_r01_aggregazione_incrementale_uguale_a_quella_in_blocco():
+    righe = [_riga(Stage0=f"S{i % 7}") for i in range(40)]
+    incrementale = Aggregatore(tieni_grezzi=False)
+    for riga in righe:
+        incrementale.aggiungi(riga)
+    assert incrementale.risultati() == list(analizza_righe(righe))
+
+
 # ═════════════════════════ R01 — la scheda Analisi ══════════════════════════
 
 class _Var:
@@ -565,6 +589,20 @@ def test_r01_analisi_piccola_pubblica_aggregati_e_grezzi(tab):
     assert tab._analisi_corrente.diagnostica == ""
 
 
+def test_r01_analisi_grande_pubblica_solo_aggregati(tab, monkeypatch):
+    """Sopra il limite dei grezzi: aggregati completi, grezzi assenti e detto."""
+    monkeypatch.setattr(analysis_tab, "pianifica_analisi",
+                        lambda f: PianoAnalisi(combinazioni=6, grezzi=False))
+    tab._filtri = [dict(FISSO, p0=ANY), dict(FISSO), dict(FISSO)]
+    tab._run_analisi()
+    tab.lavori[0]()
+    tab.esegui_coda()
+    assert tab._analisi_righe_raw == []
+    assert sum(r["n_sim"] for r in tab._analisi_risultati) == 6
+    assert tab._analisi_corrente.diagnostica
+    assert tab._analisi_corrente.diagnostica in tab._analisi_status.get()
+
+
 def test_r01_reset_durante_l_aggregazione_invalida_il_lavoro(tab):
     tab._filtri = [dict(FISSO, p0=ANY), dict(FISSO), dict(FISSO)]
     tab._run_analisi()
@@ -587,6 +625,21 @@ def test_r01_nuova_richiesta_durante_l_aggregazione(tab):
     tab.esegui_coda()
     assert len(tab.popolati) == 1
     assert tab._analisi_corrente.revisione == tab._analisi_revisione
+
+
+def test_r01_nessun_risultato_parziale_presentato_come_completo(tab, monkeypatch):
+    """Grezzi assenti = voci di export dei grezzi disabilitate."""
+    disabilitate = []
+    tab._analisi_exp_menu = SimpleNamespace(
+        entryconfigure=lambda indice, state: disabilitate.append((indice, state)))
+    monkeypatch.setattr(analysis_tab, "pianifica_analisi",
+                        lambda f: PianoAnalisi(combinazioni=6, grezzi=False))
+    tab._filtri = [dict(FISSO, p0=ANY), dict(FISSO), dict(FISSO)]
+    tab._run_analisi()
+    tab.lavori[0]()
+    tab.esegui_coda()
+    assert ("disabled" in {stato for _, stato in disabilitate})
+    assert tab._analisi_corrente.grezzi == ()
 
 
 # ═════════════════════ contratti degli altri compartimenti ══════════════════

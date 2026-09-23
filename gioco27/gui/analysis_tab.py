@@ -11,7 +11,8 @@ import tkinter as tk
 from dataclasses import dataclass
 from tkinter import ttk, messagebox, filedialog
 
-from ..core.analisi import AnalisiTroppoGrande, pianifica_analisi
+from ..core.analisi import (AnalisiTroppoGrande, Aggregatore,
+                            pianifica_analisi)
 from ..core.algebra import (EXCEL_MAX_CELL_CHARS, analizza_righe, analizza_csv,
                              _prep_explorer_expr, scrivi_output, scrivi_excel)
 from ..core.combinations import iter_combinations_ex
@@ -305,8 +306,7 @@ class AnalysisTabMixin:
         # PRIMA di toccare l'enumeratore. Un piano non eseguibile non fa
         # partire nulla: prima l'unica difesa era una finestra «sei sicuro?»,
         # e con i filtri liberi (5.159.780.352 combinazioni) il «si'» portava
-        # a riempire la memoria. Il piano decide anche se le righe grezze
-        # verranno conservate; a onorarlo sara' l'aggregazione incrementale.
+        # a riempire la memoria.
         filters = self._get_filters()
         try:
             piano = pianifica_analisi(filters)
@@ -322,9 +322,9 @@ class AnalysisTabMixin:
 
         n = piano.combinazioni
         if n == 0:                            # difensivo: il contratto dei
-                                              # filtri non produce domini vuoti
-            messagebox.showwarning(tr("analysis.no_combinations_title"),
-                                   tr("analysis.no_combinations"))
+            messagebox.showwarning(           # filtri non produce domini vuoti
+                tr("analysis.no_combinations_title"),
+                tr("analysis.no_combinations"))
             return
         if n > 50_000:
             ok = messagebox.askyesno(
@@ -341,12 +341,21 @@ class AnalysisTabMixin:
 
         def job():
             _eta = EtaEstimator()
-            righe = []
+            # Aggregazione incrementale: le righe entrano nei contatori una per
+            # volta. Sopra il limite del piano NON vengono trattenute, e i
+            # grezzi restano vuoti — il modello di C disabilita da solo gli
+            # export che li richiedono.
+            # In modalita' completa le righe restano comunque tutte: validarle
+            # e aggregarle due volte sarebbe spreco, quindi qui l'aggregatore
+            # si limita a trattenerle e il lavoro lo fa `analizza_righe` alla
+            # fine — lo stesso codice, chiamato piu' tardi.
+            aggregatore = Aggregatore(tieni_grezzi=piano.grezzi,
+                                      aggrega=not piano.grezzi)
             for i, params in enumerate(iter_combinations_ex(filters), 1):
                 if not self._analisi_e_corrente(revisione):
                     return
                 rd = make_csv_row(i, params)
-                righe.append({
+                aggregatore.aggiungi({
                     "Stage0": rd[1], "Stage1": rd[2], "Stage2": rd[3],
                     "A0": rd[4], "A1": rd[5], "A2": rd[6],
                     "T_simbolica": rd[7], "T_permutazione": rd[8],
@@ -361,14 +370,23 @@ class AnalysisTabMixin:
                 return
             self._ui(lambda: self._analisi_e_corrente(revisione)
                      and self._analisi_status.set(tr(
-                         "analysis.status.analyzing_rows", count=f"{len(righe):,}")))
-            risultati = analizza_righe(righe)
+                         "analysis.status.analyzing_rows",
+                         count=f"{aggregatore.lette:,}")))
+            risultati = (analizza_righe(aggregatore.grezzi) if piano.grezzi
+                         else aggregatore.risultati())
             if not self._analisi_e_corrente(revisione):
                 return
+            note = [] if piano.grezzi else [
+                tr("analysis.raw_not_kept", limit=f"{piano.limite_grezzi:,}")]
+            riassunto = (_diagnostica_import(risultati) if piano.grezzi
+                         else aggregatore.esito().diagnostica())
+            if riassunto:
+                note.append(riassunto)
             # Aggregati e grezzi entrano nello stato insieme, sul thread Tk.
             risultato = RisultatoAnalisi(
                 revisione=revisione, origine="filtri",
-                aggregati=tuple(risultati), grezzi=tuple(righe), totale=n)
+                aggregati=tuple(risultati), grezzi=aggregatore.grezzi,
+                totale=n, diagnostica="   ".join(note))
             self._ui(lambda: self._analisi_pubblica(risultato))
 
         run_in_thread(self, job, error_title=tr("analysis.error_title"),
