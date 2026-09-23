@@ -1,10 +1,10 @@
-"""Compartimento E — il linguaggio ha un solo parser e una sola AST.
+"""Compartimento E — un solo linguaggio per Explorer e Mescolamento.
 
-Il corpus condiviso e le tre prove della divergenza B07 restano quelle del
-passo precedente (ancora `xfail`: il Mescolamento ha tuttora una grammatica
-propria). Qui si verifica il contratto nuovo — `core.espressione`: AST,
-valutazione e traccia cronologica — e che non dipenda da GUI, Tk o
-filesystem.
+Corpus condiviso: le stesse espressioni vengono date a **entrambi** i
+consumatori e si pretende la stessa risposta. Prima del compartimento E le
+risposte divergevano in tredici casi (B07): il visualizzatore cancellava
+l'operatore finale e le parentesi spaiate, e non conosceva `I`, `J` ne' i
+fattori Kronecker composti.
 
 Convenzioni verificate (invarianti di D, qui solo usate):
 
@@ -21,7 +21,8 @@ import numpy as np
 import pytest
 
 from gioco27.core.algebra import Controller, ParseError
-from gioco27.core.espressione import analizza, permutazione_di, traccia_simulazione
+from gioco27.core.espressione import (EspressioneNonSimulabile, analizza,
+                                      permutazione_di, traccia_simulazione)
 from gioco27.gui.shuffle import ShuffleViewerFrame
 
 RADICE = pathlib.Path(__file__).resolve().parents[1]
@@ -214,26 +215,6 @@ def _corpus_generativo():
 GENERATIVO = _corpus_generativo()
 
 
-def _explorer_accetta(testo):
-    return bool(_CTRL.process(testo)["ok"])
-
-
-def _mescolamento_accetta(testo):
-    vista = object.__new__(ShuffleViewerFrame)
-    try:
-        vista._validate_and_parse(testo)
-        return True
-    except Exception:
-        return False
-
-
-def _discordi(espressioni):
-    """Espressioni su cui i due consumatori non sono d'accordo."""
-    return [(t, _explorer_accetta(t), _mescolamento_accetta(t))
-            for t in espressioni
-            if _explorer_accetta(t) != _mescolamento_accetta(t)]
-
-
 # ═══════════════════════════════ il corpus ══════════════════════════════════
 
 def test_corpus_ben_formato():
@@ -244,37 +225,70 @@ def test_corpus_ben_formato():
     assert len(GENERATIVO) > 100
 
 
-# ═════════════════════════ B07 — la divergenza ══════════════════════════════
+# ══════════════════════════ B07 — stesso linguaggio ═════════════════════════
 
-@pytest.mark.xfail(strict=True, reason="B07: il Mescolamento non conosce I, J "
-                                       "ne' i fattori Kronecker composti")
-def test_b07_ogni_espressione_valida_e_accettata_da_entrambi():
-    assert _discordi([t for t, _ in VALIDI]) == []
-
-
-@pytest.mark.xfail(strict=True, reason="B07: il Mescolamento cancella "
-                                       "l'operatore finale e le parentesi spaiate")
-def test_b07_ogni_espressione_invalida_e_rifiutata_da_entrambi():
-    assert _discordi([t for t, _ in INVALIDI]) == []
+@pytest.mark.parametrize("testo,nota", VALIDI, ids=[n for _, n in VALIDI])
+def test_b07_le_valide_sono_accettate_da_entrambi(testo, nota):
+    risultato = _explorer(testo)
+    assert risultato["ok"], (testo, risultato["error"])
+    assert len(risultato["perm"]) == 27
+    traccia = _shuffle(testo)
+    assert len(traccia) >= 1
 
 
-@pytest.mark.xfail(strict=True, reason="B07: il Mescolamento accetta un "
-                                       "prefisso valido ignorando la coda")
-def test_b07_nessuna_coda_invalida_viene_ignorata():
-    guaste = [base + coda for base in BASI_PER_CODA for coda in CODE_INVALIDE]
-    accettate = [t for t in guaste
-                 if _explorer_accetta(t) or _mescolamento_accetta(t)]
-    assert accettate == []
+@pytest.mark.parametrize("testo,nota", INVALIDI, ids=[n for _, n in INVALIDI])
+def test_b07_le_invalide_sono_rifiutate_da_entrambi(testo, nota):
+    risultato = _explorer(testo)
+    assert not risultato["ok"], f"Explorer ha accettato {testo!r}"
+    assert risultato["error"], "errore senza messaggio"
+    assert risultato["perm"] is None, "permutazione prodotta da un input invalido"
+    with pytest.raises(ParseError):
+        _shuffle(testo)
 
-def test_b07_le_forme_di_tipo_3_sono_rifiutate_da_entrambi():
-    """Su queste i due sono gia' d'accordo, per ragioni diverse.
 
-    L'Explorer le parsa e poi rifiuta il risultato di tipo 3; il Mescolamento
-    non le riconosce proprio. L'accordo va conservato anche dopo l'unificazione.
-    """
-    assert _discordi([t for t, _ in NON_A_27]) == []
-    for testo, _ in NON_A_27:
-        assert not _explorer_accetta(testo)
+@pytest.mark.parametrize("testo,nota", NON_A_27, ids=[n for _, n in NON_A_27])
+def test_b07_le_forme_di_tipo_3_sono_rifiutate_da_entrambi(testo, nota):
+    """Grammatica rispettata, dominio no: l'errore deve dirlo."""
+    analizza(testo)                      # la sintassi e' valida
+    risultato = _explorer(testo)
+    assert not risultato["ok"] and risultato["error"]
+    with pytest.raises(EspressioneNonSimulabile):
+        _shuffle(testo)
+
+
+def test_b07_i_tre_casi_storici():
+    """I casi citati nella baseline, prima divergenti."""
+    for cattiva in ("MSC o", "MSC)"):
+        assert not _explorer(cattiva)["ok"]
+        assert not _shuffle_accetta(cattiva), f"{cattiva!r} ancora accettata"
+    assert _explorer("I")["ok"]
+    assert _shuffle_accetta("I")
+    assert _explorer("I")["perm"] == list(range(27))
+    assert list(traccia_simulazione("I").mazzo_finale) == list(range(27))
+
+
+@pytest.mark.parametrize("coda", CODE_INVALIDE)
+@pytest.mark.parametrize("base", BASI_PER_CODA)
+def test_b07_nessuna_coda_invalida_viene_ignorata(base, coda):
+    """Nessun prefisso valido viene accettato buttando via il resto."""
+    assert _explorer(base)["ok"] and _shuffle_accetta(base)
+    guasta = base + coda
+    assert not _explorer(guasta)["ok"], f"Explorer ha ignorato la coda in {guasta!r}"
+    assert not _shuffle_accetta(guasta), f"Mescolamento ha ignorato la coda in {guasta!r}"
+
+
+def test_b07_nessun_recupero_silenzioso():
+    """Su un input invalido non esistono «risultati di ripiego»."""
+    for testo, _ in INVALIDI:
+        risultato = _explorer(testo)
+        assert risultato["perm"] is None
+        assert risultato["normalized_str"] == ""
+        assert risultato["partial_perms"] == []
+        try:
+            traccia = _shuffle(testo)
+        except (ParseError, ValueError):
+            continue
+        pytest.fail(f"{testo!r} ha prodotto una traccia di {len(traccia)} passi")
 
 
 # ═════════════════════ semantica: valutazione e traccia ═════════════════════
@@ -360,6 +374,21 @@ def test_un_solo_parser_autorevole():
         if {"Lexer", "Parser"} & classi:
             proprietari.append(sorgente.relative_to(RADICE).as_posix())
     assert proprietari == ["gioco27/core/algebra.py"], proprietari
+
+
+def test_il_mescolamento_non_ha_piu_una_grammatica():
+    sorgente = RADICE / "gioco27" / "gui" / "shuffle.py"
+    testo = sorgente.read_text(encoding="utf-8")
+    albero = _albero(sorgente)
+    importati = {a.name.split(".")[0]
+                 for n in ast.walk(albero) if isinstance(n, ast.Import)
+                 for a in n.names}
+    assert "re" not in importati, "espressioni regolari di nuovo nella vista"
+    for vietato in ("GEN3", "_MSC_PERM", "PERM3", "argsort", "_make_kron27"):
+        assert vietato not in testo, f"{vietato} e' tornato nel visualizzatore"
+    chiamate = {n.func.id for n in ast.walk(albero)
+                if isinstance(n, ast.Call) and isinstance(n.func, ast.Name)}
+    assert "traccia_simulazione" in chiamate
 
 
 def test_il_linguaggio_non_dipende_da_gui_tk_filesystem():

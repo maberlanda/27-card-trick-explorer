@@ -308,11 +308,15 @@ def test_fifth_block_shuffle_status_and_codes_preserve_math():
     assert "right to left" in loaded
 
     viewer = object.__new__(ShuffleViewerFrame)
-    tokens = viewer._validate_and_parse(
+    # E/B07: il visualizzatore non ha piu' un parser proprio. Quella che
+    # riceve e' la traccia derivata dall'AST unica, e i suoi passi sono in
+    # ordine CRONOLOGICO — il fattore piu' a destra e' il primo applicato —
+    # mentre i vecchi token erano in ordine testuale. Le etichette sono le
+    # stesse, l'ordine e' quello vero dell'esecuzione.
+    traccia = viewer._validate_and_parse(
         "(SCD_U x SCD_U x DCS_U) o MSC")
-    assert tokens[0][2] == "(SCD_U x SCD_U x DCS_U)"
-    assert tokens[1][2] == "MSC"
-    viewer._build_steps(tokens)
+    assert [p.etichetta for p in traccia] == ["MSC", "(SCD_U x SCD_U x DCS_U)"]
+    viewer._build_steps(traccia)
     assert "MSC" in viewer._steps[1]["label"]
     assert "SCD_U" in viewer._steps[-1]["label"]
     assert "DCS_U" in viewer._steps[-1]["label"]
@@ -1166,7 +1170,7 @@ def test_twelfth_block_catalog_additions_are_symmetric_and_counted():
     assert len([k for k in i18n.CATALOGS["it"] if k.startswith("glossary.long.")]) == 14
     assert len([k for k in i18n.CATALOGS["it"] if k.startswith("help.tab.")]) == 16
     assert len([k for k in i18n.CATALOGS["it"] if k.startswith("filter.")]) == 24  # +7 audit finale
-    assert len(i18n.CATALOGS["it"]) == 1288  # 820 + 354 guide.* + 32 anomalie UI + 82 audit finale
+    assert len(i18n.CATALOGS["it"]) == 1289  # 820 + 354 guide.* + 32 anomalie UI + 82 audit finale + 1 (E: shuffle.operation_atom)
 
 
 def _use_config_file(monkeypatch, tmp_path):

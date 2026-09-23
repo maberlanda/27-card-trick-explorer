@@ -3,7 +3,7 @@ import tkinter as tk
 from tkinter import ttk
 import numpy as np
 
-from ..core.constants import PERM3, _MSC_PERM
+from ..core.espressione import ParseError, traccia_simulazione
 from .i18n import tr
 
 class ShuffleViewerFrame(ttk.Frame):
@@ -12,7 +12,6 @@ class ShuffleViewerFrame(ttk.Frame):
     K_n o MSC o ... o K_1 o MSC  sul mazzo di 27 carte.
     """
 
-    GEN3 = {"SCD_U", "SDC_U", "CSD_U", "CDS_U", "DSC_U", "DCS_U"}
     _CLR_NORMAL   = "#FFFFFF"
     _CLR_MOVED    = "#FFF59D"
     _CLR_MSC_HDR  = "#1565C0"
@@ -236,170 +235,122 @@ class ShuffleViewerFrame(ttk.Frame):
                 tr("shuffle.no_formula_explorer"))
             return
         try:
-            tokens = self._validate_and_parse(raw)
-        except ValueError as exc:
+            traccia = self._validate_and_parse(raw)
+        except (ParseError, ValueError) as exc:
+            # ParseError: non e' una formula. EspressioneNonSimulabile: lo e',
+            # ma non descrive un mazzo di 27 carte. Due cause distinte, non un
+            # unico «non ho capito».
             self._set_error(str(exc))
             self._formula_lbl.configure(
                 text=raw.replace("\n", " ")[:120],
                 foreground=self._CLR_ERR)
             return
-        n_msc  = sum(1 for t in tokens if t[0] == "MSC")
-        n_kron = sum(1 for t in tokens if t[0] == "KRON")
+        n_msc  = sum(1 for passo in traccia if passo.operazione == "MSC")
+        n_kron = sum(1 for passo in traccia if passo.operazione == "KRON")
         self._formula_lbl.configure(
             text=raw.replace("\n", " ")[:160], foreground="#333")
         self._set_msg(tr("shuffle.formula_loaded", kron=n_kron, msc=n_msc,
-                         total=1 + len(tokens)))
-        self._kron_blocks = tokens
+                         total=1 + len(traccia)))
+        self._traccia = traccia
         if self._card_mode.get():
-            self._build_steps_card_by_card(tokens)
+            self._build_steps_card_by_card(traccia)
         else:
-            self._build_steps(tokens)
+            self._build_steps(traccia)
         self.reset()
 
     def _validate_and_parse(self, expr):
+        """Adattatore: chiede il parsing al linguaggio, non lo esegue.
+
+        Fino al compartimento E questo metodo **era** un secondo parser: una
+        manciata di espressioni regolari che cancellavano l'operatore finale,
+        buttavano via le parentesi spaiate e conoscevano soltanto MSC e i
+        blocchi Kronecker. Accettava `MSC o` e `MSC)`, che l'Explorer
+        rifiutava, e rifiutava `I`, `J` e i fattori Kronecker composti, che
+        l'Explorer accettava: era B07.
+
+        Ora qui non c'e' nessuna grammatica. Il testo va al parser autorevole
+        (`core.algebra`, via `core.espressione`) e torna una
+        `TracciaEsecuzione` derivata dalla stessa AST che l'Explorer valuta.
+        Il metodo resta solo perche' e' il punto di ingresso storico della
+        vista.
+
+        Solleva `ParseError` se il testo non e' una formula valida e
+        `EspressioneNonSimulabile` se lo e' ma non descrive un mazzo di 27.
         """
-        Parser della formula per la simulazione visiva.
-
-        Dalla v2.8.6 accetta la notazione di gioco completa dell'Explorer:
-          • blocchi Kronecker  (a x b x c)  con a,b,c ∈ GEN3 ∪ {R_U, I_3}
-          • MSC
-          • composizione con  'o', '∘' o '@'
-          • parentesi quadre attorno ai turni e prefisso  'T ='
-          • qualunque sequenza di blocchi e MSC (non solo K∘MSC alternati):
-            un turno di gioco  (P) o MSC o (J)  produce i passi  J → MSC → P
-            (la composizione si applica da destra a sinistra)
-
-        Restituisce una lista di token [(tipo, valore, etichetta), ...]
-        nell'ordine testuale (sinistra→destra):
-          ("MSC",  None,          "MSC")
-          ("KRON", (p3, p2, p1),  "(p3 x p2 x p1)")   # nomi GIA' normalizzati
-        """
-        import re
-        e = expr.strip()
-        if e.startswith("T ="):
-            e = e[3:].strip()
-        # normalizza operatori
-        e = e.replace("\u2218", " o ")   # ∘
-        e = e.replace("@", " o ")
-        e = e.replace("\u2297", " x ")   # ⊗
-        e = e.replace("\n", " ")
-        # le parentesi quadre raggruppano i turni: per associativita'
-        # sono irrilevanti nella sequenza piatta
-        e = e.replace("[", " ").replace("]", " ")
-        e = re.sub(r"[ \t]+", " ", e).strip()
-        e = re.sub(r"\s+o\s*$", "", e).strip()
-
-        # 1. estrai i blocchi Kronecker sostituendoli con segnaposto,
-        #    cosi' le parentesi residue (di solo raggruppamento) si
-        #    possono eliminare senza ambiguita'
-        kron_re = re.compile(
-            r"\(\s*([A-Za-z0-9_]+)\s+x\s+([A-Za-z0-9_]+)"
-            r"\s+x\s+([A-Za-z0-9_]+)\s*\)")
-        blocks = []
-        def _stash(m):
-            blocks.append((m.group(1), m.group(2), m.group(3)))
-            return f" \x00K{len(blocks)-1}\x00 "
-        e = kron_re.sub(_stash, e)
-        # eventuali parentesi tonde rimaste sono solo raggruppamento
-        e = e.replace("(", " ").replace(")", " ")
-        e = re.sub(r"[ \t]+", " ", e).strip()
-
-        # 2. split per ' o '
-        parts = [p.strip() for p in re.split(r"\s+o\s+", e) if p.strip()]
-        if not parts:
-            raise ValueError(tr("shuffle.formula_empty"))
-
-        # 3. classifica
-        alias = {"R_U": "DCS_U", "I_3": "SCD_U"}
-        tokens = []
-        ph_re = re.compile(r"^\x00K(\d+)\x00$")
-        for part in parts:
-            if part == "MSC":
-                tokens.append(("MSC", None, "MSC"))
-                continue
-            m = ph_re.match(part)
-            if not m:
-                raise ValueError(
-                    tr("shuffle.unrecognized_token", token=part))
-            orig = blocks[int(m.group(1))]
-            norm = tuple(alias.get(p, p) for p in orig)
-            for p in norm:
-                if p not in self.GEN3:
-                    raise ValueError(
-                        tr("shuffle.unknown_generator", generator=p,
-                           allowed=", ".join(sorted(self.GEN3))))
-            label = f"({orig[0]} x {orig[1]} x {orig[2]})"
-            tokens.append(("KRON", norm, label))
-
-        return tokens
+        return traccia_simulazione(expr)
 
     # ─── costruzione passi ────────────────────────────────────────────────────
-    def _build_steps(self, tokens):
-        """Un passo per ogni operatore, applicati da DESTRA a SINISTRA."""
-        msc_inv = np.argsort(np.array(_MSC_PERM, dtype=np.int32))
-        deck    = np.arange(27, dtype=np.int32)
-        n       = len(tokens)
-        steps   = [dict(type="INIT",
-                        deck_before=deck.copy(), deck=deck.copy(),
-                        changed=set(), changed_order=[],
-                        label=tr("shuffle.initial_state"), ki=0, n=n)]
-        for ki, (typ, val, label) in enumerate(reversed(tokens), 1):
-            if typ == "MSC":
-                nd  = deck[msc_inv]
-                lbl = tr("shuffle.operation_msc", current=ki, total=n)
-            else:
-                p3, p2, p1 = val
-                nd  = deck[np.argsort(self._make_kron27(p3, p2, p1))]
-                lbl = tr("shuffle.operation_kron", label=label,
-                         current=ki, total=n)
+    def _etichetta_operazione(self, passo, totale):
+        """Testo dell'intestazione per un passo della traccia."""
+        if passo.operazione == "MSC":
+            return tr("shuffle.operation_msc",
+                      current=passo.indice + 1, total=totale)
+        if passo.operazione == "KRON":
+            return tr("shuffle.operation_kron", label=passo.etichetta,
+                      current=passo.indice + 1, total=totale)
+        return tr("shuffle.operation_atom", label=passo.etichetta,
+                  current=passo.indice + 1, total=totale)
+
+    def _build_steps(self, traccia):
+        """Un passo visivo per ogni passo della traccia.
+
+        L'ordine e' gia' quello cronologico deciso dal linguaggio (il fattore
+        piu' a destra e' il primo applicato): qui non si inverte nulla e non si
+        calcola nessuna permutazione. Lo stato del mazzo arriva dalla traccia.
+        """
+        passi = list(traccia)
+        n     = len(passi)
+        deck  = np.arange(27, dtype=np.int32)
+        steps = [dict(type="INIT",
+                      deck_before=deck.copy(), deck=deck.copy(),
+                      changed=set(), changed_order=[],
+                      label=tr("shuffle.initial_state"), ki=0, n=n)]
+        for passo in passi:
+            nd      = np.array(passo.mazzo, dtype=np.int32)
+            lbl     = self._etichetta_operazione(passo, n)
             changed = {i for i in range(27) if nd[i] != deck[i]}
-            steps.append(dict(type=typ,
+            steps.append(dict(type=passo.operazione,
                               deck_before=deck.copy(), deck=nd.copy(),
                               deck_final=nd.copy(),
                               changed=changed,
                               changed_order=sorted(changed),
-                              label=lbl, ki=ki, n=n))
+                              label=lbl, ki=passo.indice + 1, n=n))
             deck = nd
         self._steps = steps
         self._cur   = 0
 
-    def _build_steps_card_by_card(self, tokens):
+    def _build_steps_card_by_card(self, traccia):
         """Come _build_steps, ma ogni operazione è espansa in un sotto-passo
         per carta spostata (deck intermedio cumulativo; card_step=True salta
         il controllo di validità della permutazione in _refresh)."""
-        msc_inv = np.argsort(np.array(_MSC_PERM, dtype=np.int32))
-        deck    = np.arange(27, dtype=np.int32)
-        n       = len(tokens)
-        steps   = [dict(type="INIT",
-                        deck_before=deck.copy(), deck=deck.copy(),
-                        changed=set(), changed_order=[],
-                        label=tr("shuffle.initial_state"), ki=0, n=n,
-                        card_step=False)]
-        for ki, (typ, val, label) in enumerate(reversed(tokens), 1):
-            if typ == "MSC":
-                nd  = deck[msc_inv]
-                lbl = tr("shuffle.operation_msc", current=ki, total=n)
-            else:
-                p3, p2, p1 = val
-                nd  = deck[np.argsort(self._make_kron27(p3, p2, p1))]
-                lbl = tr("shuffle.operation_kron", label=label,
-                         current=ki, total=n)
+        passi = list(traccia)
+        n     = len(passi)
+        deck  = np.arange(27, dtype=np.int32)
+        steps = [dict(type="INIT",
+                      deck_before=deck.copy(), deck=deck.copy(),
+                      changed=set(), changed_order=[],
+                      label=tr("shuffle.initial_state"), ki=0, n=n,
+                      card_step=False)]
+        for passo in passi:
+            nd      = np.array(passo.mazzo, dtype=np.int32)
+            lbl     = self._etichetta_operazione(passo, n)
+            ki      = passo.indice + 1
             changed = [i for i in range(27) if nd[i] != deck[i]]
             total_c = len(changed)
             db      = deck.copy()
             if total_c == 0:
-                steps.append(dict(type=typ,
+                steps.append(dict(type=passo.operazione,
                                   deck_before=db, deck=nd.copy(),
                                   changed=set(), changed_order=[],
                                   label=tr("shuffle.no_card_movement", label=lbl),
                                   ki=ki, n=n, card_step=False))
             else:
-                for sub, pos in enumerate(changed):
+                for sub_i, pos in enumerate(changed):
                     mid = db.copy()
-                    for j in range(sub + 1):
+                    for j in range(sub_i + 1):
                         mid[changed[j]] = nd[changed[j]]
-                    is_last = (sub == total_c - 1)
-                    steps.append(dict(type=typ,
+                    is_last = (sub_i == total_c - 1)
+                    steps.append(dict(type=passo.operazione,
                                       deck_before=db,
                                       deck=mid,
                                       deck_final=nd,
@@ -407,23 +358,12 @@ class ShuffleViewerFrame(ttk.Frame):
                                       changed_order=[pos],
                                       label=(lbl if is_last else tr(
                                           "shuffle.substep", label=lbl,
-                                          current=sub + 1, total=total_c)),
+                                          current=sub_i + 1, total=total_c)),
                                       ki=ki, n=n,
                                       card_step=not is_last))
             deck = nd
         self._steps = steps
         self._cur   = 0
-
-    @staticmethod
-    def _make_kron27(p3n, p2n, p1n):
-        a = np.array(PERM3[p3n], dtype=np.int32)
-        b = np.array(PERM3[p2n], dtype=np.int32)
-        c = np.array(PERM3[p1n], dtype=np.int32)
-        r = np.empty(27, dtype=np.int32)
-        for i in range(27):
-            i2, rem = divmod(i, 9); i1, i0 = divmod(rem, 3)
-            r[i] = 9 * a[i2] + 3 * b[i1] + c[i0]
-        return r
 
     # ─── controlli ────────────────────────────────────────────────────────────
     def _on_speed_cmd(self, val):
@@ -440,11 +380,11 @@ class ShuffleViewerFrame(ttk.Frame):
     def _on_card_mode_change(self):
         """Rebuild step list when card-by-card mode is toggled."""
         self.pause()
-        if hasattr(self, "_kron_blocks") and self._kron_blocks:
+        if getattr(self, "_traccia", None):
             if self._card_mode.get():
-                self._build_steps_card_by_card(self._kron_blocks)
+                self._build_steps_card_by_card(self._traccia)
             else:
-                self._build_steps(self._kron_blocks)
+                self._build_steps(self._traccia)
         self.reset()
 
     # ─── navigazione ─────────────────────────────────────────────────────────
@@ -519,7 +459,7 @@ class ShuffleViewerFrame(ttk.Frame):
     def clear_all(self):
         """Reset completo: scarica la formula e torna allo stato iniziale."""
         self.pause()
-        self._kron_blocks = None
+        self._traccia = None
         self._build_steps([])          # solo lo stato iniziale (mazzo ordinato)
         self._formula_lbl.configure(text="", foreground="#333")
         self._set_msg(tr("shuffle.no_formula_loaded"))
