@@ -15,7 +15,7 @@ from ..core.algebra import _prep_explorer_expr
 from ..core.export_analisi import (EXCEL_MAX_CELL_CHARS, scrivi_excel,
                                    scrivi_output)
 from ..core.parallel import atomic_write
-from ..services import RisultatoAnalisi, servizio_analisi
+from ..services import Revisioni, RisultatoAnalisi, servizio_analisi
 from .common import configure_matrix_tags, insert_colored, EtaEstimator, run_in_thread
 from .i18n import tr
 from .i18n import get_language
@@ -31,6 +31,21 @@ SERVIZIO = servizio_analisi()
 #: `gioco27.services.modelli`: viene ri-esportato qui perche' e' da qui che
 #: moduli e test lo importano.
 __all__ = ["AnalysisTabMixin", "RisultatoAnalisi", "SERVIZIO"]
+
+
+def _revisioni_di(tab):
+    """Il contatore delle richieste della scheda, creato alla prima necessita'.
+
+    La scheda e' un mixin di `App`: i suoi metodi vengono usati anche da
+    armature di test che non costruiscono i widget. Creare il contatore su
+    richiesta mantiene la tolleranza che aveva il vecchio
+    `getattr(self, "_analisi_revisione", 0)`.
+    """
+    revisioni = getattr(tab, "_analisi_revisioni", None)
+    if revisioni is None:
+        revisioni = Revisioni()
+        tab._analisi_revisioni = revisioni
+    return revisioni
 
 
 class AnalysisTabMixin:
@@ -185,7 +200,7 @@ class AnalysisTabMixin:
         self._analisi_detail_text.insert("1.0", _hint, "hint")
         self._analisi_detail_text.configure(state="disabled")
 
-        self._analisi_revisione = 0
+        self._analisi_revisioni = Revisioni()
         self._analisi_corrente = None
         self._analisi_risultati = []
         self._analisi_righe_raw = []
@@ -194,19 +209,20 @@ class AnalysisTabMixin:
 
     # ── identita' della richiesta e pubblicazione dello stato (B02/B03) ──────
     #
-    # Primitiva locale e minima: un contatore monotono. Ogni azione che cambia
-    # cio' che il tab sta calcolando ne apre una nuova, e con cio' rende
-    # obsolete tutte le risposte ancora in volo. Il gestore generale dei lavori
-    # appartiene al compartimento G: qui non viene costruito.
+    # Un contatore monotono: ogni azione che cambia cio' che il tab sta
+    # calcolando ne apre uno nuovo, e con cio' rende obsolete tutte le risposte
+    # ancora in volo. La semantica e' quella introdotta in C e non cambia; in
+    # G2 il contatore non e' piu' scritto a mano qui — la stessa primitiva
+    # governa anche la ricerca delle decomposizioni, ed e' sotto lock perche'
+    # «leggi, incrementa, scrivi» non e' atomico per il solo GIL.
 
     def _analisi_nuova_revisione(self):
         """Apre una nuova richiesta: le precedenti diventano obsolete."""
-        self._analisi_revisione = getattr(self, "_analisi_revisione", 0) + 1
-        return self._analisi_revisione
+        return _revisioni_di(self).nuova()
 
     def _analisi_e_corrente(self, revisione):
         """La richiesta `revisione` e' ancora quella corrente, e la UI e' viva?"""
-        return (revisione == getattr(self, "_analisi_revisione", 0)
+        return (_revisioni_di(self).e_corrente(revisione)
                 and not getattr(self, "_closing", False))
 
     def _analisi_pubblica(self, risultato, revisione):

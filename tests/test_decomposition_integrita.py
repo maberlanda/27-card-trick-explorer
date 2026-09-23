@@ -10,6 +10,7 @@ from gioco27.core import cache, kronecker
 from gioco27.core.algebra import AlgebraEngine, Controller, Parser, Evaluator
 from gioco27.core.constants import PERM3
 from gioco27.gui import decomposition, explorer_tab, export_dialog, protocol_dialog
+from gioco27.services import Revisioni
 
 
 I = ("SCD_U",) * 3
@@ -83,7 +84,9 @@ class Widget:
 class SearchHarness(decomposition.DecompositionDialog):
     def __init__(self):
         self._perm, self._inv_perm = evaluate(D), evaluate(DI)
-        self._results, self._result_context, self._search_id = [], None, 0
+        self._results, self._result_context = [], None
+        # G2: l'identita' delle ricerche passa dalla primitiva condivisa.
+        self._ricerche = Revisioni()
         self._target_inv = Widget(False)
         self._cfg = SimpleNamespace(get=lambda *a: False, effective_n_workers=1)
         self.published, self.jobs, self.cancelled = [], [], []

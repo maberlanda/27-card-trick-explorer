@@ -29,8 +29,8 @@ from gioco27.core.analisi import (Aggregatore, PianoAnalisi, RisultatiImport,
 from gioco27.core.combinations import FiltroNonValido, iter_combinations_ex
 from gioco27.core.constants import ANY
 from gioco27.core.permutations import CSV_HEADER, make_csv_row
-from gioco27.services import (Provenienza, RisultatoAnalisi, ServizioAnalisi,
-                              servizio_analisi)
+from gioco27.services import (Provenienza, Revisioni, RisultatoAnalisi,
+                              ServizioAnalisi, servizio_analisi)
 
 RADICE = pathlib.Path(__file__).resolve().parents[1]
 PACCHETTO = RADICE / "gioco27"
@@ -458,7 +458,10 @@ class TabG1:
             setattr(type(self), nome,
                     getattr(analysis_tab.AnalysisTabMixin, nome))
         self._closing = False
-        self._analisi_revisione = 0
+        # G2: il contatore monotono delle richieste e' la primitiva
+        # condivisa `services.Revisioni`, non piu' un intero scritto
+        # a mano nella scheda.
+        self._analisi_revisioni = Revisioni()
         self._analisi_corrente = None
         self._analisi_risultati = []
         self._analisi_righe_raw = []

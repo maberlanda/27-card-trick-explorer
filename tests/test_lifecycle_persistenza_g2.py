@@ -34,6 +34,7 @@ from gioco27.core import parallel
 from gioco27.core.parallel import ExportAnnullato
 from gioco27.gui import analysis_tab
 from gioco27.gui import app as app_module
+from gioco27.services import Revisioni
 from gioco27.services.modelli import Provenienza, RisultatoAnalisi
 
 RADICE = pathlib.Path(__file__).resolve().parents[1]
@@ -572,7 +573,7 @@ class FinestraG2:
     del _d
 
     def __init__(self):
-        self._search_id = 0
+        self._ricerche = Revisioni()
         self._results = []
         self.riprogrammazioni = 0
         self.accettati = []
@@ -605,7 +606,7 @@ def test_lifecycle_decomposizione_obsoleta_non_pubblica():
     import queue
 
     f = FinestraG2()
-    f._search_id = 2                    # una ricerca piu' nuova e' gia' partita
+    f._ricerche = Revisioni(2)          # una ricerca piu' nuova e' gia' partita
     coda = queue.Queue()
     coda.put(("DONE", [((1, 2, 3), (4, 5, 6), (7, 8, 9))]))
 
@@ -619,7 +620,7 @@ def test_lifecycle_decomposizione_corrente_pubblica():
     import queue
 
     f = FinestraG2()
-    f._search_id = 1
+    f._ricerche = Revisioni(1)
     coda = queue.Queue()
     coda.put(("DONE", [((1, 2, 3), (4, 5, 6), (7, 8, 9))]))
 
@@ -627,6 +628,87 @@ def test_lifecycle_decomposizione_corrente_pubblica():
 
     assert len(f.accettati) == 1 and f.ridisegni == 1
     assert f._export_mb.stato == "normal"
+
+
+# ═══════════════ la primitiva condivisa: identita' delle richieste ══════════
+
+def test_revisioni_e_monotona():
+    r = Revisioni()
+    assert r.corrente == 0
+    prima, seconda = r.nuova(), r.nuova()
+    assert (prima, seconda) == (1, 2)
+    assert r.e_corrente(seconda) and not r.e_corrente(prima)
+
+
+def test_revisioni_e_sicura_fra_thread():
+    """`nuova()` e' «leggi, incrementa, scrivi»: il GIL non basta.
+
+    Niente sleep: i thread partono insieme con una barriera e si aspettano
+    con join. Il test fallisce se due richieste ricevono la stessa identita'.
+    """
+    r = Revisioni()
+    n_thread, per_thread = 8, 200
+    partenza = threading.Barrier(n_thread)
+    raccolti = []
+    lucchetto = threading.Lock()
+
+    def corri():
+        partenza.wait(10)
+        miei = [r.nuova() for _ in range(per_thread)]
+        with lucchetto:
+            raccolti.extend(miei)
+
+    thread = [threading.Thread(target=corri) for _ in range(n_thread)]
+    for t in thread:
+        t.start()
+    for t in thread:
+        t.join(20)
+        assert not t.is_alive()
+
+    atteso = n_thread * per_thread
+    assert len(raccolti) == atteso
+    assert len(set(raccolti)) == atteso, "due richieste con la stessa identita'"
+    assert r.corrente == atteso
+
+
+def test_la_revisione_non_e_un_annullamento():
+    """G2-G5: due nozioni separate, e devono restare separate.
+
+    `Revisioni` non ha modo di chiedere a un lavoro di fermarsi, e il
+    contratto di annullamento (`annullato() -> bool`, `ExportAnnullato`) vive
+    nel core e non sa nulla di revisioni. Fonderle in un unico booleano
+    perderebbe la distinzione introdotta in C: una richiesta superata
+    continua e viene scartata, non viene interrotta.
+    """
+    r = Revisioni()
+    for metodo in ("annulla", "cancel", "stop", "set", "is_set"):
+        assert not hasattr(r, metodo), metodo
+    assert set(dir(parallel)) >= {"mai_annullato", "ExportAnnullato"}
+    assert parallel.mai_annullato() is False
+
+    sorgente = (RADICE / "gioco27" / "services" / "lavoro.py").read_text(
+        encoding="utf-8")
+    assert "threading" in sorgente
+    assert "tkinter" not in sorgente and "gioco27.gui" not in sorgente
+
+
+def test_le_due_schede_condividono_la_primitiva():
+    """Nessun contatore monotono scritto a mano resta nella presentation."""
+    import ast
+
+    for rel in ("gui/analysis_tab.py", "gui/decomposition.py"):
+        sorgente = (PACCHETTO / rel).read_text(encoding="utf-8")
+        assert "Revisioni" in sorgente, rel
+        albero = ast.parse(sorgente)
+        incrementi = [n for n in ast.walk(albero)
+                      if isinstance(n, ast.AugAssign)
+                      and isinstance(n.op, ast.Add)
+                      and isinstance(n.target, ast.Attribute)
+                      and ("revision" in n.target.attr
+                           or "search_id" in n.target.attr)]
+        assert incrementi == [], rel
+    assert "_search_id" not in (PACCHETTO / "gui" / "decomposition.py").read_text(
+        encoding="utf-8")
 
 
 # ══════════════════ pubblicazione: la destinazione precedente ═══════════════

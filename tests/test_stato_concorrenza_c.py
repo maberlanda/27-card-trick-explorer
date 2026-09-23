@@ -17,6 +17,7 @@ import pytest
 
 from gioco27.core import gioco_reale as gr
 from gioco27.core.analisi import PianoAnalisi
+from gioco27.services import Revisioni
 from gioco27.services.modelli import Provenienza
 from gioco27.gui import analysis_tab, app as app_module, common, simulator_tab
 from gioco27.gui.analysis_tab import RisultatoAnalisi
@@ -84,7 +85,10 @@ class TabAnalisi(analysis_tab.AnalysisTabMixin):
 
     def __init__(self):
         self._closing = False
-        self._analisi_revisione = 0
+        # G2: il contatore monotono delle richieste e' la primitiva
+        # condivisa `services.Revisioni`, non piu' un intero scritto
+        # a mano nella scheda.
+        self._analisi_revisioni = Revisioni()
         self._analisi_corrente = None
         self._analisi_risultati = []
         self._analisi_righe_raw = []
@@ -283,7 +287,7 @@ def test_b02_aggregati_e_grezzi_vengono_sempre_dallo_stesso_risultato(tab):
                                  aggregati=({"n_sim": 1, "perm_str": "[X]",
                                              "simboliche": []},),
                                  grezzi=({"Stage0": "X"},), totale=1)
-    assert tab._analisi_pubblica(risultato, tab._analisi_revisione) is True
+    assert tab._analisi_pubblica(risultato, tab._analisi_revisioni.corrente) is True
     assert tab._analisi_corrente is risultato
     assert tab._analisi_risultati == list(risultato.aggregati)
     assert tab._analisi_righe_raw == list(risultato.grezzi)
@@ -374,7 +378,7 @@ def test_b03_chiusura_durante_il_lavoro(tab, monkeypatch):
 
 
 def test_b03_la_revisione_e_monotona(tab):
-    prima = tab._analisi_revisione
+    prima = tab._analisi_revisioni.corrente
     assert tab._analisi_nuova_revisione() == prima + 1
     assert tab._analisi_nuova_revisione() == prima + 2
     assert tab._analisi_e_corrente(prima + 2) is True

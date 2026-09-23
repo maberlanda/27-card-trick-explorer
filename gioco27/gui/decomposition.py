@@ -13,6 +13,7 @@ import pathlib
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 from ..core.parallel import atomic_write
+from ..services import Revisioni
 from .help_banner import HelpBanner
 from .i18n import tr
 from .i18n import get_language
@@ -53,7 +54,11 @@ class DecompositionDialog(tk.Toplevel):
         self._inv_perm = list(inv_perm)
         self._results  = []
         self._result_context = None
-        self._search_id = 0
+        # Identita' delle ricerche: una richiesta piu' nuova rende obsolete le
+        # risposte ancora in volo, che terminano ma non pubblicano. E' la
+        # stessa primitiva della scheda Analisi (G2), prima duplicata qui come
+        # contatore scritto a mano.
+        self._ricerche = Revisioni()
         self._group_mode = tk.BooleanVar(value=False)
         self._target_inv = tk.BooleanVar(value=True)   # True = T^-1, False = T
         self._node_expr  = {}
@@ -215,8 +220,7 @@ class DecompositionDialog(tk.Toplevel):
         self._start_search()
 
     def _start_search(self):
-        self._search_id += 1
-        search_id = self._search_id
+        search_id = self._ricerche.nuova()
         target = tuple(self._current_target())
         inverse = bool(self._target_inv.get())
         self._results = []
@@ -273,7 +277,7 @@ class DecompositionDialog(tk.Toplevel):
             progress_q.put(("ERR", str(exc)))
 
     def _poll_progress(self, search_id, target, inverse, progress_q):
-        if search_id != self._search_id or not self.winfo_exists():
+        if not self._ricerche.e_corrente(search_id) or not self.winfo_exists():
             return
         last_done = last_found = 0
         done_flag = False

@@ -35,6 +35,7 @@ from gioco27.core.combinations import (FiltroNonValido, N_STADI, cardinalita,
 from gioco27.core.constants import ANY, J_OPTS, P_OPTS
 from gioco27.core.permutations import CSV_HEADER
 from gioco27.gui import analysis_tab
+from gioco27.services import Revisioni
 from gioco27.services import analisi as servizio_analisi
 
 RADICE = pathlib.Path(__file__).resolve().parents[1]
@@ -518,7 +519,10 @@ class TabF(analysis_tab.AnalysisTabMixin):
 
     def __init__(self, filtri=None):
         self._closing = False
-        self._analisi_revisione = 0
+        # G2: il contatore monotono delle richieste e' la primitiva
+        # condivisa `services.Revisioni`, non piu' un intero scritto
+        # a mano nella scheda.
+        self._analisi_revisioni = Revisioni()
         self._analisi_corrente = None
         self._analisi_risultati = []
         self._analisi_righe_raw = []
@@ -642,7 +646,7 @@ def test_r01_nuova_richiesta_durante_l_aggregazione(tab):
     # controllo di identita' sia intatto lo dice il rifiuto diretto.
     assert tab._analisi_corrente is not None
     assert tab._analisi_pubblica(tab._analisi_corrente,
-                                 tab._analisi_revisione - 1) is False
+                                 tab._analisi_revisioni.corrente - 1) is False
 
 
 def test_r01_nessun_risultato_parziale_presentato_come_completo(tab, monkeypatch):

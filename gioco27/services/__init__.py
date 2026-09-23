@@ -12,7 +12,8 @@ architetturale la verifica.
 """
 
 from .analisi import ServizioAnalisi, servizio_analisi
+from .lavoro import Revisioni
 from .modelli import Provenienza, RisultatoAnalisi
 
 __all__ = ["ServizioAnalisi", "servizio_analisi", "Provenienza",
-           "RisultatoAnalisi"]
+           "RisultatoAnalisi", "Revisioni"]
