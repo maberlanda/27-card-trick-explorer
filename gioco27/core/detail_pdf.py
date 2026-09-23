@@ -766,7 +766,16 @@ def render_detail_pages(c, params_list, start_index=1, progress_cb=None,
                 col_n, row_n = divmod(k, ROWS)
                 Tt(t, xT + col_n * COL_W, yT0 - 19 - row_n * 9.5, size=7.5)
             if len(trans) > max_shown:
-                Tt(f"... (+{len(trans) - max_shown} altre)",
+                # M06: la coda dell'elenco era l'ultimo testo naturale scritto
+                # a mano in un export, e restava italiano anche in inglese.
+                # Due chiavi invece di una: «+1 altra» e «+3 altre» non sono
+                # la stessa frase, e concatenare un numero a un plurale fisso
+                # produce italiano sbagliato. Non serve altro: qui il motore
+                # di pluralizzazione sarebbe una risposta piu' grande della
+                # domanda.
+                mancanti = len(trans) - max_shown
+                Tt(tr("export.document.pdf.transpose_more_one") if mancanti == 1
+                   else tr("export.document.pdf.transpose_more", count=mancanti),
                    xT, yT0 - 19 - ROWS * 9.5, size=7.5, col=GRAY)
         else:
             Tt(tr("export.document.pdf.transpose_not_found"), xT, yT0 - 19, size=7.5)

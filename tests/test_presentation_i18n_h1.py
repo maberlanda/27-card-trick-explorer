@@ -443,15 +443,74 @@ def test_m06_sopra_il_limite_la_coda_compare_in_italiano(tmp_path, lingua):
     assert "+7" in testo and "altre" in testo
 
 
-@pytest.mark.xfail(strict=True,
-                   reason="M06: «altre» e' scritto a mano nel PDF e resta "
-                          "italiano anche in inglese")
 def test_m06_in_inglese_non_compare_altre(tmp_path, lingua):
     lingua("en")
     testo = _testo_pdf_dettagliato(tmp_path / "sopra_en.pdf",
                                    MASSIMO_TRASPOSTE + 7)
-    assert "+7" in testo
+    assert "+7" in testo and "more" in testo
     assert "altre" not in testo, "testo italiano nell'output inglese"
+
+
+@pytest.mark.parametrize("lingua_codice,attesi,vietati", [
+    ("it", ("+1", "altra"), ("altre", "more")),
+    ("en", ("+1", "more"), ("altra", "altre")),
+])
+def test_m06_una_sola_trasposta_in_piu_e_una_frase_corretta(
+        tmp_path, lingua, lingua_codice, attesi, vietati):
+    """«+1 altre» non e' italiano: due chiavi, non un motore di plurali."""
+    lingua(lingua_codice)
+    testo = _testo_pdf_dettagliato(tmp_path / f"uno_{lingua_codice}.pdf",
+                                   MASSIMO_TRASPOSTE + 1)
+    for parola in attesi:
+        assert parola in testo, parola
+    for parola in vietati:
+        assert parola not in testo, parola
+
+
+def test_m06_il_limite_e_l_ordine_non_cambiano(tmp_path, lingua):
+    """La localizzazione tocca il testo naturale, non cio' che si vede."""
+    lingua("en")
+    testo = _testo_pdf_dettagliato(tmp_path / "ordine.pdf",
+                                   MASSIMO_TRASPOSTE + 7)
+    mostrate = [f"E#{i}" for i in range(MASSIMO_TRASPOSTE)]
+    posizioni = [testo.find(e) for e in mostrate]
+    assert all(p >= 0 for p in posizioni), "una trasposta attesa manca"
+    assert posizioni == sorted(posizioni), "l'ordine e' cambiato"
+    assert f"E#{MASSIMO_TRASPOSTE}" not in testo, "il limite e' cambiato"
+
+
+#: Una parola di lingua naturale: almeno tre lettere minuscole di seguito.
+#: Le etichette matematiche del PDF — «D#12», «R[ 3]», «M2 = TRUE»,
+#: «M[0]xM[1]xM[2]», i numeri di posizione e il filetto di separazione — non
+#: la contengono, e restano deliberatamente fisse in ogni lingua (§ C).
+_PAROLA_NATURALE = re.compile(r"[a-zàèéìòù]{3,}")
+
+
+def test_m06_nessun_testo_naturale_resta_scritto_a_mano_nel_pdf():
+    """Nel PDF dettagliato non restano frasi in chiaro: solo etichette."""
+    sorgente = (PACCHETTO / "core" / "detail_pdf.py").read_text(encoding="utf-8")
+    albero = ast.parse(sorgente)
+    render = next(n for n in ast.walk(albero)
+                  if isinstance(n, ast.FunctionDef)
+                  and n.name == "render_detail_pages")
+
+    def letterali(nodo):
+        if isinstance(nodo, ast.Constant) and isinstance(nodo.value, str):
+            return [nodo.value]
+        if isinstance(nodo, ast.JoinedStr):
+            return [p.value for p in nodo.values
+                    if isinstance(p, ast.Constant) and isinstance(p.value, str)]
+        return []
+
+    sospette = []
+    for n in ast.walk(render):
+        if not (isinstance(n, ast.Call) and isinstance(n.func, ast.Name)
+                and n.func.id in ("Tt", "Tt_fit")):
+            continue
+        for testo in letterali(n.args[0] if n.args else None):
+            if _PAROLA_NATURALE.search(testo):
+                sospette.append((n.lineno, testo))
+    assert sospette == [], sospette
 
 
 def test_m06_le_etichette_matematiche_non_si_traducono(tmp_path, lingua):
