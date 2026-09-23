@@ -466,12 +466,18 @@ class SymbolicExpr:
       'value'   — nodo foglia con valore già calcolato (permutazione numerica)
     """
     def __init__(self, kind: str, value=None, children=None,
-                 name: str = "", ptype: int = 0):
+                 name: str = "", ptype: int = 0, origine: str = ""):
         self.kind     = kind
         self.value    = value      # vettore di permutazione (List[int])
         self.children = children or []
         self.name     = name       # nome simbolico per la normalizzazione
         self.ptype    = ptype      # 3 o 27
+        # Grafia con cui l'atomo compariva nel testo: coincide con `name`
+        # tranne che per gli alias di gioco (R_U, I_3), che `name` normalizza
+        # in DCS_U e SCD_U. Serve a chi deve mostrare la formula com'e' stata
+        # scritta senza ricostruirla da capo; la normalizzazione e il repr
+        # continuano a usare `name`.
+        self.origine  = origine or name
 
     def __repr__(self):
         if self.kind == 'atom':
@@ -494,7 +500,8 @@ class SymbolicExpr:
             value=list(self.value) if self.value is not None else None,
             children=children_copy,
             name=self.name,
-            ptype=self.ptype
+            ptype=self.ptype,
+            origine=self.origine
         )
 
 
@@ -1179,7 +1186,16 @@ class Parser:
         self.pos = 0
 
     def parse(self, text: str) -> SymbolicExpr:
-        """Entry point: parsa il testo e restituisce l'AST."""
+        """Entry point: parsa il testo e restituisce l'AST.
+
+        Il prefisso «T =» delle stringhe prodotte dall'Analisi e' solo
+        un'etichetta e viene tollerato qui, nel parser: prima era il
+        chiamante a doverlo togliere, e ogni chiamante lo faceva per conto
+        suo (compartimento E — una sola grammatica, convenzioni comprese).
+        """
+        text = text.strip()
+        if text.startswith("T ="):
+            text = text[3:].strip()
         self.tokens = self.lexer.tokenize(text)
         self.pos = 0
         result = self._parse_expr()
@@ -1220,10 +1236,10 @@ class Parser:
                                 value=list(AlgebraEngine.ID27))
         if name == 'R_U':   # alias di gioco: inversione su {0,1,2} (= DCS_U)
             return SymbolicExpr('atom', name='DCS_U', ptype=3,
-                                value=[2, 1, 0])
+                                value=[2, 1, 0], origine='R_U')
         if name == 'I_3':   # alias di gioco: identita' su {0,1,2} (= SCD_U)
             return SymbolicExpr('atom', name='SCD_U', ptype=3,
-                                value=[0, 1, 2])
+                                value=[0, 1, 2], origine='I_3')
         if name in AlgebraEngine.GEN3:
             return SymbolicExpr('atom', name=name, ptype=3,
                                 value=list(AlgebraEngine.GEN3[name]))
@@ -1479,13 +1495,7 @@ class Controller:
         }
 
         try:
-            # 0. Pre-pulizia: tollera il prefisso «T =» delle stringhe
-            #    prodotte dall'Analisi (e' solo un'etichetta).
-            text = text.strip()
-            if text.startswith("T ="):
-                text = text[3:].strip()
-
-            # 1. Parsing
+            # 1. Parsing (il prefisso «T =» lo tollera il parser)
             ast = self.parser.parse(text)
             original_perm = self.evaluator.evaluate(ast)
 
