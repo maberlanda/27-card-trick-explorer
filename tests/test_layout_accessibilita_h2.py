@@ -1576,16 +1576,26 @@ def test_explorer_fattori_3x3_visibili_senza_scorrere(applicazione, geometria, p
 
 
 @pytest.mark.parametrize("geometria", TARGET)
-def test_explorer_i_fattori_vengono_prima_della_matrice_27(applicazione, geometria):
+def test_explorer_i_fattori_stanno_accanto_alla_matrice_27(applicazione, geometria):
+    """Griglia 27×27 a sinistra; a destra forma canonica, fattori 3×3, testo."""
     _matrice_aperta(applicazione, geometria)
-    for fattori, matrice, testo in (
-            (applicazione._mat_fcvs_t, applicazione._mat_cv_t, applicazione._mat_txt_t),
-            (applicazione._mat_fcvs_inv, applicazione._mat_cv_inv, applicazione._mat_txt_inv)):
-        fondo = max(f.winfo_rooty() + f.winfo_height() for f in fattori)
-        assert fondo <= matrice.winfo_rooty()
-        # l'alternativa testuale resta nel pannello, subito dopo la matrice
+    for fattori, etichetta, matrice, testo in (
+            (applicazione._mat_fcvs_t, applicazione._mat_lbl_t,
+             applicazione._mat_cv_t, applicazione._mat_txt_t),
+            (applicazione._mat_fcvs_inv, applicazione._mat_lbl_inv,
+             applicazione._mat_cv_inv, applicazione._mat_txt_inv)):
+        destra = matrice.winfo_rootx() + matrice.winfo_width()
+        meta = matrice.winfo_rooty() + matrice.winfo_height() // 2
+        assert all(f.winfo_rootx() >= destra for f in fattori)
+        assert all(f.winfo_rooty() + f.winfo_height() <= meta for f in fattori)
+        assert etichetta.winfo_rootx() >= destra
+        assert etichetta.winfo_rooty() < min(f.winfo_rooty() for f in fattori)
+        # l'alternativa testuale resta nel pannello: accanto alla griglia,
+        # sotto i fattori
         assert testo.master is matrice.master
-        assert testo.winfo_rooty() >= matrice.winfo_rooty() + matrice.winfo_height()
+        assert testo.winfo_rootx() >= destra
+        assert testo.winfo_rooty() >= max(f.winfo_rooty() + f.winfo_height()
+                                          for f in fattori)
 
 
 @pytest.mark.parametrize("geometria", TARGET)
