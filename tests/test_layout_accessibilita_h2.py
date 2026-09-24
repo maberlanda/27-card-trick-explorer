@@ -116,8 +116,25 @@ def _cornice(app):
 
 
 def _perduti(controlli):
-    """Quelli che non sono proprio sullo schermo: non tagliati, assenti."""
-    return [w for w in controlli if not w.winfo_ismapped()]
+    """Quelli che non sono sullo schermo pur essendo nella vista corrente.
+
+    Non conta chi non è ancora stato collocato (`winfo_manager()` vuoto) né
+    chi sta dentro un pannello che al momento non è mostrato: nel Simulatore e
+    nel visualizzatore dei mescolamenti molti controlli appartengono a una
+    fase che non è ancora cominciata, e la loro assenza non è un difetto di
+    layout. Conta chi è collocato, ha il genitore sullo schermo e nonostante
+    questo non compare: quello è spazio che non basta.
+    """
+    persi = []
+    for w in controlli:
+        if w.winfo_ismapped() or w.winfo_manager() == "":
+            continue
+        try:
+            if w.master.winfo_ismapped():
+                persi.append(w)
+        except tk.TclError:
+            pass
+    return persi
 
 
 def _oltre_il_bordo(app, controlli):
@@ -210,21 +227,63 @@ def test_con_una_finestra_larga_le_azioni_tornano_su_una_riga(applicazione):
     assert destra > larghezza - 80, "il gruppo di destra non è allineato a destra"
 
 
-@pytest.mark.xfail(strict=True,
-                   reason="M04: minsize(1200, 750) impedisce alla finestra di "
-                          "essere alta 720")
-def test_m04_la_finestra_sta_in_1280x720(applicazione):
-    larghezza, altezza = _dimensiona(applicazione, "1280x720")
-    assert (larghezza, altezza) == (1280, 720)
+@pytest.mark.parametrize("geometria", list(TARGET))
+def test_m04_la_finestra_prende_la_dimensione_chiesta(applicazione, geometria):
+    larghezza, altezza = _dimensiona(applicazione, geometria)
+    assert f"{larghezza}x{altezza}" == geometria
 
 
-@pytest.mark.xfail(strict=True,
-                   reason="M04: il contenuto delle schede non ha una "
-                          "strategia di overflow")
+@pytest.mark.parametrize("geometria", list(TARGET))
+def test_nessun_controllo_resta_fuori_portata(applicazione, geometria):
+    """Il contratto di H2-G1/G2/G3, su tutte le schede e in un colpo solo."""
+    _dimensiona(applicazione, geometria)
+    perduti = {}
+    for chiave in sorted(applicazione._schede):
+        applicazione._seleziona_scheda(chiave)
+        applicazione.update()
+        persi = _perduti(_discendenti(applicazione._schede[chiave]))
+        if persi:
+            perduti[chiave] = [_etichetta(w) for w in persi]
+    assert perduti == {}, perduti
+
+
+def test_le_aree_scorrevoli_mostrano_le_barre_solo_quando_servono(applicazione):
+    """Se il contenuto ci sta, l'area non aggiunge niente da guardare."""
+    _dimensiona(applicazione, "1920x1080")
+    applicazione._seleziona_scheda("stadio0")
+    applicazione.update()
+    assert applicazione._aree_scorrevoli["stadio0"].barre_visibili() == (False,
+                                                                        False)
+
+    _dimensiona(applicazione, "1280x720")
+    applicazione._seleziona_scheda("explorer")
+    applicazione.update()
+    assert applicazione._aree_scorrevoli["explorer"].puo_scorrere()
+
+
+def test_l_area_scorrevole_si_usa_da_tastiera(applicazione):
+    """La tela prende il focus con Tab e le frecce la muovono."""
+    _dimensiona(applicazione, "1280x720")
+    applicazione._seleziona_scheda("explorer")
+    applicazione.update()
+    area = applicazione._aree_scorrevoli["explorer"]
+    assert area.tela.cget("takefocus")
+
+    area.tela.focus_set()
+    applicazione.update()
+    partenza = area.tela.yview()[0]
+    area.tela.event_generate("<Next>")
+    applicazione.update()
+    assert area.tela.yview()[0] > partenza, "PagGiù non ha mosso nulla"
+    area.tela.event_generate("<Home>")
+    applicazione.update()
+    assert area.tela.yview()[0] == 0
+
+
 @pytest.mark.parametrize("chiave", ["simulatore", "explorer"])
 def test_m04_il_contenuto_delle_schede_e_raggiungibile(applicazione, chiave):
     """Sotto il bordo va bene, purché ci si possa arrivare scorrendo."""
-    _dimensiona(applicazione, "1280x750")
+    _dimensiona(applicazione, "1280x720")
     applicazione._seleziona_scheda(chiave)
     applicazione.update()
     scheda = applicazione._schede[chiave]
@@ -347,18 +406,27 @@ def test_esc_chiude_i_dialoghi_di_sola_lettura(applicazione, modulo, classe):
 
 # ═══════════════ Canvas: informativi contro decorativi ══════════════════════
 
+#: Ogni Canvas del programma, e a che cosa serve. Un Canvas «di struttura»
+#: non porta informazione: è il modo in cui Tk fa scorrere un contenuto.
+CANVAS = {
+    "scorrimento.py":     "struttura — la tela di AreaScorrevole",
+    "onboarding_tab.py":  "struttura — la tela che fa scorrere la scheda",
+    "distribution_tab.py": "informativo — l'istogramma delle decomposizioni",
+    "explorer_tab.py":    "informativo — le matrici 27×27 e i fattori 3×3",
+}
+
+
 def test_i_canvas_del_programma_sono_censiti():
-    """Quattro, e si sa a che cosa servono."""
+    """Se ne compare uno nuovo, qualcuno deve dire a che cosa serve."""
     import ast
 
-    canvas = {}
+    trovati = set()
     for percorso in sorted((PACCHETTO / "gui").glob("*.py")):
         for n in ast.walk(ast.parse(percorso.read_text(encoding="utf-8"))):
             if (isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute)
                     and n.func.attr == "Canvas"):
-                canvas.setdefault(percorso.name, []).append(n.lineno)
-    assert set(canvas) == {"onboarding_tab.py", "distribution_tab.py",
-                           "explorer_tab.py"}, sorted(canvas)
+                trovati.add(percorso.name)
+    assert trovati == set(CANVAS), sorted(trovati ^ set(CANVAS))
 
 
 @pytest.mark.xfail(strict=True,

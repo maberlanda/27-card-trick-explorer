@@ -34,6 +34,7 @@ from .guide import build_guide_content
 from .preview_tab import PreviewTabMixin
 from .analysis_tab import AnalysisTabMixin
 from .barra import BarraAdattiva
+from .scorrimento import AreaScorrevole
 from .explorer_tab import ExplorerTabMixin
 from .onboarding_tab import OnboardingTabMixin
 from . import tooltip as _tooltip
@@ -93,7 +94,12 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
         from .. import __version__ as _APP_VER
         self.configure(bg=self.C_BG)
         self.resizable(True, True)
-        self.minsize(1200, 750)
+        # H2: la dimensione minima era 1200x750, e da sola impediva alla
+        # finestra di stare in 1280x720. Il contenuto delle schede scorre
+        # (AreaScorrevole) e le barre vanno a capo (BarraAdattiva), quindi la
+        # finestra non ha più bisogno di quello spazio per esistere: resta un
+        # minimo sotto il quale la finestra smetterebbe di avere senso.
+        self.minsize(900, 560)
 
         # ── Config persistente ─────────────────────────────────────────────
         self._cfg = get_config()
@@ -394,6 +400,8 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
         #: le chiavi no: e' cio' che rende la navigazione indipendente dalla
         #: lingua (H1).
         self._schede = {}
+        #: chiave della scheda → area scorrevole che ne contiene il corpo (H2)
+        self._aree_scorrevoli = {}
 
         # Scheda introduttiva, in testa a tutto
         self._aggiungi_scheda(nb, "inizio", self._build_onboarding_tab(nb),
@@ -407,8 +415,12 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
             short_key, long_key = TAB_HELP["stadio"]
             self._mk_banner(wrap, tr(short_key), tr(long_key),
                             section="12").pack(fill="x")
-            ff = FilterFrame(wrap, stage_num=i, on_change=self._update_count)
+            area = AreaScorrevole(wrap)
+            area.pack(fill="both", expand=True)
+            ff = FilterFrame(area.contenuto, stage_num=i,
+                             on_change=self._update_count)
             ff.pack(fill="both", expand=True)
+            self._aree_scorrevoli[f"stadio{i}"] = area
             self.filter_frames.append(ff)
             self._stadi_wraps.append(wrap)
             self._aggiungi_scheda(nb, f"stadio{i}", wrap,
@@ -479,13 +491,22 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
                           on_open_guide=self._open_guide, guide_section=section)
 
     def _wrap_tab(self, build_fn, key, section=None):
-        """Crea un contenitore con banner d'aiuto + la scheda costruita da build_fn."""
+        """Contenitore con banner d'aiuto + la scheda, dentro un'area scorrevole.
+
+        H2: il banner resta fermo in cima — è la spiegazione della scheda, e
+        deve essere sempre leggibile — mentre il contenuto scorre quando non ci
+        sta. Se ci sta, l'area non mostra nulla in più: le barre compaiono solo
+        quando servono.
+        """
         wrap = ttk.Frame(self._nb)
         short_key, long_key = TAB_HELP[key]
         self._mk_banner(wrap, tr(short_key), tr(long_key),
                         section=section).pack(fill="x")
-        inner = build_fn(wrap)
+        area = AreaScorrevole(wrap)
+        area.pack(fill="both", expand=True)
+        inner = build_fn(area.contenuto)
         inner.pack(fill="both", expand=True)
+        self._aree_scorrevoli[key] = area
         return wrap
 
     def _toggle_livello(self):

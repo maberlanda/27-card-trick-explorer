@@ -958,13 +958,20 @@ def test_la_lingua_si_applica_al_riavvio_come_prima(lingua, monkeypatch,
     assert catalogo.get_language() == "it"
 
 
-def test_m04_non_e_iniziato():
-    """H1-G14: layout, dimensioni minime, DPI e focus restano a H2."""
+def test_m04_e_passato_a_h2():
+    """H1 non ha toccato M04; H2 lo ha preso in carico.
+
+    Il test di H1 congelava `minsize(1200, 750)` per accorgersi se qualcuno
+    avesse iniziato il layout adattivo di nascosto. Ora quel lavoro e' fatto,
+    con i suoi contratti: la dimensione minima non e' piu' quella, e non e'
+    piu' questo file a sorvegliarla.
+    """
     sorgente = (PACCHETTO / "gui" / "app.py").read_text(encoding="utf-8")
-    assert "self.minsize(1200, 750)" in sorgente, "la dimensione minima e' quella"
-    for parola in ("focus_set(", "tk_focusNext", "bind_all(\"<Tab>",
-                   "winfo_fpixels", "tk scaling"):
-        assert parola not in sorgente, parola
+    assert "self.minsize(1200, 750)" not in sorgente
+    contratti = RADICE / "tests" / "test_layout_accessibilita_h2.py"
+    assert contratti.exists()
+    assert "test_m04_la_finestra_prende_la_dimensione_chiesta" in \
+        contratti.read_text(encoding="utf-8")
 
 
 # ════════════════════════════ catalogo IT/EN ════════════════════════════════
