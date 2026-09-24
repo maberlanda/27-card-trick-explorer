@@ -308,8 +308,13 @@ class ExplorerTabMixin:
 
     def _build_explorer_tab_matrix(self, nb):
         """
-        Tab '📐 Matrice' — griglie 27×27 di T (sinistra) e T⁻¹ (destra),
-        con i fattori Kronecker canonici di ciascuna mostrati sotto.
+        Tab '📐 Matrice' — T (sinistra) e T⁻¹ (destra).
+
+        In ciascun pannello, dall'alto: forma canonica, i tre fattori
+        Kronecker 3×3, poi la griglia 27×27 con la sua alternativa testuale.
+        I fattori sono l'informazione strutturale: stanno sopra, visibili
+        appena si apre la sotto-scheda anche a 1280×720; la griglia 27×27,
+        piu' alta, puo' richiedere lo scorrimento (H2).
         """
         CELL  = 12
         SMALL = 20
@@ -323,45 +328,28 @@ class ExplorerTabMixin:
         cv_size = CELL * 27 + 2
 
         def make_panel(col, title_text, tag):
-            """Crea un pannello con griglia 27×27 + fattori Kronecker."""
+            """Crea un pannello: fattori Kronecker 3×3, poi griglia 27×27."""
             panel = ttk.Frame(outer, relief="groove", borderwidth=1)
             panel.grid(row=0, column=col, rowspan=2, sticky="nsew",
                        padx=(0 if col else 0, 6 if col == 0 else 0))
             panel.columnconfigure(0, weight=1)
-            panel.rowconfigure(1, weight=1)
+            panel.rowconfigure(3, weight=1)
 
             title = ttk.Label(panel,
                               text=title_text,
                               font=("Segoe UI", 11, "bold"),
                               foreground="#1F4E79",
                               anchor="center")
-            title.grid(row=0, column=0, sticky="ew", pady=(6, 4))
-
-            cv = tk.Canvas(panel, width=cv_size, height=cv_size,
-                           bg="white", highlightthickness=1,
-                           highlightbackground="#AAAAAA")
-            cv.grid(row=1, column=0, sticky="n", padx=6)
-            self._draw_empty_grid(cv, 27, CELL)
+            title.grid(row=0, column=0, sticky="ew", pady=(6, 2))
 
             cf_lbl = ttk.Label(panel,
                                text=tr("explorer.matrix.canonical_empty"),
                                font=("Consolas", 9),
                                foreground="#555")
-            cf_lbl.grid(row=2, column=0, sticky="w", padx=8, pady=(4, 2))
-
-            # H2: la matrice 27×27 è un disegno, e finora era l'unico posto in
-            # cui la permutazione esisteva in questa vista. Qui c'è la stessa
-            # informazione in testo, selezionabile e raggiungibile con Tab:
-            # chi non interpreta il disegno legge i 27 valori.
-            testo = tk.Text(panel, height=3, wrap="word", relief="flat",
-                            font=("Consolas", 9), background="#F7F9FC",
-                            foreground="#1F4E79", takefocus=True)
-            testo.grid(row=4, column=0, sticky="ew", padx=8, pady=(2, 8))
-            testo.insert("1.0", tr("explorer.matrix.as_text_empty"))
-            testo.configure(state="disabled")
+            cf_lbl.grid(row=1, column=0, sticky="w", padx=8, pady=(2, 2))
 
             factors_row = ttk.Frame(panel)
-            factors_row.grid(row=3, column=0, sticky="w", padx=8, pady=(0, 4))
+            factors_row.grid(row=2, column=0, sticky="w", padx=8, pady=(0, 6))
             fcvs, flbls = [], []
             for i in range(3):
                 col_fr = ttk.Frame(factors_row)
@@ -376,6 +364,23 @@ class ExplorerTabMixin:
                 flbl.pack(pady=(2, 0))
                 fcvs.append(fcv)
                 flbls.append(flbl)
+
+            cv = tk.Canvas(panel, width=cv_size, height=cv_size,
+                           bg="white", highlightthickness=1,
+                           highlightbackground="#AAAAAA")
+            cv.grid(row=3, column=0, sticky="n", padx=6)
+            self._draw_empty_grid(cv, 27, CELL)
+
+            # H2: la matrice 27×27 è un disegno, e finora era l'unico posto in
+            # cui la permutazione esisteva in questa vista. Qui c'è la stessa
+            # informazione in testo, selezionabile e raggiungibile con Tab:
+            # chi non interpreta il disegno legge i 27 valori.
+            testo = tk.Text(panel, height=3, wrap="word", relief="flat",
+                            font=("Consolas", 9), background="#F7F9FC",
+                            foreground="#1F4E79", takefocus=True)
+            testo.grid(row=4, column=0, sticky="ew", padx=8, pady=(2, 8))
+            testo.insert("1.0", tr("explorer.matrix.as_text_empty"))
+            testo.configure(state="disabled")
 
             return cv, cf_lbl, fcvs, flbls, testo
 
