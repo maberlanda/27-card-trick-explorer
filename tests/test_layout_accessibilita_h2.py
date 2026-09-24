@@ -1534,3 +1534,94 @@ def test_i4_il_simulatore_sta_in_1280_anche_in_inglese(lingua):
         assert sim.winfo_reqwidth() <= 1240, sim.winfo_reqwidth()
     finally:
         radice.destroy()
+
+
+# ═══ Explorer → Matrice: i fattori 3×3 prima della matrice 27×27 (fix UX) ═══
+#
+# H2 garantiva che i fattori fossero *raggiungibili* scorrendo. Qui il
+# contratto e' piu' forte: aprendo la sotto-scheda, i fattori 3×3 di T e di
+# T⁻¹ sono gia' *visibili* nell'area utile, con lo scorrimento in cima, senza
+# che serva una finestra piu' alta di quella di collaudo.
+
+def _matrice_aperta(app, geometria, prima=None):
+    if prima is not None:              # es. una finestra alta ricordata dalla config
+        _dimensiona(app, prima)
+    _dimensiona(app, geometria)
+    app._seleziona_scheda("explorer")
+    app._explorer_nb.select(app._mat_cv_t.master.master)
+    app.update()
+    area = app._aree_scorrevoli["explorer"]
+    area.tela.yview_moveto(0)
+    app.update()
+    return area
+
+
+def _nella_vista(area, widget):
+    vista = area.tela
+    alto, basso = vista.winfo_rooty(), vista.winfo_rooty() + vista.winfo_height()
+    y = widget.winfo_rooty()
+    return widget.winfo_ismapped() and y >= alto - 1 and y + widget.winfo_height() <= basso + 1
+
+
+@pytest.mark.parametrize("prima", [None, "1920x1400"])
+@pytest.mark.parametrize("geometria", TARGET)
+def test_explorer_fattori_3x3_visibili_senza_scorrere(applicazione, geometria, prima):
+    area = _matrice_aperta(applicazione, geometria, prima)
+    assert area.tela.yview()[0] == 0.0
+    fattori = (applicazione._mat_fcvs_t + applicazione._mat_flbls_t
+               + applicazione._mat_fcvs_inv + applicazione._mat_flbls_inv
+               + [applicazione._mat_lbl_t, applicazione._mat_lbl_inv])
+    fuori = [str(w) for w in fattori if not _nella_vista(area, w)]
+    assert fuori == [], (geometria, fuori)
+
+
+@pytest.mark.parametrize("geometria", TARGET)
+def test_explorer_i_fattori_vengono_prima_della_matrice_27(applicazione, geometria):
+    _matrice_aperta(applicazione, geometria)
+    for fattori, matrice, testo in (
+            (applicazione._mat_fcvs_t, applicazione._mat_cv_t, applicazione._mat_txt_t),
+            (applicazione._mat_fcvs_inv, applicazione._mat_cv_inv, applicazione._mat_txt_inv)):
+        fondo = max(f.winfo_rooty() + f.winfo_height() for f in fattori)
+        assert fondo <= matrice.winfo_rooty()
+        # l'alternativa testuale resta nel pannello, subito dopo la matrice
+        assert testo.master is matrice.master
+        assert testo.winfo_rooty() >= matrice.winfo_rooty() + matrice.winfo_height()
+
+
+@pytest.mark.parametrize("geometria", TARGET)
+def test_explorer_la_matrice_27_resta_raggiungibile(applicazione, geometria):
+    area = _matrice_aperta(applicazione, geometria)
+    for widget in (applicazione._mat_cv_t, applicazione._mat_cv_inv,
+                   applicazione._mat_txt_t, applicazione._mat_txt_inv):
+        if not _nella_vista(area, widget):
+            assert area.puo_scorrere()
+            visto = False
+            for passo in range(21):              # si scorre come farebbe l'utente
+                area.tela.yview_moveto(passo / 20)
+                applicazione.update()
+                if _nella_vista(area, widget):
+                    visto = True
+                    break
+            assert visto, (geometria, str(widget))
+            area.tela.yview_moveto(0)
+            applicazione.update()
+    assert area.barre_visibili()[1] is False
+
+
+@pytest.mark.parametrize("geometria", TARGET)
+def test_explorer_fattori_visibili_anche_dopo_un_calcolo(applicazione, geometria):
+    """Con T calcolata le etichette dei fattori si riempiono: restano visibili."""
+    _dimensiona(applicazione, geometria)
+    applicazione._seleziona_scheda("explorer")
+    applicazione._explorer_entry.delete("1.0", "end")
+    applicazione._explorer_entry.insert("1.0", "(CDS_U x DSC_U x CSD_U) o MSC")
+    applicazione._explorer_calc()
+    area = _matrice_aperta(applicazione, geometria)
+    try:
+        assert applicazione._mat_flbls_t[0].cget("text") != "P1 = —"
+        fattori = (applicazione._mat_fcvs_t + applicazione._mat_flbls_t
+                   + applicazione._mat_fcvs_inv + applicazione._mat_flbls_inv)
+        assert [str(w) for w in fattori if not _nella_vista(area, w)] == []
+    finally:
+        applicazione._explorer_clear()
+        applicazione.update()
