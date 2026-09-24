@@ -23,6 +23,7 @@ from types import MappingProxyType
 
 from ..core import gioco_reale as gr
 from .i18n import tr
+from .spettatore_tab import SpettatoreFrame
 from .pratica_reale import PraticaRealeMixin
 
 # ─── Costanti ─────────────────────────────────────────────────────────────────
@@ -185,6 +186,10 @@ class SimulatorFrame(PraticaRealeMixin, ttk.Frame):
         nb.add(self._deck_tab, text=f"  🃏 {tr('simulator.tab.deck')}  ")
         nb.add(self._practice_tab,
                text=f"  🎯 {tr('simulator.tab.practice')}  ")
+        # I4: vista distinta, a carta ignota (non una modalita' della Pratica)
+        self._spettatore = SpettatoreFrame(nb)
+        nb.add(self._spettatore, text=f"  👁 {tr('spectator.tab')}  ")
+        self._notebook = nb
 
         self._build_istr_tab()
         self._build_deck_tab()

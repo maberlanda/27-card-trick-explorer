@@ -50,6 +50,7 @@ __all__ = [
     "distribuzione_corrente", "posizioni_iniziali_candidate",
     "posizione_iniziale_determinata", "carta_determinata",
     "posizioni_correnti_dei_candidati", "storia_informativa", "esito",
+    "lettera_mazzetto",
 ]
 
 Terna = Tuple[int, int, int]
@@ -290,7 +291,7 @@ def storia_informativa(s: SessioneSpettatore) -> Tuple[PassoInformativo, ...]:
     return tuple(passi)
 
 
-def _lettera(colonna: int) -> str:
+def lettera_mazzetto(colonna: int) -> str:
     """Nome del mazzetto: l'ultima lettera della parola-indirizzo (I2)."""
     return _gr.parola(colonna)[-1]
 
@@ -319,7 +320,7 @@ def esito(s: SessioneSpettatore) -> Optional[Ricostruzione]:
     """La ricostruzione finale; None finche' la sessione non e' conclusa."""
     if not s.conclusa:
         return None
-    storia = "".join(_lettera(a) for a in s.risposte)
+    storia = "".join(lettera_mazzetto(a) for a in s.risposte)
     n = _gr.posizione_da_parola(storia[::-1])            # I2: ω⁻¹
     if posizioni_iniziali_candidate(s) != frozenset((n,)):
         raise AssertionError("fisica e ricostruzione ternaria divergono")
