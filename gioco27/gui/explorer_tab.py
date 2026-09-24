@@ -24,7 +24,8 @@ class ExplorerTabMixin:
     _open_export_dialog(), _notify_T_changed(), _last_T_perm, _last_inv_perm."""
 
     def _build_explorer_tab(self, parent):
-        outer = ttk.Frame(parent, padding=10)
+        # blocco superiore compatto: lo spazio verticale serve alle sotto-schede
+        outer = ttk.Frame(parent, padding=(10, 2, 10, 6))
         outer.rowconfigure(2, weight=1)
         outer.columnconfigure(0, weight=1)
 
@@ -32,7 +33,7 @@ class ExplorerTabMixin:
         self._explorer_last_result = None
 
         hdr = ttk.Frame(outer)
-        hdr.grid(row=0, column=0, sticky="ew", pady=(0, 6))
+        hdr.grid(row=0, column=0, sticky="ew", pady=(0, 1))
         ttk.Label(hdr, text=f"🔬  {tr('explorer.title')}",
                   font=("Segoe UI", 13, "bold"), foreground="#1F4E79").pack(side="left")
         ttk.Label(hdr,
@@ -40,14 +41,14 @@ class ExplorerTabMixin:
                   font=("Segoe UI", 10, "italic"), foreground="#555").pack(side="left")
 
         inp_frame = ttk.LabelFrame(
-            outer, text=f"  {tr('explorer.expression')}  ", padding=(10, 6))
-        inp_frame.grid(row=1, column=0, sticky="ew", pady=(0, 8))
+            outer, text=f"  {tr('explorer.expression')}  ", padding=(10, 2))
+        inp_frame.grid(row=1, column=0, sticky="ew", pady=(0, 2))
         inp_frame.columnconfigure(0, weight=1)
 
         self._explorer_entry = tk.Text(
-            inp_frame, height=3, font=("Consolas", 11),
+            inp_frame, height=2, font=("Consolas", 11),
             bg="#FAFCFF", fg="#1a1a2e", padx=6, pady=4, relief="flat", wrap="word")
-        self._explorer_entry.grid(row=0, column=0, sticky="ew", pady=(0, 4))
+        self._explorer_entry.grid(row=0, column=0, sticky="ew", pady=(0, 2))
         self._explorer_entry.bind("<Control-Return>", lambda e: self._explorer_calc())
         self._explorer_entry.bind("<<Modified>>", self._explorer_input_changed)
         self._explorer_entry.edit_modified(False)
@@ -67,21 +68,24 @@ class ExplorerTabMixin:
             state="disabled",
             command=self._explorer_export)
         self._exp_export_btn.pack(side="left", padx=(6, 0))
+        # I2d: la T calcolata, se e' una disposizione della Tavola, vi si apre;
+        # il pulsante sta con gli altri comandi, sotto resta solo il motivo
+        self._exp_tavola_btn = ttk.Button(
+            btn_row, text=tr("nav.show_in_table"), state="disabled",
+            command=self._explorer_to_tavola)
+        self._exp_tavola_btn.pack(side="left", padx=(6, 0))
         self._explorer_status = tk.StringVar(
             value=tr("explorer.status.prompt"))
         ttk.Label(btn_row, textvariable=self._explorer_status,
                   font="GiocoHelp", foreground="#333",
-                  wraplength=600).pack(side="left")
+                  wraplength=380).pack(side="left", padx=(10, 0))
 
-        # I2d: la T calcolata, se e' una disposizione della Tavola, vi si apre
+        # una sola riga compatta: «Disposizione #… della Tavola» o il motivo
         nav_row = ttk.Frame(inp_frame)
-        nav_row.grid(row=2, column=0, sticky="w", pady=(4, 0))
-        self._exp_tavola_btn = ttk.Button(
-            nav_row, text=tr("nav.show_in_table"), state="disabled",
-            command=self._explorer_to_tavola)
-        self._exp_tavola_btn.pack(side="left")
-        self._exp_tavola_motivo = ttk.Label(nav_row, text="", foreground="#555")
-        self._exp_tavola_motivo.pack(side="left", padx=8)
+        nav_row.grid(row=2, column=0, sticky="w", pady=(1, 0))
+        self._exp_tavola_motivo = ttk.Label(nav_row, text="", foreground="#555",
+                                            font=("Segoe UI", 8))
+        self._exp_tavola_motivo.pack(side="left")
         self._exp_tavola_numero = None
 
         enb = ttk.Notebook(outer)
@@ -316,53 +320,61 @@ class ExplorerTabMixin:
         della parte alta della griglia: visibili appena si apre la sotto-scheda
         anche a 1280×720, senza scorrere.
         """
-        CELL  = 12
+        # CELL 8: la griglia 27×27 (218 px) entra intera, con i fattori e il
+        # testo, nell'area visibile anche a 1280×720, in italiano e in inglese,
+        # con lo scorrimento in cima.
+        CELL  = 8
         SMALL = 20
 
-        outer = ttk.Frame(nb, padding=8)
+        outer = ttk.Frame(nb, padding=(8, 2, 8, 4))
         nb.add(outer, text=f"  \U0001f4d0  {tr('explorer.tab.matrix')}  ")
         outer.columnconfigure(0, weight=1)
         outer.columnconfigure(1, weight=1)
         outer.rowconfigure(1, weight=1)
 
         cv_size = CELL * 27 + 2
-        destra = SMALL * 9 + 40          # larghezza della colonna dei fattori
 
         def make_panel(col, title_text, tag):
-            """Pannello: griglia 27×27 a sinistra, fattori e testo a destra."""
+            """Pannello: griglia 27×27 a sinistra; a destra forma canonica,
+            fattori 3×3 e testo, che arriva fino al fondo della griglia."""
             panel = ttk.Frame(outer, relief="groove", borderwidth=1)
             panel.grid(row=0, column=col, rowspan=2, sticky="nsew",
                        padx=(0 if col else 0, 6 if col == 0 else 0))
-            panel.columnconfigure(1, weight=1)
+            panel.columnconfigure(0, weight=1)
 
             title = ttk.Label(panel,
                               text=title_text,
                               font=("Segoe UI", 11, "bold"),
                               foreground="#1F4E79",
                               anchor="center")
-            title.grid(row=0, column=0, columnspan=2, sticky="ew", pady=(6, 4))
+            title.grid(row=0, column=0, sticky="ew", pady=(2, 2))
 
-            cv = tk.Canvas(panel, width=cv_size, height=cv_size,
+            # corpo alto quanto la griglia: il pannello puo' allungarsi, il
+            # contenuto no (il box di testo si ferma al fondo della griglia)
+            corpo = ttk.Frame(panel)
+            corpo.grid(row=1, column=0, sticky="new", padx=(6, 8), pady=(0, 6))
+            corpo.columnconfigure(1, weight=1)
+            corpo.rowconfigure(2, weight=1)
+
+            cv = tk.Canvas(corpo, width=cv_size, height=cv_size,
                            bg="white", highlightthickness=1,
                            highlightbackground="#AAAAAA")
-            cv.grid(row=1, column=0, rowspan=3, sticky="n", padx=(6, 4),
-                    pady=(0, 8))
+            cv.grid(row=0, column=0, rowspan=3, sticky="n", padx=(0, 8))
             self._draw_empty_grid(cv, 27, CELL)
 
-            cf_lbl = ttk.Label(panel,
+            cf_lbl = ttk.Label(corpo,
                                text=tr("explorer.matrix.canonical_empty"),
                                font=("Consolas", 9),
                                foreground="#555",
-                               wraplength=destra, justify="left")
-            cf_lbl.grid(row=1, column=1, sticky="nw", padx=(4, 8))
+                               wraplength=360, justify="left")
+            cf_lbl.grid(row=0, column=1, sticky="nw")
 
-            factors_row = ttk.Frame(panel)
-            factors_row.grid(row=2, column=1, sticky="nw", padx=(0, 8),
-                             pady=(6, 6))
+            factors_row = ttk.Frame(corpo)
+            factors_row.grid(row=1, column=1, sticky="nw", pady=(4, 4))
             fcvs, flbls = [], []
             for i in range(3):
                 col_fr = ttk.Frame(factors_row)
-                col_fr.pack(side="left", padx=4)
+                col_fr.pack(side="left", padx=(0, 8))
                 fcv = tk.Canvas(col_fr, width=SMALL*3+2, height=SMALL*3+2,
                                 bg="white", highlightthickness=1,
                                 highlightbackground="#888")
@@ -378,10 +390,10 @@ class ExplorerTabMixin:
             # cui la permutazione esisteva in questa vista. Qui c'è la stessa
             # informazione in testo, selezionabile e raggiungibile con Tab:
             # chi non interpreta il disegno legge i 27 valori.
-            testo = tk.Text(panel, height=12, width=1, wrap="word", relief="flat",
+            testo = tk.Text(corpo, height=1, width=1, wrap="word", relief="flat",
                             font=("Consolas", 9), background="#F7F9FC",
                             foreground="#1F4E79", takefocus=True)
-            testo.grid(row=3, column=1, sticky="new", padx=(4, 8), pady=(0, 8))
+            testo.grid(row=2, column=1, sticky="nsew")
             testo.insert("1.0", tr("explorer.matrix.as_text_empty"))
             testo.configure(state="disabled")
 
