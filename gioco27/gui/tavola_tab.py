@@ -18,6 +18,7 @@ import csv
 from ..core import gioco_reale as gr
 from ..core.parallel import atomic_write
 from .i18n import tr
+from .pannello_ternario import PannelloTernario
 
 
 class TavolaFrame(ttk.Frame):
@@ -88,9 +89,16 @@ class TavolaFrame(ttk.Frame):
         self._rec_lbl = ttk.Label(rec, text="", foreground="#00427e")
         self._rec_lbl.pack(side="left", padx=6)
 
-        # ── tabella ──
-        wrap = ttk.Frame(self)
-        wrap.pack(fill="both", expand=True, padx=8, pady=(0, 8))
+        # ── tabella a sinistra, pannello ternario a destra (I2, D-I2-2) ──
+        self._divisore = ttk.Panedwindow(self, orient="horizontal")
+        self._divisore.pack(fill="both", expand=True, padx=8, pady=(0, 8))
+        wrap = ttk.Frame(self._divisore)
+        wrap.rowconfigure(0, weight=1)
+        wrap.columnconfigure(0, weight=1)
+        self._divisore.add(wrap, weight=3)
+        self.pannello = PannelloTernario(self._divisore,
+                                         on_vai_alla_riga=self.vai_alla_riga)
+        self._divisore.add(self.pannello, weight=2)
         cols = [c for c, _, _ in self._COLS]
         tv = ttk.Treeview(wrap, columns=cols, show="headings",
                           selectmode="browse")
@@ -98,10 +106,14 @@ class TavolaFrame(ttk.Frame):
             tv.heading(c, text=tr(self._COL_KEYS[c]))
             tv.column(c, width=w, anchor="center", stretch=(c in ("mesc", "imp", "tipo")))
         vs = ttk.Scrollbar(wrap, orient="vertical", command=tv.yview)
-        tv.configure(yscrollcommand=vs.set)
-        tv.pack(side="left", fill="both", expand=True)
-        vs.pack(side="right", fill="y")
+        hs = ttk.Scrollbar(wrap, orient="horizontal", command=tv.xview)
+        tv.configure(yscrollcommand=vs.set, xscrollcommand=hs.set)
+        tv.grid(row=0, column=0, sticky="nsew")
+        vs.grid(row=0, column=1, sticky="ns")
+        hs.grid(row=1, column=0, sticky="ew")
         tv.bind("<Double-1>", self._dettaglio)
+        # I2: la selezione aggiorna soltanto il pannello; non pubblica T (D-I2-7)
+        tv.bind("<<TreeviewSelect>>", self._su_selezione)
         tv.tag_configure("pari", background="#f4f9f4")
         tv.tag_configure("evid", background="#fff2c4")
         self._tv = tv
@@ -146,6 +158,22 @@ class TavolaFrame(ttk.Frame):
         self._status.configure(text=tr("table.status_shown", visible=n_vis))
 
     # ── azioni ────────────────────────────────────────────────────────────────
+
+    def _su_selezione(self, _ev=None):
+        sel = self._tv.selection()
+        if sel:
+            self.pannello.mostra_disposizione(int(sel[0]))
+
+    def vai_alla_riga(self, numero):
+        """Porta in vista e seleziona la riga `numero`, togliendo il filtro."""
+        numero = int(numero)
+        if self._filtro_var.get():
+            self._filtro_var.set("")
+        self._popola(evidenzia=numero)
+        self._tv.see(str(numero))
+        self._tv.selection_set(str(numero))
+        self._tv.focus(str(numero))
+        self.pannello.mostra_disposizione(numero)
 
     def _ricostruisci(self):
         try:
