@@ -31,9 +31,11 @@ class CyclesFrame(ttk.Frame):
     che la permutazione T cambia.
     """
 
-    def __init__(self, parent, **kw):
+    def __init__(self, parent, on_mostra_nella_tavola=None, **kw):
         super().__init__(parent, **kw)
         self._perm = None
+        self._on_mostra_nella_tavola = on_mostra_nella_tavola   # I2d
+        self._numero_tavola = None
         self._build_ui()
 
     # ─── UI ──────────────────────────────────────────────────────────────────
@@ -54,6 +56,13 @@ class CyclesFrame(ttk.Frame):
                                font=("Segoe UI", 9, "italic"),
                                foreground="#888")
         self._hint.pack(side="left", padx=10)
+        # I2d: la T corrente, se e' una disposizione della Tavola, vi si apre
+        self._btn_tavola = ttk.Button(hdr, text=tr("nav.show_in_table"),
+                                      state="disabled",
+                                      command=self._mostra_nella_tavola)
+        self._btn_tavola.pack(side="right")
+        self._motivo_tavola = ttk.Label(hdr, text="", foreground="#555")
+        self._motivo_tavola.pack(side="right", padx=8)
 
         # ── Pannello riepilogo ─────────────────────────────────────────────
         info_fr = ttk.LabelFrame(self, text=f" {tr('cycles.summary')} ",
@@ -180,6 +189,7 @@ class CyclesFrame(ttk.Frame):
         """Aggiorna la visualizzazione con una nuova permutazione T (list/array len 27)."""
         self._perm = list(perm)
         self._hint.configure(text="")
+        self._aggiorna_link_tavola()
         self._refresh_summary()
         self._refresh_cycles_text()
         self._refresh_orbit()
@@ -196,6 +206,31 @@ class CyclesFrame(ttk.Frame):
         self._cycles_placeholder()
         self._hint.configure(
             text=tr("cycles.reset_hint"))
+        self._aggiorna_link_tavola()
+
+    # ─── I2d: verso la Tavola ─────────────────────────────────────────────────
+
+    def _aggiorna_link_tavola(self):
+        """Abilitato solo se la T corrente e' una delle 216 disposizioni (R)."""
+        from ..services import tabellone as _tb
+        numero = None
+        if self._perm is not None:
+            try:
+                numero = _tb.numero_di(self._perm)
+            except ValueError:
+                numero = None
+        self._numero_tavola = numero
+        if numero is None:
+            self._btn_tavola.state(["disabled"])
+            self._motivo_tavola.configure(
+                text=tr("nav.not_in_table") if self._perm is not None else "")
+        else:
+            self._btn_tavola.state(["!disabled"])
+            self._motivo_tavola.configure(text=tr("nav.in_table", number=numero))
+
+    def _mostra_nella_tavola(self):
+        if self._numero_tavola is not None and self._on_mostra_nella_tavola:
+            self._on_mostra_nella_tavola(self._numero_tavola)
 
     # ─── Refresh ─────────────────────────────────────────────────────────────
 

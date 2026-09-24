@@ -541,6 +541,8 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
                 pass
         if hasattr(self, "_beginner_var"):
             self._beginner_var.set(beginner)
+        if hasattr(self, "_tavola_frame"):
+            self._tavola_frame.aggiorna_navigazione()
 
     def _aggiungi_scheda(self, nb, chiave, widget, testo):
         """Aggiunge una scheda al notebook e ne registra la chiave stabile.
@@ -924,7 +926,8 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
         return frame
     # ── Tab Cicli ───────────────────────────────────────────────────────────
     def _build_cycles_tab(self, nb):
-        self._cycles_frame = CyclesFrame(nb)
+        self._cycles_frame = CyclesFrame(
+            nb, on_mostra_nella_tavola=lambda n: self._mostra_nella_tavola(n))
         return self._cycles_frame
 
     # ── Tab Distribuzione ───────────────────────────────────────────────────
@@ -934,7 +937,9 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
 
     # ── Tab Simulatore ──────────────────────────────────────────────────────
     def _build_simulator_tab(self, nb):
-        self._simulator_frame = SimulatorFrame(nb, on_new_T=self._on_simulator_T)
+        self._simulator_frame = SimulatorFrame(
+            nb, on_new_T=self._on_simulator_T,
+            on_mostra_nella_tavola=lambda n: self._mostra_nella_tavola(n))
         return self._simulator_frame
 
     def _on_simulator_T(self, perm_27):
@@ -943,8 +948,40 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
 
     # ── Tab Tavola 216 ──────────────────────────────────────────────────────
     def _build_tavola_tab(self, nb):
-        self._tavola_frame = TavolaFrame(nb)
+        # I2d: callback tardivi (lambda), perche' le schede di destinazione
+        # si costruiscono dopo e i test possono sostituire _notify_T_changed.
+        self._tavola_frame = TavolaFrame(
+            nb, on_usa_T=lambda perm: self._notify_T_changed(perm),
+            on_apri_explorer=lambda espr: self._apri_nell_explorer(espr),
+            on_apri_cicli=lambda perm: self._apri_nei_cicli(perm),
+            scheda_disponibile=lambda k: self._scheda_disponibile(k))
         return self._tavola_frame
+
+    # ── Navigazione minima (I2d, D-I2-7) ────────────────────────────────────
+    def _scheda_disponibile(self, chiave):
+        """True se la scheda esiste e non e' nascosta dal livello corrente."""
+        widget = (getattr(self, "_schede", None) or {}).get(chiave)
+        if widget is None or getattr(self, "_nb", None) is None:
+            return False
+        try:
+            return self._nb.tab(widget, "state") != "hidden"
+        except tk.TclError:
+            return False
+
+    def _mostra_nella_tavola(self, numero):
+        """Seleziona la riga `numero` della Tavola e porta la Tavola in vista."""
+        self._tavola_frame.vai_alla_riga(numero)
+        self._seleziona_scheda("tavola")
+
+    def _apri_nell_explorer(self, espressione):
+        self._explorer_entry.delete("1.0", "end")
+        self._explorer_entry.insert("1.0", espressione)
+        self._switch_to_explorer()
+        self._explorer_calc()
+
+    def _apri_nei_cicli(self, perm):
+        self._notify_T_changed(perm)
+        self._seleziona_scheda("cicli")
 
     # ── Notifica cambio T ───────────────────────────────────────────────────
     def _notify_T_changed(self, perm_27):

@@ -34,15 +34,18 @@ from dataclasses import dataclass
 from typing import Optional, Tuple
 
 from ..core import gioco_reale as _gr
+from ..core.algebra import _prep_explorer_expr
 from ..core.dominio import valida_indice
-from .procedure import ProceduraGioco, adattamento_fisico, servizio_procedure
+from ..core.permutations import compute_T_perm
+from .procedure import (ProceduraGioco, adattamento_fisico,
+                        parametri_gioco_reale, servizio_procedure)
 
 __all__ = [
     "FaseCronologica", "RigaTabellone", "ColonnaAsso", "Tabellone",
     "AzioneCifra", "LetturaCifre", "PassoFlusso", "FlussoCarta",
     "tabellone", "lettura_cifre", "tabella_posizioni", "flusso_carta",
     "flussi_procedura", "realizza", "ritorno", "numero_di",
-    "disposizione_realizzata",
+    "disposizione_realizzata", "espressione_per_explorer",
 ]
 
 Terna = Tuple[int, int, int]
@@ -349,3 +352,16 @@ def numero_di(trasformazione) -> Optional[int]:
         return realizza(trasformazione).numero_tavola
     except TrasformazioneFuoriDominio:
         return None
+
+
+def espressione_per_explorer(procedura: ProceduraGioco) -> str:
+    """L'espressione che l'Explorer calcola per questa procedura.
+
+    E' una notazione tecnica, non un testo per l'utente: la stessa che il core
+    scrive nella colonna T_simbolica degli export (`compute_T_perm`),
+    normalizzata come fanno Analisi e Decomposizioni (`_prep_explorer_expr`)
+    e passata all'unico parser, quello dell'Explorer.
+    """
+    if not isinstance(procedura, ProceduraGioco):
+        raise TypeError("attesa una ProceduraGioco")
+    return _prep_explorer_expr(compute_T_perm(parametri_gioco_reale(procedura))[1])

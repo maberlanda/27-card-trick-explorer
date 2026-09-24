@@ -17,6 +17,8 @@ import csv
 
 from ..core import gioco_reale as gr
 from ..core.parallel import atomic_write
+from ..services import tabellone as _tb
+from ..services.procedure import ProceduraGioco
 from .i18n import tr
 from .pannello_ternario import PannelloTernario
 
@@ -46,8 +48,20 @@ class TavolaFrame(ttk.Frame):
         "auto": "table.col.self_inverse",
     }
 
-    def __init__(self, parent, **kw):
+    def __init__(self, parent, on_usa_T=None, on_apri_explorer=None,
+                 on_apri_cicli=None, scheda_disponibile=None, **kw):
+        """I2 (D-I2-7): le azioni verso le altre viste sono callback dell'App.
+
+        on_usa_T(perm)            pubblica T come T corrente (esplicito)
+        on_apri_explorer(espr)    porta un'espressione nell'Explorer
+        on_apri_cicli(perm)       pubblica T e mostra i Cicli
+        scheda_disponibile(k)     True se la scheda k e' visibile nel livello
+        """
         super().__init__(parent, **kw)
+        self._on_usa_T = on_usa_T
+        self._on_apri_explorer = on_apri_explorer
+        self._on_apri_cicli = on_apri_cicli
+        self._scheda_disponibile = scheda_disponibile
         self._righe = gr.tavola_216()
         self._build_ui()
         self._popola()
@@ -114,6 +128,22 @@ class TavolaFrame(ttk.Frame):
         tv.bind("<Double-1>", self._dettaglio)
         # I2: la selezione aggiorna soltanto il pannello; non pubblica T (D-I2-7)
         tv.bind("<<TreeviewSelect>>", self._su_selezione)
+
+        # ── collegamenti espliciti verso le altre viste (I2d) ──
+        nav = ttk.Frame(wrap)
+        nav.grid(row=2, column=0, columnspan=2, sticky="ew", pady=(4, 0))
+        self._btn_usa_T = ttk.Button(nav, text=tr("nav.use_as_current"),
+                                     command=self._usa_come_T, state="disabled")
+        self._btn_explorer = ttk.Button(nav, text=tr("nav.open_explorer"),
+                                        command=self._apri_explorer,
+                                        state="disabled")
+        self._btn_cicli = ttk.Button(nav, text=tr("nav.open_cycles"),
+                                     command=self._apri_cicli, state="disabled")
+        self._btn_usa_T.pack(side="left")
+        self._esito_navigazione = ttk.Label(nav, text=tr("nav.select_row"),
+                                            foreground="#555", wraplength=360)
+        self._nav = nav
+        self.aggiorna_navigazione()
         tv.tag_configure("pari", background="#f4f9f4")
         tv.tag_configure("evid", background="#fff2c4")
         self._tv = tv
@@ -163,6 +193,44 @@ class TavolaFrame(ttk.Frame):
         sel = self._tv.selection()
         if sel:
             self.pannello.mostra_disposizione(int(sel[0]))
+            for b in (self._btn_usa_T, self._btn_explorer, self._btn_cicli):
+                b.state(["!disabled"])
+
+    def aggiorna_navigazione(self):
+        """Mostra solo le azioni verso schede disponibili nel livello (DP7 invariata)."""
+        for b in (self._btn_explorer, self._btn_cicli):
+            b.pack_forget()
+        self._esito_navigazione.pack_forget()
+        for chiave, btn, cb in (("explorer", self._btn_explorer,
+                                 self._on_apri_explorer),
+                                ("cicli", self._btn_cicli, self._on_apri_cicli)):
+            if cb is not None and (self._scheda_disponibile is None
+                                   or self._scheda_disponibile(chiave)):
+                btn.pack(side="left", padx=(6, 0))
+        self._esito_navigazione.pack(side="left", padx=8)
+
+    def _T_selezionata(self):
+        t = self.pannello.tabellone_corrente
+        return None if t is None else list(t.destinazioni)
+
+    def _usa_come_T(self):
+        T = self._T_selezionata()
+        if T is None or self._on_usa_T is None:
+            return
+        self._on_usa_T(T)
+        self._esito_navigazione.configure(
+            text=tr("nav.published", number=self.pannello.numero))
+
+    def _apri_explorer(self):
+        if self.pannello.numero is None or self._on_apri_explorer is None:
+            return
+        procedura = ProceduraGioco.da_identificatore(self.pannello.numero, 0)
+        self._on_apri_explorer(_tb.espressione_per_explorer(procedura))
+
+    def _apri_cicli(self):
+        T = self._T_selezionata()
+        if T is not None and self._on_apri_cicli is not None:
+            self._on_apri_cicli(T)
 
     def vai_alla_riga(self, numero):
         """Porta in vista e seleziona la riga `numero`, togliendo il filtro."""

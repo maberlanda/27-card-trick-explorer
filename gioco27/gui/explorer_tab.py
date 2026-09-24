@@ -12,6 +12,7 @@ from ..core.algebra import (AlgebraEngine, Controller, CanonicalForm,
                             display_normal_form_kind)
 from ..core.constants import PERM3
 from ..core.kronecker import try_kron_decompose, decomposition_context
+from ..services import tabellone as _tb
 from .common import configure_matrix_tags, insert_colored
 from .decomposition import DecompositionDialog
 from .i18n import tr
@@ -71,6 +72,17 @@ class ExplorerTabMixin:
         ttk.Label(btn_row, textvariable=self._explorer_status,
                   font="GiocoHelp", foreground="#333",
                   wraplength=600).pack(side="left")
+
+        # I2d: la T calcolata, se e' una disposizione della Tavola, vi si apre
+        nav_row = ttk.Frame(inp_frame)
+        nav_row.grid(row=2, column=0, sticky="w", pady=(4, 0))
+        self._exp_tavola_btn = ttk.Button(
+            nav_row, text=tr("nav.show_in_table"), state="disabled",
+            command=self._explorer_to_tavola)
+        self._exp_tavola_btn.pack(side="left")
+        self._exp_tavola_motivo = ttk.Label(nav_row, text="", foreground="#555")
+        self._exp_tavola_motivo.pack(side="left", padx=8)
+        self._exp_tavola_numero = None
 
         enb = ttk.Notebook(outer)
         enb.grid(row=2, column=0, sticky="nsew")
@@ -596,11 +608,13 @@ class ExplorerTabMixin:
         text = self._explorer_entry.get("1.0", "end-1c").strip()
         if not text:
             self._explorer_last_result = None
+            self._aggiorna_link_tavola(None)
             self._explorer_status.set(
                 f"⚠  {tr('explorer.status.empty_expression')}")
             return
         result = self._explorer_ctrl.process(text)
         self._explorer_last_result = result
+        self._aggiorna_link_tavola(result)
         if not result["ok"]:
             self._explorer_status.set(f"✗  {tr('explorer.status.error_log')}")
             self._exp_set(self._exp_log, result["error"])
@@ -619,7 +633,28 @@ class ExplorerTabMixin:
             if hasattr(self, "_decomp_btn") and result.get("inverse_perm"):
                 self._decomp_btn.configure(state="normal")
 
+    def _aggiorna_link_tavola(self, result=None):
+        """Abilita «Mostra nella Tavola» solo se T e' una delle 216 (via (R))."""
+        if not hasattr(self, "_exp_tavola_btn"):   # stesso riguardo degli altri
+            return                                 # pulsanti opzionali
+        perm = result.get("perm") if result and result.get("ok") else None
+        numero = _tb.numero_di(list(perm)) if perm is not None else None
+        self._exp_tavola_numero = numero
+        if numero is None:
+            self._exp_tavola_btn.state(["disabled"])
+            self._exp_tavola_motivo.configure(
+                text=tr("nav.not_in_table") if perm is not None else "")
+        else:
+            self._exp_tavola_btn.state(["!disabled"])
+            self._exp_tavola_motivo.configure(text=tr("nav.in_table",
+                                                      number=numero))
+
+    def _explorer_to_tavola(self):
+        if self._exp_tavola_numero is not None:
+            self._mostra_nella_tavola(self._exp_tavola_numero)
+
     def _explorer_clear(self):
+        self._aggiorna_link_tavola(None)
         self._explorer_entry.delete("1.0", "end")
         self._explorer_clear_results()
         self._explorer_status.set("")

@@ -58,7 +58,7 @@ __all__ = [
     "FAMIGLIA_SICURA", "FAMIGLIA_SEMPLICE_SICURA", "AdattamentoFisico",
     "adattamento_fisico", "GruppoTrasformazione", "FibraBersaglio",
     "ConfrontoProcedure", "chiave_storica", "chiave_sicura", "chiave_costo",
-    "ServizioProcedure", "servizio_procedure",
+    "ServizioProcedure", "servizio_procedure", "parametri_gioco_reale",
 ]
 
 Trasformazione = Tuple[int, ...]          # T[carta] = posizione finale
@@ -339,8 +339,18 @@ def _nome_perm3(perm):
 _IDENTITA_NOME = _nome_perm3((0, 1, 2))
 
 
+def parametri_gioco_reale(p: ProceduraGioco):
+    """Parametri (p0,p1,p2,j0,j1,j2) del preset «Gioco Reale» per ogni stadio.
+
+    Sono i parametri di stadio del core (`compute_T_perm`, Explorer): una
+    procedura canonica li determina senza ambiguita' (J uniforme = ε, P2 =
+    raccolta, P1 = P0 = identita').
+    """
+    return _parametri_gioco_reale(p)
+
+
 def _parametri_gioco_reale(p: ProceduraGioco):
-    """Parametri (p0,p1,p2,j0,j1,j2) del preset «Gioco Reale» per ogni stadio."""
+    """Implementazione di `parametri_gioco_reale`."""
     stadi = []
     for sigla, e in zip(p.mescolamenti, p.rovesciamenti):
         j = "R_U" if e else "I_3"

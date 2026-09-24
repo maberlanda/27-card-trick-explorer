@@ -81,9 +81,10 @@ class SessionePratica:
 
 class SimulatorFrame(ttk.Frame):
 
-    def __init__(self, parent, on_new_T=None, **kw):
+    def __init__(self, parent, on_new_T=None, on_mostra_nella_tavola=None, **kw):
         super().__init__(parent, **kw)
         self._on_new_T = on_new_T    # callback(list[int]) per app/gobbo
+        self._on_mostra_nella_tavola = on_mostra_nella_tavola   # I2d
         self._sessione = None        # SessionePratica congelata (B04)
         self._phases = []
 
@@ -110,6 +111,11 @@ class SimulatorFrame(ttk.Frame):
                   text=f"🎩  {tr('simulator.title')}",
                   font=("Segoe UI", 13, "bold"),
                   foreground="#1a3a5c").pack(side="left")
+        # I2d: dalla sequenza calcolata alla riga della Tavola (solo andata)
+        self._btn_tavola = ttk.Button(hdr, text=tr("nav.show_in_table"),
+                                      state="disabled",
+                                      command=self._mostra_nella_tavola)
+        self._btn_tavola.pack(side="right")
 
         ctrl = ttk.LabelFrame(
             self, text=f" {tr('simulator.settings')} ", padding=(10, 6))
@@ -361,11 +367,19 @@ class SimulatorFrame(ttk.Frame):
             text="✓  " + tr("simulator.status.sequence",
                             shuffles=" ".join(plan["mescolamenti"]),
                             number=plan["numero"]))
+        self._btn_tavola.configure(text=tr("nav.simulator_show",
+                                           number=plan["numero"]))
+        self._btn_tavola.state(["!disabled"] if self._on_mostra_nella_tavola
+                               else ["disabled"])
         self._build_istruzioni(sessione)
         self._build_deck_phases(sessione)
         self._init_practice(sessione)
         if self._on_new_T is not None:
             self._on_new_T(list(plan["T"]))
+
+    def _mostra_nella_tavola(self):
+        if self._sessione is not None and self._on_mostra_nella_tavola:
+            self._on_mostra_nella_tavola(self._sessione.piano["numero"])
 
     # ─── Tab Istruzioni ────────────────────────────────────────────────────────
 
