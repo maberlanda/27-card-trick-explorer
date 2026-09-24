@@ -26,12 +26,12 @@ from .scorrimento import AreaScorrevole
 __all__ = ["PannelloTernario"]
 
 MARCATORE = "▶"
-_LARGHEZZA_TESTO = 380          # a capo delle etichette lunghe (px)
+_LARGHEZZA_TESTO = 340          # a capo delle etichette lunghe (px)
 
 
 def _testo_sola_lettura(parent, altezza):
     """Alternativa testuale H2: sola lettura, ma raggiungibile con Tab."""
-    testo = tk.Text(parent, height=altezza, wrap="word", relief="flat",
+    testo = tk.Text(parent, height=altezza, width=44, wrap="word", relief="flat",
                     font=("Consolas", 9), background="#FAFCFF",
                     foreground="#1F4E79", takefocus=True)
     testo.configure(state="disabled")
@@ -73,6 +73,11 @@ class PannelloTernario(ttk.Frame):
         self._area_posizioni = AreaScorrevole(self._schede)
         self._schede.add(self._area_posizioni, text=tr("ternary.tab.positions"))
         self._costruisci_posizioni(self._area_posizioni.contenuto)
+        # Le tre schede scorrono da sole: la loro richiesta minima resta piccola,
+        # cosi' il pannello non costringe l'intera Tavola a scorrere (H2).
+        for area in (self._area_tabellone, self._area_carta,
+                     self._area_posizioni):
+            area.tela.configure(width=360, height=220)
         self._mostra_vuoto()
 
     # ── stato pubblico ───────────────────────────────────────────────────────
@@ -101,7 +106,8 @@ class PannelloTernario(ttk.Frame):
         stile.configure("CellaEvid.TLabel", font=("Consolas", 12, "bold"),
                         anchor="center", padding=(6, 2), relief="groove",
                         background="#fff2c4")
-        stile.configure("Fase.TLabel", padding=(6, 2), relief="ridge",
+        stile.configure("Fase.TLabel", padding=(3, 1), relief="ridge",
+                        font=("Segoe UI", 8),
                         justify="center", anchor="center")
 
     # ── scheda «Tabellone» ───────────────────────────────────────────────────
@@ -109,7 +115,8 @@ class PannelloTernario(ttk.Frame):
         dentro.columnconfigure(0, weight=1)
         riga = 0
         self._titolo = ttk.Label(dentro, font=("Segoe UI", 11, "bold"),
-                                 foreground="#1F4E79")
+                                 foreground="#1F4E79",
+                                 wraplength=_LARGHEZZA_TESTO)
         self._titolo.grid(row=riga, column=0, sticky="w", padx=6, pady=(6, 2))
         riga += 1
 
@@ -121,7 +128,7 @@ class PannelloTernario(ttk.Frame):
         self._fasi = []
         for i in range(3):
             if i:
-                ttk.Label(striscia, text="→").pack(side="left", padx=2)
+                ttk.Label(striscia, text="→").pack(side="left", padx=1)
             lbl = ttk.Label(striscia, style="Fase.TLabel")
             lbl.pack(side="left")
             self._fasi.append(lbl)
@@ -202,6 +209,14 @@ class PannelloTernario(ttk.Frame):
         self._riempi_posizioni()
         self._passo = 0
         self._aggiorna_carta()
+        self._ricalcola_aree()
+
+    def _ricalcola_aree(self):
+        """Le tre aree rivalutano le barre: il contenuto puo' essersi ristretto."""
+        self.update_idletasks()
+        for area in (self._area_tabellone, self._area_carta,
+                     self._area_posizioni):
+            area.ricalcola()
 
     def _aggiorna_tabellone(self):
         t = self._tabellone
@@ -522,12 +537,12 @@ class PannelloTernario(ttk.Frame):
         return "\n".join(righe)
 
     # ── scheda «27 posizioni» ────────────────────────────────────────────────
-    _COLONNE = (("n", "ternary.pos.col.n", 36),
-                ("terna", "ternary.pos.col.digits", 62),
-                ("parola", "ternary.pos.col.word", 64),
-                ("terna_finale", "ternary.pos.col.final_digits", 72),
-                ("parola_finale", "ternary.pos.col.final_word", 76),
-                ("dest", "ternary.pos.col.dest", 40))
+    _COLONNE = (("n", "ternary.pos.col.n", 32),
+                ("terna", "ternary.pos.col.digits", 56),
+                ("parola", "ternary.pos.col.word", 56),
+                ("terna_finale", "ternary.pos.col.final_digits", 56),
+                ("parola_finale", "ternary.pos.col.final_word", 56),
+                ("dest", "ternary.pos.col.dest", 36))
 
     def _costruisci_posizioni(self, dentro):
         dentro.columnconfigure(0, weight=1)
@@ -538,7 +553,7 @@ class PannelloTernario(ttk.Frame):
         tab = ttk.Treeview(dentro, columns=[c for c, _, _ in self._COLONNE],
                            show="tree headings", selectmode="browse", height=12)
         tab.heading("#0", text="")
-        tab.column("#0", width=150, stretch=False)
+        tab.column("#0", width=128, stretch=False)
         for c, chiave, w in self._COLONNE:
             tab.heading(c, text=tr(chiave))
             tab.column(c, width=w, anchor="center", stretch=False)

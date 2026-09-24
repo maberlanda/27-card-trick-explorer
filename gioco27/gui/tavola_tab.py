@@ -106,13 +106,16 @@ class TavolaFrame(ttk.Frame):
         # ── tabella a sinistra, pannello ternario a destra (I2, D-I2-2) ──
         self._divisore = ttk.Panedwindow(self, orient="horizontal")
         self._divisore.pack(fill="both", expand=True, padx=8, pady=(0, 8))
-        wrap = ttk.Frame(self._divisore)
+        # La tabella non impone la propria larghezza (876 px di colonne): a
+        # 1280×720 cede spazio al pannello e scorre con la sua barra (H2).
+        wrap = ttk.Frame(self._divisore, width=500, height=300)
+        wrap.grid_propagate(False)
         wrap.rowconfigure(0, weight=1)
         wrap.columnconfigure(0, weight=1)
-        self._divisore.add(wrap, weight=3)
+        self._divisore.add(wrap, weight=1)
         self.pannello = PannelloTernario(self._divisore,
                                          on_vai_alla_riga=self.vai_alla_riga)
-        self._divisore.add(self.pannello, weight=2)
+        self._divisore.add(self.pannello, weight=1)
         cols = [c for c, _, _ in self._COLS]
         tv = ttk.Treeview(wrap, columns=cols, show="headings",
                           selectmode="browse")

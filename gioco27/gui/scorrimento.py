@@ -172,6 +172,15 @@ class AreaScorrevole(ttk.Frame):
         else:
             self._hs.grid_remove()
 
+    def ricalcola(self):
+        """Rivaluta le barre dopo un cambio di contenuto (I2).
+
+        Quando il contenuto si *restringe* dentro una finestra che la tela
+        tiene gia' larga almeno quanto se stessa, Tk non genera un nuovo
+        `<Configure>`: chi aggiorna il contenuto lo chiede qui, esplicitamente.
+        """
+        self._aggiorna()
+
     # ── per i test ───────────────────────────────────────────────────────────
 
     @property

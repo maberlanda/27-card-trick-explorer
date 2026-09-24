@@ -280,7 +280,7 @@ def test_l_area_scorrevole_si_usa_da_tastiera(applicazione):
     assert area.tela.yview()[0] == 0
 
 
-@pytest.mark.parametrize("chiave", ["simulatore", "explorer"])
+@pytest.mark.parametrize("chiave", ["simulatore", "explorer", "tavola"])
 def test_m04_il_contenuto_delle_schede_e_raggiungibile(applicazione, chiave):
     """Sotto il bordo va bene, purché ci si possa arrivare scorrendo."""
     _dimensiona(applicazione, "1280x720")
@@ -1147,6 +1147,22 @@ def test_il_layout_regge_anche_in_inglese(lingua):
             for barra in (app._barra_azioni, app._barra_preset):
                 assert all(w.winfo_ismapped() for w in barra.voci()), geometria
 
+        # I2: il pannello ternario e i collegamenti parlano inglese e reggono
+        app._seleziona_scheda("tavola")
+        app._tavola_frame.vai_alla_riga(100)
+        for geometria in TARGET:
+            _dimensiona(app, geometria)
+            for i in range(3):
+                app._tavola_frame.pannello._schede.select(i)
+                app.update()
+                persi = _perduti(_discendenti(app._schede["tavola"]))
+                assert persi == [], (geometria, i, [_etichetta(w) for w in persi])
+        # (la lingua effettiva e' quella della configurazione caricata dall'App)
+        assert app._tavola_frame._btn_usa_T.cget("text") == catalogo.tr(
+            "nav.use_as_current")
+        assert app._tavola_frame.pannello._schede.tab(0, "text") == catalogo.tr(
+            "ternary.tab.board")
+
         # i testi che H2 ha aggiunto esistono anche in inglese
         nota = app.filter_frames[0]._nota_lbl.cget("text")
         assert catalogo.tr("filter.never_empty.note") in nota
@@ -1215,3 +1231,96 @@ def test_quante_azioni_essenziali_si_perdono_oggi(applicazione):
         misure[geometria] = len(attese - presenti)
     assert misure["1920x1080"] == 0
     assert set(misure) == set(TARGET)
+
+
+# ═══════════════ I2 — pannello ternario della Tavola (D-I2-2, D-I2-8) ═══════
+
+def _pannello(applicazione, geometria, numero=100):
+    _dimensiona(applicazione, geometria)
+    applicazione._seleziona_scheda("tavola")
+    applicazione._tavola_frame.vai_alla_riga(numero)
+    applicazione.update()
+    return applicazione._tavola_frame.pannello
+
+
+@pytest.mark.parametrize("geometria", TARGET)
+@pytest.mark.parametrize("scheda", [0, 1, 2])
+def test_i2_il_pannello_ternario_si_raggiunge(applicazione, geometria, scheda):
+    """Nessun controllo perso; cio' che sta oltre il bordo si raggiunge scorrendo."""
+    pannello = _pannello(applicazione, geometria)
+    pannello._schede.select(scheda)
+    applicazione.update()
+    controlli = _discendenti(applicazione._schede["tavola"])
+    assert [_etichetta(w) for w in _perduti(controlli)] == []
+    fuori = _oltre_il_bordo(applicazione, controlli)
+    area = (pannello._area_tabellone, pannello._area_carta,
+            pannello._area_posizioni)[scheda]
+    assert fuori == [] or area.puo_scorrere(), [_etichetta(w) for w in fuori]
+    # la Tavola nel suo insieme non deve scorrere in orizzontale
+    assert applicazione._aree_scorrevoli["tavola"].barre_visibili()[1] is False
+
+
+def test_i2_le_barre_del_pannello_solo_quando_servono(applicazione):
+    pannello = _pannello(applicazione, "1920x1080")
+    pannello._schede.select(2)
+    applicazione.update()
+    assert pannello._area_posizioni.barre_visibili() == (False, False)
+    for geometria in TARGET:
+        pannello = _pannello(applicazione, geometria)
+        for i, area in enumerate((pannello._area_tabellone, pannello._area_carta,
+                                  pannello._area_posizioni)):
+            pannello._schede.select(i)
+            applicazione.update()
+            assert area.barre_visibili()[1] is False, (geometria, i)
+
+
+def test_i2_il_divisore_si_sposta_senza_cicli(applicazione):
+    pannello = _pannello(applicazione, "1366x768")
+    divisore = applicazione._tavola_frame._divisore
+    for pos in (400, 900, 650):
+        divisore.sashpos(0, pos)
+        applicazione.update()
+        prima = pannello._area_tabellone.barre_visibili()
+        applicazione.update()
+        assert pannello._area_tabellone.barre_visibili() == prima
+    assert pannello.winfo_ismapped()
+
+
+def test_i2_ordine_di_tab_nella_scheda_una_carta(applicazione):
+    pannello = _pannello(applicazione, "1920x1080")
+    pannello._schede.select(1)
+    pannello._vai_al_passo(1)            # tutti i pulsanti del passo attivi
+    applicazione.update()
+    attesi = [pannello._spin_carta, *pannello._eps_check, pannello._btn_inizio,
+              pannello._btn_indietro, pannello._btn_avanti,
+              pannello._vai_realizzata, pannello._testo_carta]
+    pannello._spin_carta.focus_set()
+    applicazione.update()
+    visti, w = [], pannello._spin_carta
+    for _ in range(40):
+        if w in attesi and w not in visti:
+            visti.append(w)
+        w = w.tk_focusNext()
+        if w is None:
+            break
+    assert visti == attesi
+
+
+def test_i2_le_alternative_testuali_sono_nella_vista(applicazione):
+    pannello = _pannello(applicazione, "1280x720")
+    for testo in (pannello._testo_tabellone, pannello._testo_carta):
+        assert testo.cget("takefocus") and testo.cget("state") == "disabled"
+        assert testo.get("1.0", "end").strip()
+    assert str(pannello._tabella.cget("takefocus")) in ("", "1", "True",
+                                                      "ttk::takefocus")
+
+
+def test_i2_nessuna_informazione_solo_nel_colore(applicazione):
+    pannello = _pannello(applicazione, "1366x768")
+    pannello.imposta_carta(10)
+    applicazione.update()
+    evidenziate = [c for riga in pannello._celle for c in riga
+                   if c.cget("style") == "CellaEvid.TLabel"]
+    assert len(evidenziate) == 3
+    assert all(c.cget("text").startswith("▶") for c in evidenziate)
+    assert pannello._tabella.item("blocco0", "text")
