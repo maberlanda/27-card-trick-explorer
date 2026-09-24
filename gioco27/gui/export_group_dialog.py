@@ -27,6 +27,7 @@ from typing import NamedTuple
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 from ..core.parallel import atomic_write
+from .errori import per_file
 from .i18n import tr
 
 
@@ -249,7 +250,9 @@ class _PreviewExportDialog(tk.Toplevel):
                    files="\n".join(os.path.basename(x) for x in done)),
                 parent=self)
         except OSError as exc:
-            messagebox.showerror(tr("export.error_title"), str(exc), parent=self)
+            messagebox.showerror(
+                *per_file(exc, "", titolo=tr("export.error_title")),
+                parent=self)
 
 
 # ── Dialog Cayley ────────────────────────────────────────────────────────────

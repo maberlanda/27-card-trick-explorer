@@ -16,6 +16,7 @@ from ..core.parallel import atomic_write
 from .common import prepara_dialogo
 from ..services import Revisioni
 from .help_banner import HelpBanner
+from .errori import per_file
 from .i18n import tr
 from .i18n import get_language
 import queue
@@ -513,7 +514,7 @@ class DecompositionDialog(tk.Toplevel):
                                    count=f"{len(results):,}", path=path),
                                 parent=self)
         except OSError as exc:
-            messagebox.showerror(tr("error.generic"), str(exc), parent=self)
+            messagebox.showerror(*per_file(exc, path), parent=self)
 
     def _export_csv(self):
         """Esporta le decomposizioni in CSV con separatore ;."""
@@ -545,7 +546,7 @@ class DecompositionDialog(tk.Toplevel):
                                    count=f"{len(results):,}", path=path),
                                 parent=self)
         except OSError as exc:
-            messagebox.showerror(tr("error.generic"), str(exc), parent=self)
+            messagebox.showerror(*per_file(exc, path), parent=self)
 
     def _export_html(self):
         """Esporta le decomposizioni in HTML."""
@@ -592,4 +593,4 @@ code{{font-family:'Courier New',monospace;font-size:0.9em}}</style></head>
             import webbrowser
             webbrowser.open(pathlib.Path(path).resolve().as_uri())
         except OSError as exc:
-            messagebox.showerror(tr("error.generic"), str(exc), parent=self)
+            messagebox.showerror(*per_file(exc, path), parent=self)

@@ -835,14 +835,14 @@ def test_ogni_scheda_ha_una_chiave_stabile():
 #: errori del sistema operativo (disco pieno, permesso negato) o messaggi che
 #: il core produce gia' localizzati. Il test fallisce se ne compare uno nuovo,
 #: cosi' la decisione e' esplicita invece che dimenticata.
+#:
+#: H2 ha ridotto l'elenco: le sette rotte che mostravano un OSError nudo
+#: (export dell'analisi, decomposizione, Cayley, coniugio, export multiplo,
+#: export di gruppo, pulizia della cache) passano ora da `errori.per_file`,
+#: che aggiunge nella lingua dell'utente il nome del file e che cosa si stava
+#: tentando e lascia intatto il dettaglio del sistema operativo. Resta
+#: `shuffle.py`, dove il testo e' gia' italiano perche' arriva dal core.
 _STR_EXC_DICHIARATI = {
-    "analysis_tab.py": "OSError delle rotte di export (TXT, CSV, Excel, HTML)",
-    "app.py": "OSError della cancellazione della cache",
-    "cayley_dialog.py": "OSError delle rotte di export",
-    "conjugacy_dialog.py": "OSError delle rotte di export",
-    "decomposition.py": "OSError delle rotte di export",
-    "export_dialog.py": "OSError dell'export multiplo",
-    "export_group_dialog.py": "OSError dell'export in cartella",
     "shuffle.py": "ParseError ed EspressioneNonSimulabile, gia' localizzate "
                   "nel core dal compartimento E",
 }

@@ -106,6 +106,11 @@ _ITALIAN = {
                                "riga ({formula}).",
     "errore.filtro.generico": "I filtri non descrivono un dominio valido. "
                               "Il dettaglio tecnico è nel file di log.",
+    "errore.file.titolo": "File non scritto",
+    "errore.file.scrittura": "Non è stato possibile scrivere «{nome}».\n\n"
+                             "Il sistema riporta: {dettaglio}",
+    "errore.file.generico": "L'operazione sui file non è riuscita.\n\n"
+                            "Il sistema riporta: {dettaglio}",
     "errore.import.riepilogo": "{lette} righe lette, {accettate} accettate, "
                                "{scartate} scartate",
     "errore.import.riga": "riga {numero}, {campo}: {motivo}",
@@ -1450,6 +1455,11 @@ _ENGLISH = {
                                "the row ({formula}).",
     "errore.filtro.generico": "The filters do not describe a valid domain. "
                               "The technical detail is in the log file.",
+    "errore.file.titolo": "File not written",
+    "errore.file.scrittura": "«{nome}» could not be written.\n\n"
+                             "The system reports: {dettaglio}",
+    "errore.file.generico": "The file operation did not succeed.\n\n"
+                            "The system reports: {dettaglio}",
     "errore.import.riepilogo": "{lette} rows read, {accettate} accepted, "
                                "{scartate} discarded",
     "errore.import.riga": "row {numero}, {campo}: {motivo}",

@@ -27,7 +27,7 @@ from ..core.dominio import PermutazioneNonValida
 from ..core.log import get_logger
 from .i18n import tr
 
-__all__ = ["per_utente", "motivo_di", "diagnostica_import"]
+__all__ = ["per_utente", "per_file", "motivo_di", "diagnostica_import"]
 
 _log = get_logger(__name__)
 
@@ -132,6 +132,33 @@ def per_utente(exc):
         return tr("analysis.error_title"), tr("errore.filtro.generico")
 
     return tr("error.generic"), neutro
+
+
+def per_file(exc, percorso, titolo=None):
+    """`(titolo, messaggio)` per un errore del sistema operativo su un file.
+
+    Compartimento H2. Il messaggio del sistema operativo non si traduce — e'
+    suo, ed e' l'unica cosa che dice davvero che cosa e' andato storto — ma da
+    solo non dice a *quale* file si riferisce ne' che cosa si stava tentando.
+    La cornice aggiunge quelle due cose nella lingua dell'utente e lascia il
+    dettaglio cosi' com'e'.
+
+    `percorso` vuoto: l'operazione riguardava una cartella o piu' file (un
+    export multiplo, la pulizia della cache) e nominarne uno sarebbe falso;
+    resta la cornice generica. `titolo` permette a una rotta che ha gia' il
+    suo titolo localizzato — «Errore di esportazione» — di conservarlo.
+    """
+    import os
+
+    dettaglio = str(exc)
+    nome = os.path.basename(str(percorso)) if percorso else ""
+    if nome:
+        messaggio = _testo("errore.file.scrittura", dettaglio,
+                           nome=nome, dettaglio=dettaglio)
+    else:
+        messaggio = _testo("errore.file.generico", dettaglio,
+                           dettaglio=dettaglio)
+    return (titolo or tr("errore.file.titolo")), messaggio
 
 
 # ─────────────────────── righe scartate e diagnostica ───────────────────────

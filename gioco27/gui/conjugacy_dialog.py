@@ -16,6 +16,7 @@ from .common import prepara_dialogo
 from ..core.group_theory import get_group_data
 from ..core.log import get_logger
 from .common import run_in_thread, ui_call
+from .errori import per_file
 from .i18n import tr
 from .i18n import get_language
 
@@ -321,7 +322,7 @@ class ConjugacyDialog(tk.Toplevel):
                                 tr("conjugacy.export.saved", path=path),
                                 parent=self)
         except OSError as exc:
-            messagebox.showerror(tr("error.generic"), str(exc), parent=self)
+            messagebox.showerror(*per_file(exc, path), parent=self)
 
     def _export_latex_svg(self):
         """Apre il dialog di export LaTeX/SVG delle classi di coniugio."""
@@ -375,4 +376,4 @@ th{{background:#f0f4f0}}tr:nth-child(even){{background:#fafafa}}</style></head>
                 pathlib.Path(path).resolve().as_uri())
         except Exception as exc:
             __import__("tkinter.messagebox", fromlist=["showerror"]).showerror(
-                tr("error.generic"), str(exc), parent=self)
+                *per_file(exc, path), parent=self)

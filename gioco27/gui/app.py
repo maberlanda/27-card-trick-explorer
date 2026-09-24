@@ -19,7 +19,9 @@ from ..core.config import ConfigNonSalvata, get_config
 from ..core.parallel import (MAX_EXPORT_ITEMS, ExportAnnullato,
                              ExportTooLarge)
 from ..core.log import get_logger
-from .common import EtaEstimator, run_in_thread, ui_call
+from .common import (EtaEstimator, prepara_dialogo, run_in_thread,
+                     ui_call)
+from .errori import per_file, per_utente
 from .filter_frame import FilterFrame
 from .cycles_tab import CyclesFrame
 from .distribution_tab import DistributionFrame
@@ -1066,13 +1068,18 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
         ProtocolDialog(self, T_data)
 
     # ── Impostazioni ──────────────────────────────────────────────────────────
-    def _save_language_preference(self, language, parent):
+    def _save_language_preference(self, language, parent, avviso=None):
         """Persist a language choice; the current widget tree is unchanged.
 
         R07: se il salvataggio non riesce, l'utente non deve leggere «riavvia
         per applicare la nuova lingua» — non c'e' nulla da applicare al
         prossimo avvio. La scelta resta valida per questa sessione (nulla e'
         stato annullato in memoria), ma il fallimento viene detto.
+
+        H2: `avviso(testo, errore=...)` permette a chi chiama di mostrare il
+        riscontro dove l'utente sta lavorando — un'etichetta dentro il
+        dialogo — invece di aprire una finestra sopra un'altra. Senza
+        `avviso` il comportamento e' quello di G2: una messagebox.
         """
 
         if language not in ("it", "en"):
@@ -1081,10 +1088,16 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
         try:
             self._cfg.save()
         except ConfigNonSalvata as exc:
-            self._segnala_config_non_salvata(exc, parent)
+            if avviso is None:
+                self._segnala_config_non_salvata(exc, parent)
+            else:
+                avviso(per_utente(exc)[1])
             return False
-        messagebox.showinfo(tr("dialog.settings.title"),
-                            tr("status.language_restart"), parent=parent)
+        if avviso is None:
+            messagebox.showinfo(tr("dialog.settings.title"),
+                                tr("status.language_restart"), parent=parent)
+        else:
+            avviso(tr("status.language_restart"), errore=False)
         return True
 
     def _segnala_config_non_salvata(self, exc, parent):
@@ -1121,8 +1134,9 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
         n_cpu = multiprocessing.cpu_count()
         cur_w  = self._cfg.get("n_workers") or max(1, n_cpu - 1)
         w_var  = tk.IntVar(value=cur_w)
-        ttk.Spinbox(fr, from_=1, to=n_cpu, textvariable=w_var,
-                    width=5).grid(row=0, column=1, padx=10, sticky="w")
+        worker_box = ttk.Spinbox(fr, from_=1, to=n_cpu, textvariable=w_var,
+                                 width=5)
+        worker_box.grid(row=0, column=1, padx=10, sticky="w")
         ttk.Label(fr, text=tr("settings.logical_cpus_default",
                               count=n_cpu, default=n_cpu - 1),
                   foreground="#666", font=("Segoe UI", 9)).grid(
@@ -1161,7 +1175,9 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
                     messagebox.showinfo(tr("dialog.cache.title"),
                                         tr("status.cache_cleared"), parent=dlg)
                 except Exception as e:
-                    messagebox.showerror(tr("error.generic"), str(e), parent=dlg)
+                    messagebox.showerror(
+                        *per_file(e, "", titolo=tr("error.generic")),
+                        parent=dlg)
 
         ttk.Button(fr, text=f"🗑️  {tr('settings.clear_cache')}",
                    command=do_clear_cache).grid(
@@ -1206,14 +1222,42 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
             code = language_codes.get(language_var.get())
             if code is None or code == self._cfg.get("language", "it"):
                 return
-            self._save_language_preference(code, dlg)
+            self._save_language_preference(code, dlg, avviso=mostra_avviso)
 
         language_combo.bind("<<ComboboxSelected>>", on_language_change)
 
         ttk.Separator(fr, orient="horizontal").grid(
             row=7, column=0, columnspan=3, sticky="ew", pady=8)
 
+        # H2: il riscontro del salvataggio resta dentro il dialogo. Una
+        # messagebox sopra il dialogo sposta il fuoco, chiede un secondo
+        # clic e, a ogni tentativo, si ripresenta: qui il testo compare
+        # sopra i pulsanti e il fuoco torna su «Salva», che e' il controllo
+        # con cui si riprova. L'etichetta e' fuori dalla griglia finche'
+        # non c'e' nulla da dire.
+        avviso = ttk.Label(fr, wraplength=520, justify="left")
+        self._avviso_impostazioni = avviso
+
+        btn_row = ttk.Frame(fr)
+        btn_row.grid(row=9, column=0, columnspan=3, sticky="e")
+        ttk.Button(btn_row, text=tr("button.cancel"),
+                   command=dlg.destroy).pack(side="left", padx=4)
+        salva = ttk.Button(btn_row, text=f"✔  {tr('button.save')}")
+        salva.pack(side="left")
+        self._salva_impostazioni = salva
+
+        def mostra_avviso(testo, errore=True):
+            avviso.configure(text=testo,
+                             foreground="#b00020" if errore else "#1b5e20")
+            avviso.grid(row=8, column=0, columnspan=3, sticky="w",
+                        pady=(0, 6))
+            salva.focus_set()
+
+        def nascondi_avviso():
+            avviso.grid_remove()
+
         def do_save():
+            nascondi_avviso()
             self._cfg["n_workers"]    = int(w_var.get())
             self._cfg["use_parallel"] = bool(par_var.get())
             scale = _scale_map.get(hs_var.get(), 1.0)
@@ -1223,18 +1267,16 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
                 self._cfg.save()
             except ConfigNonSalvata as exc:
                 # R07: chiudere il dialogo significa «fatto». Se il file non
-                # e' stato scritto non e' fatto: l'errore si vede e il dialogo
-                # resta aperto, cosi' l'utente puo' riprovare o annullare.
-                self._segnala_config_non_salvata(exc, dlg)
+                # e' stato scritto non e' fatto: l'errore si legge qui, il
+                # dialogo resta aperto e «Salva» e' ancora premibile.
+                mostra_avviso(per_utente(exc)[1])
                 return
             dlg.destroy()
 
-        btn_row = ttk.Frame(fr)
-        btn_row.grid(row=8, column=0, columnspan=3, sticky="e")
-        ttk.Button(btn_row, text=tr("button.cancel"),
-                   command=dlg.destroy).pack(side="left", padx=4)
-        ttk.Button(btn_row, text=f"✔  {tr('button.save')}",
-                   command=do_save).pack(side="left")
+        salva.configure(command=do_save)
+        # Il fuoco iniziale va sul primo controllo modificabile, non su
+        # «Salva»: chi apre le impostazioni vuole cambiare qualcosa.
+        prepara_dialogo(dlg, worker_box)
 
     # ── Chiusura applicazione ─────────────────────────────────────────────────
     def _on_close(self):

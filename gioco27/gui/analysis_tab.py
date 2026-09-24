@@ -18,6 +18,7 @@ from ..core.parallel import atomic_write
 from ..services import Revisioni, RisultatoAnalisi, servizio_analisi
 from .common import configure_matrix_tags, insert_colored, EtaEstimator, run_in_thread
 from .errori import diagnostica_import, per_utente
+from .errori import per_file
 from .i18n import tr
 from .i18n import get_language
 
@@ -587,7 +588,7 @@ class AnalysisTabMixin:
                 "analysis.status.exported", format="CSV",
                 filename=os.path.basename(path)))
         except Exception as e:
-            messagebox.showerror(tr("error.generic"), str(e))
+            messagebox.showerror(*per_file(e, path))
 
     def _export_analisi_excel(self):
         if not self._analisi_risultati:
@@ -605,7 +606,7 @@ class AnalysisTabMixin:
                 "analysis.status.exported", format="Excel",
                 filename=os.path.basename(path)))
         except Exception as e:
-            messagebox.showerror(tr("error.generic"), str(e))
+            messagebox.showerror(*per_file(e, path))
 
 
     def _export_analisi_html(self):
@@ -674,7 +675,7 @@ class AnalysisTabMixin:
             # produceva URL rotti proprio sui percorsi piu' comuni (M05).
             webbrowser.open(pathlib.Path(path).resolve().as_uri())
         except Exception as e:
-            messagebox.showerror(tr("error.generic"), str(e))
+            messagebox.showerror(*per_file(e, path))
 
     def _export_analisi_raw_csv(self):
         """Esporta i dati grezzi (una riga per combinazione) in CSV con sep=;"""
@@ -706,7 +707,7 @@ class AnalysisTabMixin:
                 "analysis.status.raw_exported", format="CSV",
                 filename=os.path.basename(path)))
         except Exception as e:
-            messagebox.showerror(tr("error.generic"), str(e))
+            messagebox.showerror(*per_file(e, path))
 
     def _export_analisi_raw_excel(self):
         """Esporta i dati grezzi (una riga per combinazione) in Excel."""
@@ -817,4 +818,4 @@ class AnalysisTabMixin:
                 "analysis.status.raw_exported", format="Excel",
                 filename=os.path.basename(path)))
         except Exception as e:
-            messagebox.showerror(tr("error.generic"), str(e))
+            messagebox.showerror(*per_file(e, path))

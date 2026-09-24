@@ -571,6 +571,300 @@ def test_i_canvas_informativi_hanno_tutti_un_alternativa():
     assert callable(DistributionFrame.istogramma_in_testo)
 
 
+# ═════════ il riscontro di un salvataggio: dentro il dialogo ════════════════
+#
+# G2 ha reso *visibile* il fallimento di `Config.save()` (R07) e H1 ha scritto
+# il testo; il flusso e' rimasto un debito dichiarato. Una messagebox sopra il
+# dialogo delle impostazioni sposta il fuoco, chiede un clic per essere
+# chiusa e si ripresenta a ogni tentativo: tre finestre per un errore che non
+# ha cambiato niente. Qui si fissa il flusso: il dialogo resta aperto, il
+# messaggio si legge dove si stava lavorando, «Salva» e' ancora premibile.
+
+
+class _CfgFinta(dict):
+    """Una config con lo stesso contratto di `core.config.Config`."""
+
+    def __init__(self, guasto=None):
+        super().__init__(n_workers=2, use_parallel=True,
+                         help_font_scale=1.0, language="it")
+        self.guasto = guasto
+        self.salvataggi = 0
+
+    def save(self):
+        self.salvataggi += 1
+        if self.guasto is not None:
+            raise self.guasto
+
+
+@pytest.fixture
+def impostazioni(applicazione, monkeypatch):
+    """Apre il dialogo impostazioni con una config finta, e lo richiude.
+
+    `messagebox` e' sostituito per intero: qualunque finestra il flusso
+    provasse ad aprire finisce nella lista invece che sullo schermo, ed e'
+    esattamente cio' che i test qui sotto contano.
+    """
+    from types import SimpleNamespace
+
+    from gioco27.gui import app as app_module
+
+    finestre = []
+    monkeypatch.setattr(app_module, "messagebox", SimpleNamespace(
+        showinfo=lambda *a, **k: finestre.append(("info", a)),
+        showerror=lambda *a, **k: finestre.append(("errore", a)),
+        showwarning=lambda *a, **k: finestre.append(("avviso", a)),
+        askyesno=lambda *a, **k: True))
+
+    aperti = []
+
+    def apri(cfg):
+        monkeypatch.setattr(applicazione, "_cfg", cfg)
+        applicazione._open_settings()
+        applicazione.update()
+        dlg = applicazione._avviso_impostazioni.winfo_toplevel()
+        aperti.append(dlg)
+        return dlg
+
+    try:
+        yield apri, finestre
+    finally:
+        for dlg in aperti:
+            try:
+                dlg.grab_release()
+                dlg.destroy()
+            except tk.TclError:
+                pass
+        try:
+            applicazione.update()
+        except tk.TclError:
+            pass
+
+
+def _guasto():
+    from gioco27.core.config import ConfigNonSalvata
+
+    return ConfigNonSalvata("/non/scrivibile/config.json", "Permission denied")
+
+
+def test_il_dialogo_impostazioni_dichiara_il_suo_focus_iniziale(impostazioni):
+    """Chi apre le impostazioni vuole cambiare qualcosa: il fuoco va la'."""
+    apri, _ = impostazioni
+    dlg = apri(_CfgFinta())
+    atteso = getattr(dlg, "_focus_iniziale", None)
+    assert atteso is not None, "il dialogo non dichiara un focus iniziale"
+    assert isinstance(atteso, ttk.Spinbox), _etichetta(atteso)
+    # `focus_lastfor` e' il fuoco *dentro* il dialogo: senza window
+    # manager (Xvfb) la finestra puo' non avere il fuoco d'ingresso di X,
+    # e allora `focus_get()` risponde None pur essendo tutto in ordine.
+    assert dlg.focus_lastfor() is atteso
+    assert dlg.bind("<Escape>"), "nessuna associazione per Esc"
+
+
+def test_un_salvataggio_fallito_non_chiude_il_dialogo(impostazioni, lingua):
+    """Il contratto di G2, ora osservato sul dialogo vero."""
+    lingua("it")
+    apri, finestre = impostazioni
+    cfg = _CfgFinta(_guasto())
+    dlg = apri(cfg)
+
+    applicazione = dlg.master
+    prima = dlg.winfo_reqheight()
+    applicazione._salva_impostazioni.invoke()
+    applicazione.update()
+
+    assert cfg.salvataggi == 1
+    assert dlg.winfo_exists(), "il dialogo si e' chiuso senza aver salvato"
+    assert finestre == [], f"una messagebox sopra il dialogo: {finestre}"
+
+    avviso = applicazione._avviso_impostazioni
+    assert avviso.winfo_ismapped(), "l'avviso non e' sullo schermo"
+    assert "config.json" in avviso.cget("text")
+    assert "Permission denied" in avviso.cget("text")
+    assert dlg.winfo_reqheight() > prima, \
+        "l'avviso compare ma il dialogo non gli fa spazio"
+
+    # «Salva» e' il controllo con cui si riprova: ha il fuoco ed e' premibile.
+    salva = applicazione._salva_impostazioni
+    assert dlg.focus_lastfor() is salva
+    assert "disabled" not in str(salva.state())
+
+
+def test_riprovare_non_impila_messaggi(impostazioni, lingua):
+    """Tre tentativi, un solo avviso: nessuna cascata."""
+    lingua("it")
+    apri, finestre = impostazioni
+    cfg = _CfgFinta(_guasto())
+    dlg = apri(cfg)
+    applicazione = dlg.master
+    avviso = applicazione._avviso_impostazioni
+
+    for _ in range(3):
+        applicazione._salva_impostazioni.invoke()
+        applicazione.update()
+
+    assert cfg.salvataggi == 3
+    assert finestre == []
+    assert avviso.winfo_ismapped()
+    assert len([w for w in dlg.winfo_children()
+                if isinstance(w, tk.Toplevel)]) == 0
+    assert dlg.winfo_exists()
+
+
+def test_un_salvataggio_riuscito_chiude_il_dialogo(impostazioni):
+    """Il rovescio del contratto: quando ha salvato, «fatto» e' vero."""
+    apri, finestre = impostazioni
+    cfg = _CfgFinta()
+    dlg = apri(cfg)
+    applicazione = dlg.master
+
+    applicazione._salva_impostazioni.invoke()
+    applicazione.update()
+
+    assert cfg.salvataggi == 1
+    assert not dlg.winfo_exists()
+    assert finestre == []
+
+
+def test_l_avviso_riappare_solo_se_serve(impostazioni, lingua):
+    """Un tentativo riuscito dopo uno fallito non lascia l'errore in vista."""
+    lingua("it")
+    apri, _ = impostazioni
+    cfg = _CfgFinta(_guasto())
+    dlg = apri(cfg)
+    applicazione = dlg.master
+
+    applicazione._salva_impostazioni.invoke()
+    applicazione.update()
+    assert applicazione._avviso_impostazioni.winfo_ismapped()
+
+    cfg.guasto = None
+    applicazione._salva_impostazioni.invoke()
+    applicazione.update()
+    assert not dlg.winfo_exists()
+
+
+def test_la_scelta_della_lingua_si_riscontra_nel_dialogo(impostazioni, lingua):
+    """Anche il riscontro «riavvia per applicare» resta dentro il dialogo."""
+    lingua("it")
+    apri, finestre = impostazioni
+    cfg = _CfgFinta()
+    dlg = apri(cfg)
+    applicazione = dlg.master
+
+    inglese = catalogo.tr("settings.english")
+    combo = next(c for c in _discendenti(dlg, (ttk.Combobox,))
+                 if inglese in c.cget("values"))
+    combo.set(inglese)
+    combo.event_generate("<<ComboboxSelected>>")
+    applicazione.update()
+
+    assert cfg["language"] == "en"
+    assert finestre == [], f"una messagebox sopra il dialogo: {finestre}"
+    avviso = applicazione._avviso_impostazioni
+    assert avviso.winfo_ismapped()
+    assert avviso.cget("text") == catalogo.tr("status.language_restart")
+    # non e' un errore: non lo dice col colore dell'errore
+    assert str(avviso.cget("foreground")) != "#b00020"
+    assert dlg.winfo_exists(), "cambiare lingua non chiude il dialogo"
+
+
+def test_senza_un_avviso_il_comportamento_resta_quello_di_g2(monkeypatch):
+    """La messagebox non e' stata rimossa: e' il ripiego di chi non ha dove
+    scrivere in linea. Il default del metodo non cambia."""
+    from types import SimpleNamespace
+
+    from gioco27.gui import app as app_module
+
+    finestre = []
+    monkeypatch.setattr(app_module, "messagebox", SimpleNamespace(
+        showinfo=lambda *a, **k: finestre.append(("info", a)),
+        showerror=lambda *a, **k: finestre.append(("errore", a))))
+
+    finto = SimpleNamespace(
+        _cfg=_CfgFinta(),
+        _segnala_config_non_salvata=lambda exc, parent: None)
+    assert app_module.App._save_language_preference(finto, "en", None) is True
+    assert [tipo for tipo, _ in finestre] == ["info"]
+
+    riferiti = []
+    finto = SimpleNamespace(
+        _cfg=_CfgFinta(_guasto()),
+        _segnala_config_non_salvata=lambda exc, parent: riferiti.append(exc))
+    assert app_module.App._save_language_preference(finto, "en", None) is False
+    assert len(riferiti) == 1 and [t for t, _ in finestre] == ["info"]
+
+
+# ═══════════ errori del sistema operativo: una cornice sola ═════════════════
+
+def test_la_cornice_dice_quale_file_e_lascia_il_dettaglio(lingua):
+    """Il messaggio del sistema operativo non si traduce; il contorno si'."""
+    from gioco27.gui.errori import per_file
+
+    exc = OSError("Permission denied")
+    for codice, atteso in (("it", "Non è stato possibile scrivere"),
+                           ("en", "could not be written")):
+        lingua(codice)
+        titolo, messaggio = per_file(exc, "/tmp/cartella/analisi.csv")
+        assert titolo and atteso in messaggio
+        assert "analisi.csv" in messaggio
+        assert "/tmp/cartella" not in messaggio, "il percorso intero non serve"
+        assert "Permission denied" in messaggio, "il dettaglio resta intatto"
+
+
+def test_senza_un_file_solo_la_cornice_generica(lingua):
+    """Un export multiplo o la pulizia della cache non hanno «quel» file."""
+    from gioco27.gui.errori import per_file
+
+    exc = OSError("No space left on device")
+    lingua("it")
+    titolo, messaggio = per_file(exc, "")
+    assert "«»" not in messaggio and "None" not in messaggio
+    assert "No space left on device" in messaggio
+    assert titolo == catalogo.tr("errore.file.titolo")
+
+    # una rotta che ha gia' il suo titolo localizzato lo conserva
+    titolo, _ = per_file(exc, "", titolo=catalogo.tr("export.error_title"))
+    assert titolo == catalogo.tr("export.error_title")
+
+    lingua("en")
+    _, messaggio = per_file(exc, "")
+    assert "The system reports" in messaggio
+
+
+def test_nessuna_rotta_mostra_piu_un_errore_di_sistema_nudo():
+    """H2: dov'era `str(exc)` c'e' la cornice, e si conta quante volte."""
+    import ast
+
+    incorniciate, nudi = {}, []
+    for percorso in sorted((PACCHETTO / "gui").glob("*.py")):
+        albero = ast.parse(percorso.read_text(encoding="utf-8"))
+        for n in ast.walk(albero):
+            if not isinstance(n, ast.Call):
+                continue
+            if isinstance(n.func, ast.Name) and n.func.id == "per_file":
+                incorniciate[percorso.name] = \
+                    incorniciate.get(percorso.name, 0) + 1
+            if (isinstance(n.func, ast.Attribute)
+                    and n.func.attr == "showerror"):
+                for a in list(n.args) + [k.value for k in n.keywords]:
+                    if any(isinstance(sub, ast.Call)
+                           and isinstance(sub.func, ast.Name)
+                           and sub.func.id == "str"
+                           for sub in ast.walk(a)):
+                        nudi.append(f"{percorso.name}:{n.lineno}")
+
+    assert nudi == [], nudi
+    assert incorniciate == {
+        "analysis_tab.py": 5,        # TXT, CSV, Excel, HTML, PDF
+        "app.py": 1,                 # pulizia della cache
+        "cayley_dialog.py": 2,
+        "conjugacy_dialog.py": 2,
+        "decomposition.py": 3,
+        "export_dialog.py": 1,       # export multiplo
+        "export_group_dialog.py": 1,  # export in cartella
+    }
+
+
 # ════════════════ metrica di partenza, per il documento ════════════════════
 
 def test_quante_azioni_essenziali_si_perdono_oggi(applicazione):

@@ -17,6 +17,7 @@ import os
 from ..core.analysis import cycle_decomposition, order_of, cycle_type
 from ..core.kronecker import decomposition_context
 from ..core.parallel import atomic_write
+from .errori import per_file
 from .i18n import tr
 
 
@@ -340,4 +341,6 @@ class ExportDialog(tk.Toplevel):
                    files="\n".join(os.path.basename(x) for x in done)),
                 parent=self)
         except OSError as e:
-            messagebox.showerror(tr("export.error_title"), str(e), parent=self)
+            messagebox.showerror(
+                *per_file(e, "", titolo=tr("export.error_title")),
+                parent=self)
