@@ -48,17 +48,19 @@ class PraticaRealeMixin:
         # errore fisico della fase corrente (E2/E3), solo in conseguenze reali
         self._p_fisico_var = tk.StringVar(value="nessuno")
         self._p_fisico_fr = ttk.Frame(self._p_action_fr)
-        self._p_fisico_fr.grid(row=5, column=0, sticky="w", pady=(8, 0))
+        self._p_fisico_fr.grid(row=4, column=0, sticky="w", pady=(8, 0))
         ttk.Label(self._p_fisico_fr,
-                  text=tr("practice.real.physical")).pack(side="left")
+                  text=tr("practice.real.physical")).pack(anchor="w")
         self._p_fisico_radios = []
         for valore, chiave in (("nessuno", "practice.real.physical.none"),
                                ("E2", "practice.real.physical.E2"),
                                ("E3", "practice.real.physical.E3")):
             rb = ttk.Radiobutton(self._p_fisico_fr, text=tr(chiave),
                                  variable=self._p_fisico_var, value=valore)
-            rb.pack(side="left", padx=(6, 0))
+            rb.pack(anchor="w", padx=(12, 0))
             self._p_fisico_radios.append(rb)
+        # ordine di Tab = ordine visivo: impilamento → errore fisico → conferma
+        self._p_fisico_fr.lower(self._p_confirm_btn)
         self._p_fisico_fr.grid_remove()
 
         # confronto previsto/eseguito e recupero

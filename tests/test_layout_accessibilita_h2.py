@@ -1324,3 +1324,116 @@ def test_i2_nessuna_informazione_solo_nel_colore(applicazione):
     assert len(evidenziate) == 3
     assert all(c.cget("text").startswith("▶") for c in evidenziate)
     assert pannello._tabella.item("blocco0", "text")
+
+
+# ═══════════ I3 — Pratica con conseguenze reali (D-I3-4, D-I3-5/6) ══════════
+
+def _pratica_reale(app, geometria, errore=True):
+    """Simulatore, sotto-scheda Pratica, modalità «conseguenze reali».
+
+    Con `errore` si esegue una fase con E2 (mazzo rovesciato): il confronto
+    si riempie e compare il recupero, cioè la vista più affollata.
+    """
+    _dimensiona(app, geometria)
+    app._seleziona_scheda("simulatore")
+    sim = app._simulator_frame
+    sim.togli_disposizione_fissa()
+    sim._practice_tab.master.select(sim._practice_tab)
+    sim._card_var.set(0)
+    sim._target_var.set(13)
+    sim._find_sequence()
+    sim._p_modo_var.set("conseguenze")
+    sim._su_modo()
+    app.update()
+    colonna = next(g for g in range(3) if sim._sessione.carta in sim._p_cols[g])
+    sim._practice_choose_col(colonna)
+    app.update()
+    if errore:
+        sim._p_order_var.set(sim._p_impilamento_atteso())
+        sim._p_fisico_var.set("E2")
+        sim._practice_confirm_order()
+        app.update()
+        colonna = next(g for g in range(3)
+                       if sim._sessione.carta in sim._p_cols[g])
+        sim._practice_choose_col(colonna)      # di nuovo alla domanda d'ordine
+        app.update()
+    return sim
+
+
+@pytest.mark.parametrize("geometria", TARGET)
+def test_i3_la_pratica_reale_si_raggiunge(applicazione, geometria):
+    sim = _pratica_reale(applicazione, geometria)
+    controlli = _discendenti(applicazione._schede["simulatore"])
+    assert [_etichetta(w) for w in _perduti(controlli)] == []
+    for w in (sim._p_recupero_cb, sim._p_recupero_btn, sim._p_confirm_btn,
+              *sim._p_fisico_radios, sim._p_modo_conseguenze):
+        assert w.winfo_ismapped(), _etichetta(w)
+    fuori = _oltre_il_bordo(applicazione, controlli)
+    area = applicazione._aree_scorrevoli["simulatore"]
+    assert fuori == [] or area.puo_scorrere(), [_etichetta(w) for w in fuori]
+    # niente scorrimento orizzontale: la Pratica sta nella larghezza
+    assert area.barre_visibili()[1] is False, sim.winfo_reqwidth()
+
+
+def test_i3_il_confronto_e_testo_leggibile_e_marcato(applicazione):
+    sim = _pratica_reale(applicazione, "1366x768")
+    testo = sim._p_confronto_txt
+    assert testo.cget("takefocus") and testo.cget("state") == "disabled"
+    contenuto = testo.get("1.0", "end")
+    assert "≠" in contenuto                  # la divergenza non è solo colore
+    assert sim._p_recupero_lbl.cget("text").strip()
+
+
+def test_i3_ordine_di_tab_nella_domanda_d_ordine(applicazione):
+    """Impilamento → errore fisico → conferma, come si legge dall'alto."""
+    sim = _pratica_reale(applicazione, "1920x1080", errore=False)
+    primo = sim._p_order_cb
+    attesi = [primo, *sim._p_fisico_radios, sim._p_confirm_btn]
+    primo.focus_set()
+    applicazione.update()
+    visti, w = [], primo
+    for _ in range(60):
+        if w in attesi and w not in visti:
+            visti.append(w)
+        w = w.tk_focusNext()
+        if w is None:
+            break
+    assert visti == attesi, [_etichetta(v) for v in visti]
+
+
+def test_i3_il_ridimensionamento_non_innesca_cicli(applicazione):
+    sim = _pratica_reale(applicazione, "1366x768")
+    area = applicazione._aree_scorrevoli["simulatore"]
+    for geometria in ("1280x720", "1920x1080", "1366x768"):
+        _dimensiona(applicazione, geometria)
+        prima = area.barre_visibili()
+        applicazione.update()
+        assert area.barre_visibili() == prima, geometria
+    assert sim._p_reale_fr.winfo_ismapped()
+
+
+def test_i3_la_pratica_reale_sta_in_1280_anche_in_inglese(lingua):
+    """La lingua è forzata davvero: il frame si costruisce dopo set_language."""
+    lingua("en")
+    radice = _display_o_salta()
+    try:
+        radice.deiconify()
+        from gioco27.gui.simulator_tab import SimulatorFrame
+        sim = SimulatorFrame(radice)
+        sim.pack(fill="both", expand=True)
+        sim._card_var.set(0)
+        sim._target_var.set(13)
+        sim._find_sequence()
+        sim._p_modo_var.set("conseguenze")
+        sim._su_modo()
+        radice.update()
+        colonna = next(g for g in range(3)
+                       if sim._sessione.carta in sim._p_cols[g])
+        sim._practice_choose_col(colonna)
+        radice.update()
+        assert sim._p_modo_conseguenze.cget("text") == catalogo.tr(
+            "practice.real.mode.consequences")
+        assert "consequences" in sim._p_modo_conseguenze.cget("text").lower()
+        assert sim.winfo_reqwidth() <= 1240, sim.winfo_reqwidth()
+    finally:
+        radice.destroy()

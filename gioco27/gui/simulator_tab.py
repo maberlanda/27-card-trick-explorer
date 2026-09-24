@@ -172,7 +172,8 @@ class SimulatorFrame(PraticaRealeMixin, ttk.Frame):
         self._status_lbl = ttk.Label(ctrl, text="",
                                      font=("Segoe UI", 9, "italic"),
                                      foreground="#555")
-        self._status_lbl.grid(row=0, column=5, sticky="w")
+        self._status_lbl.grid(row=1, column=0, columnspan=8, sticky="w",
+                              pady=(4, 0))
 
         nb = ttk.Notebook(self)
         nb.grid(row=2, column=0, sticky="nsew", padx=10, pady=(0, 8))
@@ -345,12 +346,13 @@ class SimulatorFrame(PraticaRealeMixin, ttk.Frame):
             font=("Segoe UI", 9, "italic"), foreground="#555")
         self._p_order_desc_lbl.pack(side="left", padx=4)
         order_cb.bind("<<ComboboxSelected>>", self._p_on_order_select)
+        self._p_order_cb = order_cb
 
         self._p_confirm_btn = ttk.Button(
             self._p_action_fr,
             text=f"✔  {tr('simulator.practice.confirm_stacking')}",
             command=self._practice_confirm_order)
-        self._p_confirm_btn.grid(row=4, column=0, sticky="w", pady=(10, 0))
+        self._p_confirm_btn.grid(row=5, column=0, sticky="w", pady=(10, 0))
 
         log_fr = ttk.Frame(fr)
         log_fr.grid(row=3, column=0, sticky="nsew", padx=10, pady=(4, 8))
