@@ -317,6 +317,30 @@ def statistiche_tavola(righe=None) -> dict:
 
 # ─── Il trucco: soluzione in forma chiusa ─────────────────────────────────────
 
+def mescolamento_per_colonna(colonna: int, cifra: int,
+                             preferisci_semplici: bool = True) -> str:
+    """La scelta di UNA fase del trucco: il mescolamento che manda la colonna
+    in cui si trova la carta nella cifra richiesta del bersaglio.
+
+    E' la regola per stadio di `risolvi_trucco`, estratta senza modifiche (I3):
+    fra le due permutazioni con M(colonna) = cifra si preferisce SCD quando e'
+    possibile; altrimenti quella che ordina gli altri due gruppi in ordine
+    crescente di cifra.
+    """
+    if not (0 <= colonna <= 2 and 0 <= cifra <= 2):
+        raise ValueError("colonna e cifra devono essere in 0..2")
+    # tutte le permutazioni con M(col) = dig
+    cands = [s for s in SIGLE if MESCOLAMENTO[s][colonna] == cifra]
+    if preferisci_semplici and "SCD" in cands:
+        return "SCD"
+    # canonica: gli altri due gruppi in ordine crescente di cifra
+    others = sorted(g for g in range(3) if g != colonna)
+    digs = sorted(d for d in range(3) if d != cifra)
+    m = [0, 0, 0]
+    m[colonna] = cifra
+    m[others[0]], m[others[1]] = digs[0], digs[1]
+    return _sigla_of(m)
+
 def risolvi_trucco(carta: int, bersaglio: int, preferisci_semplici: bool = True):
     """Sceglie i 3 mescolamenti che portano `carta` in posizione `bersaglio`.
 
@@ -338,23 +362,7 @@ def risolvi_trucco(carta: int, bersaglio: int, preferisci_semplici: bool = True)
     for i in range(3):
         col = deck.index(carta) % 3
         colonne.append(col)
-        dig = cifre[i]
-        # tutte le permutazioni con M(col) = dig
-        cands = [s for s in SIGLE if MESCOLAMENTO[s][col] == dig]
-        scelto = None
-        if preferisci_semplici:
-            for s in cands:
-                if s == "SCD":
-                    scelto = s
-                    break
-        if scelto is None:
-            # canonica: gli altri due gruppi in ordine crescente di cifra
-            others = sorted(g for g in range(3) if g != col)
-            digs = sorted(d for d in range(3) if d != dig)
-            m = [0, 0, 0]
-            m[col] = dig
-            m[others[0]], m[others[1]] = digs[0], digs[1]
-            scelto = _sigla_of(m)
+        scelto = mescolamento_per_colonna(col, cifre[i], preferisci_semplici)
         mesc.append(scelto)
         cols = distribuisci(deck)
         deck = raccogli(cols, scelto)
