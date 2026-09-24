@@ -1635,3 +1635,18 @@ def test_explorer_fattori_visibili_anche_dopo_un_calcolo(applicazione, geometria
     finally:
         applicazione._explorer_clear()
         applicazione.update()
+
+
+@pytest.mark.parametrize("geometria", TARGET)
+def test_explorer_pannelli_matrice_con_margini_simmetrici(applicazione, geometria):
+    """Il pannello non si allunga nel vuoto: sotto la griglia 27×27 resta lo
+    stesso spazio che c'e' fra il titolo e la griglia."""
+    _matrice_aperta(applicazione, geometria)
+    for matrice in (applicazione._mat_cv_t, applicazione._mat_cv_inv):
+        pannello = matrice.master
+        titolo = pannello.grid_slaves(row=0, column=0)[0]
+        sopra = matrice.winfo_rooty() - (titolo.winfo_rooty() + titolo.winfo_height())
+        fondo_pannello = pannello.winfo_rooty() + pannello.winfo_height()
+        sotto = fondo_pannello - (matrice.winfo_rooty() + matrice.winfo_height())
+        assert sopra >= 10, sopra
+        assert abs(sotto - sopra) <= 2, (geometria, sopra, sotto)
