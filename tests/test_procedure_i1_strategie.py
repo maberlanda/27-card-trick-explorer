@@ -219,8 +219,18 @@ def test_un_rovesciamento_sostituisce_tre_raccolte(servizio):
 # ═══════════════════════════════ compatibilita' ═════════════════════════════
 
 def test_nessuna_vista_usa_ancora_il_servizio_delle_procedure():
+    """Le strategie di I1 non sono adottate da nessuna vista (DP5).
+
+    Aggiornato in I2: le viste approvate del tabellone (D-I2-2, D-I2-5) usano
+    il **modello** `ProceduraGioco`; nessuna vista usa le strategie (storica o
+    sicura), e nessun'altra vista usa il servizio delle procedure.
+    """
     gui = pathlib.Path(__file__).resolve().parents[1] / "gioco27" / "gui"
+    strategie = [f.name for f in gui.rglob("*.py")
+                 if "procedura_sicura" in f.read_text(encoding="utf-8")
+                 or "procedura_storica" in f.read_text(encoding="utf-8")]
+    assert strategie == []
+    consumatori_i2 = {"pannello_ternario.py", "tavola_tab.py"}
     usi = [f.name for f in gui.rglob("*.py")
-           if "procedura_sicura" in f.read_text(encoding="utf-8")
-           or "services.procedure" in f.read_text(encoding="utf-8")]
-    assert usi == []
+           if "services.procedure" in f.read_text(encoding="utf-8")]
+    assert set(usi) <= consumatori_i2, usi
