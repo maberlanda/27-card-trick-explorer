@@ -52,6 +52,7 @@ __all__ = [
     "SessioneErrori", "PassoEseguito", "StatoEsecuzione", "TracciaEseguita",
     "ConfrontoPianoEseguito", "OpzioneRecupero", "EsitoRitorno",
     "avvia", "esegui_fase", "esegui", "traccia", "confronta",
+    "colonna_reale", "mescolamento_inteso", "cifre_cambiate", "traccia_prevista",
     "recuperi", "applica_recupero", "ritorno_eseguito",
 ]
 
@@ -294,13 +295,10 @@ def esegui_fase(stato: StatoEsecuzione, gesti: GestiFase = GestiFase()
     reale = next(k for k in range(3) if s.carta in colonne[k])          # 3
     indicata = reale if g.colonna_indicata is None else g.colonna_indicata
     previsto = stato.piano_corrente[fase - 1]
-    inteso = previsto                                                   # 5
     if indicata != reale:                                               # 4
         eventi.append(EventoErrore(fase, TipoErrore.E4, colonna_reale=reale,
                                    colonna_indicata=indicata))
-        if s.guidata_dal_bersaglio:
-            inteso = _gr.mescolamento_per_colonna(indicata,
-                                                  s.cifra_bersaglio(fase))
+    inteso = mescolamento_inteso(stato, indicata)                       # 5
     corretto = _gr.IMPILAMENTO_DI[inteso]
     impilato = corretto if g.impilamento is None else g.impilamento     # 6
     if impilato != corretto:                                            # 7
@@ -323,6 +321,46 @@ def esegui_fase(stato: StatoEsecuzione, gesti: GestiFase = GestiFase()
         posizione_prima=stato.posizione_carta,
         posizione_dopo=mazzo.index(s.carta), eventi=tuple(eventi))
     return replace(stato, mazzo=tuple(mazzo), passi=stato.passi + (passo,))
+
+
+def colonna_reale(stato: StatoEsecuzione) -> int:
+    """La colonna in cui cade davvero la carta nella prossima distribuzione.
+
+    L'eventuale E3 non la cambia: inverte l'ordine dentro i mazzetti, non il
+    mazzetto in cui sta la carta.
+    """
+    carta = stato.sessione.carta
+    return next(k for k, c in enumerate(stato.colonne()) if carta in c)
+
+
+def mescolamento_inteso(stato: StatoEsecuzione, colonna_indicata=None) -> str:
+    """Il mescolamento che l'esecutore adotta nella fase corrente.
+
+    Quello del piano; se la colonna indicata differisce dalla reale (E4) e la
+    sessione e' guidata dal bersaglio, la regola per fase del trucco
+    (`gioco_reale.mescolamento_per_colonna`) applicata alla colonna indicata.
+    Un piano fissato (D-I3-7) non dipende dalla colonna.
+    """
+    fase = stato.fase_corrente
+    previsto = stato.piano_corrente[fase - 1]
+    if colonna_indicata is None:
+        return previsto
+    indicata = valida_indice(colonna_indicata, 3, nome="colonna_indicata")
+    s = stato.sessione
+    if indicata != colonna_reale(stato) and s.guidata_dal_bersaglio:
+        return _gr.mescolamento_per_colonna(indicata, s.cifra_bersaglio(fase))
+    return previsto
+
+
+def cifre_cambiate(prevista: int, eseguita: int) -> Tuple[int, ...]:
+    """Indici (2 = n2, 1 = n1, 0 = n0) delle cifre ternarie che differiscono."""
+    cp, ce = _gr.digits3(prevista), _gr.digits3(eseguita)
+    return tuple(2 - i for i in range(3) if cp[i] != ce[i])
+
+
+def traccia_prevista(sessione: SessioneErrori) -> TracciaEseguita:
+    """La traccia del piano senza errori: il termine di confronto di ogni fase."""
+    return esegui(sessione, (GestiFase(),) * 3)
 
 
 def traccia(stato: StatoEsecuzione) -> TracciaEseguita:
@@ -364,7 +402,7 @@ def confronta(tr: TracciaEseguita) -> ConfrontoPianoEseguito:
         stessa_trasformazione=tr.T_eseguita == T_prevista,
         stesso_effetto_carta=eseguita == prevista,
         cifre_previste=cp, cifre_eseguite=ce,
-        cifre_cambiate=tuple(2 - i for i in range(3) if cp[i] != ce[i]),
+        cifre_cambiate=cifre_cambiate(prevista, eseguita),
         fasi_divergenti=tuple(p.fase for p in tr.passi if p.eventi),
         eventi=tr.eventi,
         piano_modificato=tr.piano_eseguito != tuple(s.mescolamenti))

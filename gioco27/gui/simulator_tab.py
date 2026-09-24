@@ -23,6 +23,7 @@ from types import MappingProxyType
 
 from ..core import gioco_reale as gr
 from .i18n import tr
+from .pratica_reale import PraticaRealeMixin
 
 # ─── Costanti ─────────────────────────────────────────────────────────────────
 
@@ -78,13 +79,37 @@ class SessionePratica:
                    piano=MappingProxyType(dict(gr.risolvi_trucco(int(carta),
                                                                  int(bersaglio)))))
 
+    @classmethod
+    def da_disposizione(cls, numero, carta):
+        """Piano fissato da una riga della Tavola (I3, D-I3-7).
 
-class SimulatorFrame(ttk.Frame):
+        Il piano e' la disposizione #numero, non una soluzione di
+        `risolvi_trucco`: la carta e' libera, il bersaglio e' T[carta]. Il
+        piano ha le stesse chiavi di quello del trucco, piu'
+        `disposizione_fissata`.
+        """
+        carta = int(carta)
+        if not 0 <= carta <= 26:
+            raise ValueError("carta fuori da 0..26")
+        riga = gr.riga_tavola(int(numero))
+        _, fasi = gr.esegui_partita(riga["mescolamenti"])
+        colonne = tuple(next(g for g in range(3) if carta in f["cols"][g])
+                        for f in fasi if f["tipo"] == "colonne")
+        piano = {"mescolamenti": tuple(riga["mescolamenti"]),
+                 "impilamenti": tuple(riga["impilamenti"]),
+                 "colonne": colonne, "numero": riga["numero"],
+                 "T": list(riga["T"]), "disposizione_fissata": True}
+        return cls(carta=carta, bersaglio=riga["T"][carta],
+                   piano=MappingProxyType(piano))
+
+
+class SimulatorFrame(PraticaRealeMixin, ttk.Frame):
 
     def __init__(self, parent, on_new_T=None, on_mostra_nella_tavola=None, **kw):
         super().__init__(parent, **kw)
         self._on_new_T = on_new_T    # callback(list[int]) per app/gobbo
         self._on_mostra_nella_tavola = on_mostra_nella_tavola   # I2d
+        self._disposizione_fissa = None     # I3e: piano fissato dalla Tavola
         self._sessione = None        # SessionePratica congelata (B04)
         self._phases = []
 
@@ -116,6 +141,10 @@ class SimulatorFrame(ttk.Frame):
                                       state="disabled",
                                       command=self._mostra_nella_tavola)
         self._btn_tavola.pack(side="right")
+        # I3e: piano fissato da una riga della Tavola (carta libera, bersaglio T[carta])
+        self._fissa_btn_togli = ttk.Button(hdr, text=tr("simulator.fixed.clear"),
+                                           command=self.togli_disposizione_fissa)
+        self._fissa_lbl = ttk.Label(hdr, text="", foreground="#8a4b00")
 
         ctrl = ttk.LabelFrame(
             self, text=f" {tr('simulator.settings')} ", padding=(10, 6))
@@ -131,8 +160,9 @@ class SimulatorFrame(ttk.Frame):
         ttk.Label(ctrl, text=tr("simulator.final_position"),
                   font=("Segoe UI", 10)).grid(row=0, column=2, padx=(20, 4), sticky="w")
         self._target_var = tk.IntVar(value=13)
-        ttk.Spinbox(ctrl, from_=0, to=26, textvariable=self._target_var,
-                    width=4).grid(row=0, column=3, padx=6)
+        self._target_spin = ttk.Spinbox(ctrl, from_=0, to=26,
+                                        textvariable=self._target_var, width=4)
+        self._target_spin.grid(row=0, column=3, padx=6)
 
         self._go_btn = ttk.Button(
             ctrl, text=f"▶  {tr('simulator.calculate_sequence')}",
@@ -343,6 +373,7 @@ class SimulatorFrame(ttk.Frame):
         }.items():
             self._p_log.tag_configure(tag, **cfg)
 
+        self._costruisci_pratica_reale(fr, phdr)      # I3: modalità opt-in
         self._p_set_state("idle")
 
     # ─── Calcolo della sequenza (forma chiusa, istantaneo) ────────────────────
@@ -354,8 +385,13 @@ class SimulatorFrame(ttk.Frame):
         riepilogo — lavora sulla sessione congelata.
         """
         try:
-            sessione = SessionePratica.calcola(self._card_var.get(),
-                                               self._target_var.get())
+            carta = self._card_var.get()
+            fissa = getattr(self, "_disposizione_fissa", None)
+            if fissa is None:
+                sessione = SessionePratica.calcola(carta, self._target_var.get())
+            else:           # I3e: piano fisso, bersaglio derivato (non letto)
+                sessione = SessionePratica.da_disposizione(fissa, carta)
+                self._target_var.set(sessione.bersaglio)
         except (ValueError, tk.TclError):
             # campo vuoto, testo non numerico o fuori da 0..26
             self._status_lbl.configure(
@@ -376,6 +412,23 @@ class SimulatorFrame(ttk.Frame):
         self._init_practice(sessione)
         if self._on_new_T is not None:
             self._on_new_T(list(plan["T"]))
+
+    # ─── I3e: disposizione fissata dalla Tavola ───────────────────────────────
+
+    def imposta_disposizione_fissa(self, numero):
+        """Da qui in avanti il piano e' la riga #numero (finche' non la si toglie)."""
+        self._disposizione_fissa = int(numero)
+        self._fissa_lbl.configure(text=tr("simulator.fixed.active",
+                                          number=self._disposizione_fissa))
+        self._fissa_btn_togli.pack(side="right", padx=(0, 6))
+        self._fissa_lbl.pack(side="right", padx=8)
+        self._target_spin.state(["disabled"])
+
+    def togli_disposizione_fissa(self):
+        self._disposizione_fissa = None
+        self._fissa_lbl.pack_forget()
+        self._fissa_btn_togli.pack_forget()
+        self._target_spin.state(["!disabled"])
 
     def _mostra_nella_tavola(self):
         if self._sessione is not None and self._on_mostra_nella_tavola:
@@ -526,6 +579,10 @@ class SimulatorFrame(ttk.Frame):
         else:
             self._p_order_frame.grid_remove()
             self._p_confirm_btn.grid_remove()
+        fisico = getattr(self, "_p_fisico_fr", None)
+        if fisico is not None:
+            (fisico.grid if state == "order_q" and self._modo_reale()
+             else fisico.grid_remove)()
 
         if state == "idle":
             self._p_question_lbl.configure(
@@ -535,6 +592,10 @@ class SimulatorFrame(ttk.Frame):
                 "simulator.practice.question_column", phase=self._pstep,
                 card=self._p_card))
         elif state == "order_q":
+            if getattr(self, "_p_stato", None) is not None and self._modo_reale():
+                self._p_question_lbl.configure(
+                    text=self._reale_domanda_impilamento())
+                return
             mesc = self._sessione.piano["mescolamenti"][self._pstep - 1]
             self._p_question_lbl.configure(text=tr(
                 "simulator.practice.question_stacking", phase=self._pstep,
@@ -570,6 +631,9 @@ class SimulatorFrame(ttk.Frame):
                stackings=" ".join(plan["impilamenti"])) + "\n\n", "info")
         self._p_log.configure(state="disabled")
 
+        self._p_stato = None
+        if self._modo_reale():                        # I3: conseguenze reali
+            self._reale_init(sessione)
         self._p_set_state("col_q")
         self._p_render_cols(show_target=False)
 
@@ -619,6 +683,9 @@ class SimulatorFrame(ttk.Frame):
     def _practice_choose_col(self, col):
         if self._pstate != "col_q":
             return
+        if self._modo_reale():                        # I3: conseguenze reali
+            self._reale_choose_col(col)
+            return
         card = self._p_card
         actual_col = next(g for g in range(3) if card in self._p_cols[g])
         self._p_render_cols(show_target=True)
@@ -648,6 +715,9 @@ class SimulatorFrame(ttk.Frame):
 
     def _practice_confirm_order(self):
         if self._pstate != "order_q":
+            return
+        if self._modo_reale():                        # I3: conseguenze reali
+            self._reale_confirm()
             return
         chosen  = self._p_order_var.get()
         mesc    = self._sessione.piano["mescolamenti"][self._pstep - 1]

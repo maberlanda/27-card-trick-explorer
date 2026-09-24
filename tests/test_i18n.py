@@ -597,7 +597,7 @@ def test_eighth_block_simulator_uses_i18n_without_major_hardcoded_strings():
     english = {key for key in i18n.CATALOGS["en"]
                if key.startswith("simulator.")}
     assert italian == english
-    assert len(italian) == 82
+    assert len(italian) == 84   # +2 in I3e (disposizione fissata)
 
 
 def test_eighth_block_simulator_instruction_output_switches_language_without_ui():
@@ -1181,7 +1181,7 @@ def test_twelfth_block_catalog_additions_are_symmetric_and_counted():
     assert len([k for k in i18n.CATALOGS["it"] if k.startswith("glossary.long.")]) == 14
     assert len([k for k in i18n.CATALOGS["it"] if k.startswith("help.tab.")]) == 16
     assert len([k for k in i18n.CATALOGS["it"] if k.startswith("filter.")]) == 26  # +7 audit finale, +1 H1 (filter.never_empty)
-    assert len(i18n.CATALOGS["it"]) == 1388  # 820 + 354 guide.* + 32 anomalie UI + 82 audit finale + 1 (E) + 3 (F) + 2 (G2) + 22 (H1) + 9 (H2: nota dei filtri, alternative testuali, cornice degli errori su file) + 24 (I2b: pannello ternario, scheda Tabellone) + 30 (I2c: Una carta, 27 posizioni) + 9 (I2d: navigazione)
+    assert len(i18n.CATALOGS["it"]) == 1441  # 820 + 354 guide.* + 32 anomalie UI + 82 audit finale + 1 (E) + 3 (F) + 2 (G2) + 22 (H1) + 9 (H2: nota dei filtri, alternative testuali, cornice degli errori su file) + 24 (I2b: pannello ternario, scheda Tabellone) + 30 (I2c: Una carta, 27 posizioni) + 9 (I2d: navigazione) + 53 (I3: errori fisici, conseguenze reali, piano fissato)
 
 
 def _use_config_file(monkeypatch, tmp_path):
