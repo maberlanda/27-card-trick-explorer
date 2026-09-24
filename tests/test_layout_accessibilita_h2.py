@@ -1548,7 +1548,10 @@ def _matrice_aperta(app, geometria, prima=None):
         _dimensiona(app, prima)
     _dimensiona(app, geometria)
     app._seleziona_scheda("explorer")
-    app._explorer_nb.select(app._mat_cv_t.master.master)
+    scheda = app._mat_cv_t
+    while scheda.master is not app._explorer_nb:      # la sotto-scheda Matrice
+        scheda = scheda.master
+    app._explorer_nb.select(scheda)
     app.update()
     area = app._aree_scorrevoli["explorer"]
     area.tela.yview_moveto(0)
@@ -1635,3 +1638,113 @@ def test_explorer_fattori_visibili_anche_dopo_un_calcolo(applicazione, geometria
     finally:
         applicazione._explorer_clear()
         applicazione.update()
+
+
+# ═══ Explorer: blocco comandi compatto, Matrice tutta visibile (fix UX) ══════
+
+def _con_calcolo(app, geometria):
+    _dimensiona(app, geometria)
+    app._seleziona_scheda("explorer")
+    app._explorer_entry.delete("1.0", "end")
+    app._explorer_entry.insert("1.0", "(SCD_U x SDC_U x SDC_U) o MSC")
+    app._explorer_calc()
+    return _matrice_aperta(app, geometria)
+
+
+def test_explorer_mostra_nella_tavola_sta_nella_riga_dei_comandi(applicazione):
+    _dimensiona(applicazione, "1366x768")
+    applicazione._seleziona_scheda("explorer")
+    applicazione.update()
+    tavola = applicazione._exp_tavola_btn
+    riga = tavola.master
+    assert riga is applicazione._exp_export_btn.master          # riga superiore
+    assert riga is applicazione._decomp_btn.master
+    assert tavola.winfo_rootx() > applicazione._exp_export_btn.winfo_rootx()
+    assert abs(tavola.winfo_rooty() - applicazione._exp_export_btn.winfo_rooty()) <= 2
+
+
+def test_explorer_sotto_resta_una_sola_riga_compatta(applicazione):
+    _con_calcolo(applicazione, "1366x768")
+    try:
+        motivo = applicazione._exp_tavola_motivo
+        riga = motivo.master
+        comandi = applicazione._exp_tavola_btn.master
+        assert riga is not comandi
+        assert riga.winfo_rooty() >= comandi.winfo_rooty() + comandi.winfo_height()
+        assert not _discendenti(riga)                    # nessun controllo sotto
+        assert motivo.cget("text")                       # «Disposizione #…»
+        assert riga.winfo_height() <= 20, riga.winfo_height()
+    finally:
+        applicazione._explorer_clear()
+        applicazione.update()
+
+
+@pytest.mark.parametrize("geometria", TARGET)
+def test_explorer_matrice_tutta_visibile_senza_scorrere(applicazione, geometria):
+    area = _con_calcolo(applicazione, geometria)
+    try:
+        a = applicazione
+        visibili = ([a._mat_cv_t, a._mat_cv_inv, a._mat_lbl_t, a._mat_lbl_inv,
+                     a._mat_txt_t, a._mat_txt_inv]
+                    + a._mat_fcvs_t + a._mat_flbls_t
+                    + a._mat_fcvs_inv + a._mat_flbls_inv)
+        assert area.tela.yview()[0] == 0.0
+        assert [str(w) for w in visibili if not _nella_vista(area, w)] == []
+        assert area.barre_visibili()[1] is False
+    finally:
+        applicazione._explorer_clear()
+        applicazione.update()
+
+
+@pytest.mark.parametrize("geometria", TARGET)
+def test_explorer_box_testuali_capienti(applicazione, geometria):
+    """Tutto il testo sta nel box, senza scorrerlo, e il box e' ampio."""
+    _con_calcolo(applicazione, geometria)
+    try:
+        for testo, matrice in ((applicazione._mat_txt_t, applicazione._mat_cv_t),
+                               (applicazione._mat_txt_inv, applicazione._mat_cv_inv)):
+            assert "[" in testo.get("1.0", "end")          # i 27 valori
+            assert testo.yview() == (0.0, 1.0)
+            assert testo.winfo_height() >= 95, testo.winfo_height()
+            assert testo.winfo_width() >= 300, testo.winfo_width()
+            # il box arriva fino al fondo della griglia 27×27
+            fondo_testo = testo.winfo_rooty() + testo.winfo_height()
+            fondo_matrice = matrice.winfo_rooty() + matrice.winfo_height()
+            assert abs(fondo_testo - fondo_matrice) <= 4
+    finally:
+        applicazione._explorer_clear()
+        applicazione.update()
+
+
+def test_explorer_ordine_di_tab_dei_comandi(applicazione):
+    from gioco27.core import gioco_reale as gr
+    from gioco27.services import tabellone as tb
+    from gioco27.services.procedure import ProceduraGioco
+    _dimensiona(applicazione, "1920x1080")
+    applicazione._seleziona_scheda("explorer")
+    applicazione._explorer_entry.delete("1.0", "end")
+    applicazione._explorer_entry.insert(          # una disposizione: #100
+        "1.0", tb.espressione_per_explorer(
+            ProceduraGioco(gr.mescolamenti_da_numero(100))))
+    applicazione._explorer_calc()
+    applicazione.update()
+    try:
+        a = applicazione
+        assert a._exp_tavola_btn.instate(["!disabled"]), a._exp_tavola_motivo.cget("text")
+        riga = a._exp_tavola_btn.master
+        bottoni = [w for w in riga.winfo_children() if isinstance(w, ttk.Button)]
+        attesi = [a._explorer_entry, *bottoni]
+        assert a._exp_tavola_btn in bottoni and bottoni[-1] is a._exp_tavola_btn
+        a._explorer_entry.focus_set()
+        a.update()
+        visti, w = [], a._explorer_entry
+        for _ in range(40):
+            if w in attesi and w not in visti:
+                visti.append(w)
+            w = w.tk_focusNext()
+            if w is None:
+                break
+        assert visti == attesi, [_etichetta(v) for v in visti]
+    finally:
+        a._explorer_clear()
+        a.update()
