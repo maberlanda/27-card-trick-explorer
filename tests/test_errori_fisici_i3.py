@@ -211,6 +211,7 @@ import sys  # noqa: E402
 import pytest  # noqa: E402
 
 from gioco27.services import errori as er  # noqa: E402
+from gioco27.services import tabellone as tb  # noqa: E402
 
 G = er.GestiFase
 OK = G()
@@ -432,3 +433,144 @@ def test_gesti_non_validi():
         er.esegui(s, _gesti(f1=G(impilamento="XYZ")))
     with pytest.raises(ValueError):
         er.esegui(s, (OK, OK))
+
+
+# ═══════════════════════ I3c — recupero e ritorno ═══════════════════════════
+
+def _brute_force(stato):
+    """Oracolo: tutte le continuazioni corrette, per forza bruta diretta."""
+    fatte = len(stato.passi)
+    risultati = []
+    import itertools
+    for suffisso in itertools.product(gr.SIGLE, repeat=3 - fatte):
+        deck = list(stato.mazzo)
+        for s in suffisso:
+            deck = gr.raccogli(gr.distribuisci(deck), s)
+        if deck.index(stato.sessione.carta) == stato.sessione.bersaglio:
+            risultati.append(suffisso)
+    return set(risultati)
+
+
+def test_dopo_e1_alla_fase_1_la_cifra_n0_e_gia_scritta():
+    """0 → 20, E1 alla fase 1: la fase 1 ha scritto b0 sbagliata; le fasi
+    residue non la toccano piu' (macchina che dimentica), quindi nessun recupero."""
+    s = er.SessioneErrori.da_trucco(0, 20)
+    stato = er.esegui_fase(er.avvia(s), G(impilamento="DSC"))
+    assert er.recuperi(stato) == () == tuple(_brute_force(stato))
+
+
+def test_recupero_dopo_e3_alla_fase_1_si_applica():
+    s = er.SessioneErrori.da_trucco(0, 13)
+    stato = er.esegui_fase(er.avvia(s), G(ordine_interno_invertito=True))
+    opzioni = er.recuperi(stato)
+    assert opzioni and all(o.raggiunge_bersaglio for o in opzioni)
+    assert {o.suffisso for o in opzioni} == _brute_force(stato)
+    chiavi = [(o.modifiche, o.raccolte_non_scd,
+               tuple(gr.SIGLE.index(x) for x in o.suffisso)) for o in opzioni]
+    assert chiavi == sorted(chiavi)
+    migliore = opzioni[0]
+    stato = er.applica_recupero(stato, migliore)
+    assert stato.piano_corrente[1:] == migliore.suffisso
+    for _ in range(2):
+        stato = er.esegui_fase(stato)
+    tr_ = er.traccia(stato)
+    assert tr_.posizione_carta == 13
+    c = er.confronta(tr_)
+    assert c.bersaglio_raggiunto and c.piano_modificato
+    assert [e.tipo for e in c.eventi] == [er.TipoErrore.E3]
+    # senza recupero il piano originale portava la carta in 25
+    assert er.esegui(s, _gesti(f1=G(ordine_interno_invertito=True))).posizione_carta == 25
+
+
+def _errore(nome, stato, carta):
+    fase = stato.fase_corrente
+    if nome == "E1":
+        m = stato.piano_corrente[fase - 1]
+        return None if gr.IMPILAMENTO_DI[m] == m else G(impilamento=m)
+    if nome == "E4":
+        reale = next(k for k, col in enumerate(stato.colonne()) if carta in col)
+        return G(colonna_indicata=(reale + 1) % 3)
+    return {"E2": G(rovesciamento_dopo=True),
+            "E3": G(ordine_interno_invertito=True),
+            "E5": G(impilamento="SDC")}[nome]
+
+
+def test_recuperi_esaustivi_dopo_errori_alle_fasi_1_e_2():
+    """729 coppie × fasi 1, 2 × E1…E5: ogni recupero e' completo e corretto.
+
+    Quanti casi restano recuperabili e' un fatto misurato: la fase k ha gia'
+    scritto la sua cifra, e le fasi residue non possono piu' cambiarla.
+    """
+    from collections import Counter
+    recuperabili = Counter()
+    for c in range(27):
+        for t in range(27):
+            s = er.SessioneErrori.da_trucco(c, t)
+            for fase in (1, 2):
+                for nome in ("E1", "E2", "E3", "E4", "E5"):
+                    stato = er.avvia(s)
+                    for _ in range(1, fase):
+                        stato = er.esegui_fase(stato)
+                    g = _errore(nome, stato, c)
+                    if g is None:
+                        continue
+                    stato = er.esegui_fase(stato, g)
+                    opzioni = er.recuperi(stato)
+                    assert {o.suffisso for o in opzioni} == _brute_force(stato)
+                    assert all(o.posizione_finale == t and o.raggiunge_bersaglio
+                               for o in opzioni)
+                    recuperabili[(nome, fase, bool(opzioni))] += 1
+    assert dict(recuperabili) == {
+        ("E1", 1, False): 162, ("E1", 2, False): 162,
+        ("E2", 1, False): 486, ("E2", 1, True): 243,
+        ("E2", 2, False): 648, ("E2", 2, True): 81,
+        ("E3", 1, True): 729,
+        ("E3", 2, False): 486, ("E3", 2, True): 243,
+        ("E4", 1, False): 729, ("E4", 2, False): 729,
+        ("E5", 1, False): 486, ("E5", 1, True): 243,
+        ("E5", 2, False): 486, ("E5", 2, True): 243}
+
+
+def test_dopo_la_fase_3_non_ci_sono_recuperi_residui():
+    s = er.SessioneErrori.da_trucco(0, 13)
+    stato = er.avvia(s)
+    for _ in range(3):
+        stato = er.esegui_fase(stato)
+    assert er.recuperi(stato) == ()
+
+
+def test_ritorno_della_trasformazione_eseguita():
+    """Per tutte le T eseguite (singoli errori su 216 piani): ritorno = T⁻¹."""
+    controllati = 0
+    for n in range(216):
+        s = er.SessioneErrori.da_disposizione(n, 0)
+        for k in (1, 2, 3):
+            for g in (G(rovesciamento_dopo=True), G(ordine_interno_invertito=True),
+                      G(impilamento="DCS" if s.mescolamenti[k - 1] != "DCS" else "SCD")):
+                tr_ = er.esegui(s, _gesti(**{f"f{k}": g}))
+                esito = er.ritorno_eseguito(tr_)
+                assert esito.disponibile
+                Q = _esegui(esito.procedura.mescolamenti)[0]
+                assert all(Q[tr_.T_eseguita[i]] == i for i in range(27))
+                assert esito.numero_ritorno == esito.procedura.numero_tavola
+                controllati += 1
+    assert controllati == 216 * 3 * 3
+
+
+def test_ritorno_nel_caso_e2_finale():
+    s = er.SessioneErrori.da_trucco(0, 13)
+    tr_ = er.esegui(s, _gesti(f3=G(rovesciamento_dopo=True)))
+    esito = er.ritorno_eseguito(tr_)
+    assert esito.numero_eseguito == 172
+    assert esito.numero_ritorno == tb.ritorno(172).numero_tavola
+    Q = _esegui(esito.procedura.mescolamenti)[0]
+    assert all(Q[tr_.T_eseguita[i]] == i for i in range(27))
+
+
+def test_opzione_di_un_altra_fase_rifiutata():
+    s = er.SessioneErrori.da_trucco(0, 13)
+    stato = er.esegui_fase(er.avvia(s), G(ordine_interno_invertito=True))
+    opzione = er.recuperi(stato)[0]
+    stato2 = er.esegui_fase(stato)
+    with pytest.raises(ValueError):
+        er.applica_recupero(stato2, opzione)
