@@ -82,6 +82,54 @@ def ui_call(widget, fn):
         pass
 
 
+def prepara_dialogo(dialogo, primo=None):
+    """Focus iniziale scelto, e Esc che chiude (H2).
+
+    Prima nessun dialogo sceglieva il proprio focus: lo assegnava Tk, cioè il
+    primo widget che capitava nell'ordine di creazione. Chi arriva con la
+    tastiera si trovava «da qualche parte» e doveva cercare. `primo` è il
+    controllo da cui ha senso cominciare — il campo che si compila, l'elenco
+    che si consulta — e viene messo a fuoco dopo la mappatura della finestra,
+    perché prima Tk lo rifiuterebbe.
+
+    Esc chiude: per questi dialoghi «chiudi» e «annulla» sono la stessa cosa,
+    e ognuno ha già il suo pulsante Chiudi. Dove non lo sono — il dialogo
+    delle impostazioni — Esc viene legato dal dialogo stesso a ciò che
+    equivale davvero ad annullare.
+    """
+    dialogo.bind("<Escape>", lambda _e: dialogo.destroy())
+    if primo is not None:
+        dialogo._focus_iniziale = primo
+        dialogo.after(0, lambda: _focus_se_esiste(primo))
+    return dialogo
+
+
+def _focus_se_esiste(widget):
+    try:
+        if widget.winfo_exists():
+            widget.focus_set()
+    except tk.TclError:
+        pass
+
+
+def rendi_azionabile(etichetta, comando, sfondo=None, colore_focus=None):
+    """Una Label che si comporta da comando anche senza mouse (H2).
+
+    Restano Label per ragioni grafiche — sono i collegamenti del banner
+    d'aiuto, dentro un riquadro colorato, e un `ttk.Button` lì stonerebbe. Ma
+    una cosa che si può solo cliccare non è raggiungibile: qui prende il
+    focus con Tab, si attiva con Invio o Spazio, e il focus si vede perché il
+    bordo cambia colore.
+    """
+    sfondo = sfondo or etichetta.cget("background")
+    colore_focus = colore_focus or etichetta.cget("foreground")
+    etichetta.configure(takefocus=True, highlightthickness=1,
+                        highlightbackground=sfondo, highlightcolor=colore_focus)
+    for sequenza in ("<Button-1>", "<Return>", "<KP_Enter>", "<space>"):
+        etichetta.bind(sequenza, lambda _e, c=comando: (c(), "break")[1])
+    return etichetta
+
+
 def fmt_duration(seconds):
     """Formatta una durata (secondi) come stringa breve: '45s', '1m 20s', '1h 05m'."""
     seconds = max(0, int(round(seconds)))

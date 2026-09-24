@@ -13,6 +13,7 @@ import pathlib
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 from ..core.parallel import atomic_write
+from .common import prepara_dialogo
 from ..services import Revisioni
 from .help_banner import HelpBanner
 from .i18n import tr
@@ -70,6 +71,8 @@ class DecompositionDialog(tk.Toplevel):
         self.geometry("1260x760")
         self.resizable(True, True)
         self._build_ui()
+        # H2: si comincia dall'albero delle decomposizioni.
+        prepara_dialogo(self, self._tree)
         self._start_search()
 
     # ----------------------------------------------------------------- UI ---

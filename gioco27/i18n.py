@@ -1306,6 +1306,9 @@ _ITALIAN = {
     "filter.fixed": "Fissa",
     "filter.or_select": "oppure seleziona uno o più valori:",
     "filter.values": "Valori:",
+    "filter.never_empty.note": "Ogni livello resta con almeno un valore: "
+                               "togliendo l'ultimo torna attiva la prima "
+                               "opzione, l'identità.",
     "filter.never_empty": "Un livello non può restare senza valori: "
                           "togliendo l'ultimo torna attivo {option}, "
                           "l'identità. È sempre stato il comportamento del "
@@ -2642,6 +2645,9 @@ _ENGLISH = {
     "filter.fixed": "Fix",
     "filter.or_select": "or select one or more values:",
     "filter.values": "Values:",
+    "filter.never_empty.note": "Every level keeps at least one value: "
+                               "clearing the last one turns the first option, "
+                               "the identity, back on.",
     "filter.never_empty": "A level cannot be left with no values: clearing "
                           "the last one turns {option} back on, the identity. "
                           "The filter always behaved this way; now you can "

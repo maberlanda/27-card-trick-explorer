@@ -13,6 +13,7 @@ Esempio:
 """
 import tkinter as tk
 
+from .common import rendi_azionabile
 from .i18n import tr
 
 
@@ -46,8 +47,9 @@ class HelpBanner(tk.Frame):
             link = tk.Label(row, text=f"ⓘ {tr('banner.open_guide')}", bg=self.BG, fg=self.FG,
                             font="GiocoHelpLink", cursor="hand2")
             link.pack(side="right")
-            link.bind("<Button-1>",
-                      lambda e: self._on_open(self._section))
+            rendi_azionabile(link, lambda: self._on_open(self._section),
+                             sfondo=self.BG, colore_focus=self.FG)
+            self._link_guida = link
 
         if long:
             self._toggle = tk.Label(row, text=tr("banner.show_more"),
@@ -55,7 +57,8 @@ class HelpBanner(tk.Frame):
                                     font="GiocoHelpLink",
                                     cursor="hand2")
             self._toggle.pack(side="right", padx=(0, 14))
-            self._toggle.bind("<Button-1>", self._toggle_long)
+            rendi_azionabile(self._toggle, self._toggle_long,
+                             sfondo=self.BG, colore_focus=self.FG)
             self._longlbl = tk.Label(self, text=long, bg=self.BG, fg=self.FG2,
                                      font="GiocoHelp", wraplength=640,
                                      justify="left")

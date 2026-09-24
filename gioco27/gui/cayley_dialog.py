@@ -7,6 +7,7 @@ import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 
 from ..core.parallel import atomic_write
+from .common import prepara_dialogo
 from ..core.group_theory import get_group_data
 from .common import run_in_thread, ui_call
 from .tooltip import attach as _tip
@@ -25,6 +26,8 @@ class CayleyDialog(tk.Toplevel):
         self._gd = None
         self._names: list = []
         self._build_ui()
+        # H2: si comincia dall'elemento A, che è la prima cosa da scegliere.
+        prepara_dialogo(self, self._combo_a)
         # run_in_thread (non Thread nudo): registra il traceback nel log e
         # mostra un messaggio se il precalcolo del gruppo fallisce, invece di
         # lasciare la finestra bloccata su "Calcolo in corso..." per sempre.

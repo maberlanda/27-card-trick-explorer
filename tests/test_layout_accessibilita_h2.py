@@ -318,9 +318,6 @@ def test_il_banner_daiuto_c_e_su_ogni_scheda(applicazione):
     assert len(con_banner) >= 8, con_banner
 
 
-@pytest.mark.xfail(strict=True,
-                   reason="M04: «Apri Guida» e «Mostra di più» sono Label "
-                          "legate solo a <Button-1>")
 def test_le_azioni_del_banner_si_usano_anche_da_tastiera(applicazione):
     banner = _banner_di(applicazione._schede["analisi"])[0]
     azioni = [w for w in banner.winfo_children()
@@ -333,16 +330,88 @@ def test_le_azioni_del_banner_si_usano_anche_da_tastiera(applicazione):
         assert azione.bind("<space>") or azione.bind("<KeyPress-space>")
 
 
-@pytest.mark.xfail(strict=True,
-                   reason="M04: il testo lungo del banner si apre solo col "
-                          "mouse, e non c'è altro modo di leggerlo")
 def test_il_testo_lungo_del_banner_si_apre_da_tastiera(applicazione):
+    """Invio apre, Spazio richiude: senza toccare il mouse.
+
+    La scheda va selezionata prima: Tk non consegna eventi a un widget che
+    non è sullo schermo, e su una scheda non selezionata il banner non c'è.
+    """
+    _dimensiona(applicazione, "1280x720")
+    applicazione._seleziona_scheda("analisi")
+    applicazione.update()
     banner = _banner_di(applicazione._schede["analisi"])[0]
-    assert hasattr(banner, "_toggle")
+    assert banner._toggle.winfo_ismapped()
+
     banner._toggle.focus_set()
+    applicazione.update()
     banner._toggle.event_generate("<Return>")
     applicazione.update()
-    assert banner._open is True
+    assert banner._open is True, "Invio non ha aperto il testo lungo"
+
+    banner._toggle.event_generate("<space>")
+    applicazione.update()
+    assert banner._open is False, "Spazio non ha richiuso il testo lungo"
+
+
+def test_il_collegamento_alla_guida_si_usa_da_tastiera(applicazione):
+    _dimensiona(applicazione, "1280x720")
+    applicazione._seleziona_scheda("analisi")
+    applicazione.update()
+    banner = _banner_di(applicazione._schede["analisi"])[0]
+    assert hasattr(banner, "_link_guida")
+    banner._link_guida.focus_set()
+    applicazione.update()
+    banner._link_guida.event_generate("<space>")
+    applicazione.update()
+    assert applicazione._nb.select() == str(applicazione._schede["guida"])
+
+
+def test_il_focus_si_vede_sui_collegamenti_del_banner(applicazione):
+    """H2-G6: il bordo cambia colore, così si capisce dove si è."""
+    applicazione._seleziona_scheda("analisi")
+    applicazione.update()
+    banner = _banner_di(applicazione._schede["analisi"])[0]
+    for etichetta in (banner._toggle, banner._link_guida):
+        assert int(etichetta.cget("highlightthickness")) >= 1
+        assert etichetta.cget("highlightcolor") != etichetta.cget(
+            "highlightbackground")
+
+
+def test_i_suggerimenti_compaiono_anche_col_focus(applicazione):
+    """H2-G8: la stessa informazione, per chi non usa il mouse.
+
+    Sotto Xvfb non c'è un gestore di finestre, quindi la finestra non riceve
+    mai il focus dal sistema e `<FocusIn>` non arriverebbe da solo: l'evento
+    si genera, ed è la logica del suggerimento che si sta verificando.
+    """
+    _dimensiona(applicazione, "1280x720")
+    pulsante = applicazione._barra_azioni.voci()[0]
+    assert pulsante.bind("<FocusIn>"), "nessuna reazione al focus"
+
+    def riquadri():
+        trovati = []
+
+        def scendi(w):
+            for figlio in w.winfo_children():
+                if isinstance(figlio, tk.Toplevel):
+                    trovati.append(figlio)
+                scendi(figlio)
+        scendi(applicazione)
+        return trovati
+
+    from gioco27.gui.tooltip import Tooltip
+
+    prima = len(riquadri())
+    pulsante.event_generate("<FocusIn>")
+    # Il suggerimento compare dopo il ritardo previsto dal widget: si aspetta
+    # quello, non un tempo inventato.
+    applicazione.after(Tooltip.RITARDO + 150, applicazione.quit)
+    applicazione.mainloop()
+    assert len(riquadri()) == prima + 1, "nessun suggerimento comparso"
+
+    pulsante.event_generate("<FocusOut>")
+    applicazione.update()
+    assert len(riquadri()) == prima
 
 
 def test_la_scheda_analisi_ha_gia_una_strategia_di_overflow(applicazione):
@@ -365,9 +434,6 @@ DIALOGHI = (
     ("conjugacy_dialog", "ConjugacyDialog"),
 )
 
-@pytest.mark.xfail(strict=True,
-                   reason="M04: nessun dialogo sceglie il proprio focus "
-                          "iniziale: lo assegna Tk, a caso")
 @pytest.mark.parametrize("modulo,classe", DIALOGHI)
 def test_i_dialoghi_scelgono_il_proprio_focus_iniziale(applicazione, modulo,
                                                        classe):
@@ -385,8 +451,6 @@ def test_i_dialoghi_scelgono_il_proprio_focus_iniziale(applicazione, modulo,
         dlg.destroy()
 
 
-@pytest.mark.xfail(strict=True,
-                   reason="M04: Esc non chiude i dialoghi di sola lettura")
 @pytest.mark.parametrize("modulo,classe", DIALOGHI)
 def test_esc_chiude_i_dialoghi_di_sola_lettura(applicazione, modulo, classe):
     """Per questi dialoghi «chiudi» e «annulla» sono la stessa cosa."""

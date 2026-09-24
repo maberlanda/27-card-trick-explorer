@@ -7,6 +7,12 @@ Uso:
 
 Il tooltip compare dopo un breve ritardo e scompare all'uscita del mouse
 o al click. Pensato per pulsanti, etichette, campi e "termini tecnici".
+
+Compartimento H2: compare anche quando il widget riceve il focus da tastiera.
+Prima era un'informazione che esisteva solo per chi usa il mouse; ora chi
+arriva con Tab legge le stesse cose. Il riquadro si posiziona accanto al
+widget quando arriva dal focus (il puntatore potrebbe essere altrove) e
+accanto al puntatore quando arriva dal passaggio del mouse.
 """
 import tkinter as tk
 
@@ -17,22 +23,36 @@ class Tooltip:
     BG = "#FFF8E1"
     FG = "#3a2f1a"
     BORDER = "#E0C97F"
+    #: Ritardo prima di mostrare il riquadro. Attributo di classe perché è
+    #: anche il tempo che un test deve aspettare per vederlo comparire.
+    RITARDO = 450
 
-    def __init__(self, widget, text, delay=450, wraplength=320):
+    def __init__(self, widget, text, delay=None, wraplength=320):
         self.widget = widget
         self.text = text
-        self.delay = delay
+        self.delay = self.RITARDO if delay is None else delay
         self.wraplength = wraplength
         self._after_id = None
         self._tip = None
+        self._dal_focus = False
         widget.bind("<Enter>", self._schedule, add="+")
         widget.bind("<Leave>", self._hide, add="+")
         widget.bind("<ButtonPress>", self._hide, add="+")
+        # H2: la stessa informazione, per chi non usa il mouse.
+        widget.bind("<FocusIn>", self._schedule_dal_focus, add="+")
+        widget.bind("<FocusOut>", self._hide, add="+")
+        widget.bind("<Escape>", self._hide, add="+")
 
     def set_text(self, text):
         self.text = text
 
     def _schedule(self, _event=None):
+        self._dal_focus = False
+        self._cancel()
+        self._after_id = self.widget.after(self.delay, self._show)
+
+    def _schedule_dal_focus(self, _event=None):
+        self._dal_focus = True
         self._cancel()
         self._after_id = self.widget.after(self.delay, self._show)
 
@@ -48,8 +68,14 @@ class Tooltip:
         if self._tip is not None or not self.text:
             return
         try:
-            x = self.widget.winfo_pointerx() + 14
-            y = self.widget.winfo_pointery() + 18
+            if self._dal_focus:
+                # Il puntatore potrebbe essere dall'altra parte dello schermo:
+                # accanto al widget, non accanto al mouse.
+                x = self.widget.winfo_rootx() + 12
+                y = self.widget.winfo_rooty() + self.widget.winfo_height() + 4
+            else:
+                x = self.widget.winfo_pointerx() + 14
+                y = self.widget.winfo_pointery() + 18
         except tk.TclError:
             return
         self._tip = tw = tk.Toplevel(self.widget)

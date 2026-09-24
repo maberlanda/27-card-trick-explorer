@@ -12,6 +12,7 @@ import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 
 from ..core.parallel import atomic_write
+from .common import prepara_dialogo
 from ..core.group_theory import get_group_data
 from ..core.log import get_logger
 from .common import run_in_thread, ui_call
@@ -55,6 +56,8 @@ class ConjugacyDialog(tk.Toplevel):
         self.resizable(True, True)
         self._gd = None
         self._build_ui()
+        # H2: si comincia dall'elenco delle classi, che è ciò che si consulta.
+        prepara_dialogo(self, self._cls_tree)
         # run_in_thread (non Thread nudo): registra il traceback nel log e
         # mostra un messaggio se il precalcolo del gruppo fallisce, invece di
         # lasciare la finestra bloccata su "Calcolo in corso..." per sempre.

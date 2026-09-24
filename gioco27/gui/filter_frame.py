@@ -46,6 +46,18 @@ class FilterFrame(ttk.LabelFrame):
     └────────────────────────────────────────────────────────────────────────────┘
     """
 
+    #: Larghezza di partenza per i testi che vanno a capo. Serve solo a non
+    #: far chiedere al pannello la larghezza dell'intera frase prima che
+    #: `_adatta_testi` conosca lo spazio reale: dopo il primo `<Configure>`
+    #: il valore viene sostituito da quello disponibile (H2).
+    LARGHEZZA_INIZIALE = 760
+
+    #: Oltre questa larghezza il testo non si allunga: una riga larga due
+    #: metri non si legge, e soprattutto il pannello chiederebbe quella
+    #: larghezza, trascinandosi dietro una barra di scorrimento orizzontale
+    #: che non serve a nessuno. Il verso che conta è l'altro: restringersi.
+    LARGHEZZA_MASSIMA = 1100
+
     def __init__(self, parent, stage_num, on_change=None, **kw):
         super().__init__(parent,
                          text=f"  {tr('tab.stage', number=stage_num)}  ",
@@ -64,12 +76,25 @@ class FilterFrame(ttk.LabelFrame):
                          highlightbackground="#BcD3EA",
                          highlightthickness=1)
         intro.pack(side="top", fill="x", pady=(0, 8))
-        tk.Label(
+        self._intro_lbl = tk.Label(
             intro,
             text=tr("filter.intro"),
             font="GiocoHelp", fg="#243b53", bg="#EFF5FB",
-            justify="left", wraplength=1100, anchor="w",
-        ).pack(fill="x", padx=10, pady=6)
+            justify="left", anchor="w", wraplength=self.LARGHEZZA_INIZIALE,
+        )
+        self._intro_lbl.pack(fill="x", padx=10, pady=6)
+        # H2/M01: la regola del livello mai vuoto era solo in un tooltip, cioè
+        # solo per chi usa il mouse e solo se ci passa sopra. Qui è testo
+        # persistente, sempre leggibile, in ogni lingua.
+        self._nota_lbl = tk.Label(
+            intro, text=f"•  {tr('filter.never_empty.note')}",
+            font="GiocoHelp", fg="#1F4E79", bg="#EFF5FB",
+            justify="left", anchor="w", wraplength=self.LARGHEZZA_INIZIALE)
+        self._nota_lbl.pack(fill="x", padx=10, pady=(0, 6))
+        # H2: il testo va a capo sulla larghezza disponibile, non su un
+        # numero fisso: a scala 200% o in inglese un wraplength da 1100 px
+        # taglierebbe la riga o lascerebbe metà pannello vuoto.
+        intro.bind("<Configure>", self._adatta_testi)
 
         # ── Due sezioni affiancate ─────────────────────────────────────────
         p_frame = ttk.LabelFrame(self,
@@ -202,6 +227,19 @@ class FilterFrame(ttk.LabelFrame):
         self._vars[name] = (dvar, bvars)
         self._caselle[name] = caselle
         return widgets
+
+    # ─────────────────────────────────────────────────────────────────────────
+
+    def _adatta_testi(self, evento=None):
+        """Manda a capo i testi del pannello sulla larghezza che c'è davvero."""
+        larghezza = (evento.width if evento is not None
+                     else self.winfo_width()) - 24
+        larghezza = min(larghezza, self.LARGHEZZA_MASSIMA)
+        if larghezza < 120:
+            return
+        for etichetta in (self._intro_lbl, self._nota_lbl):
+            if etichetta.cget("wraplength") != larghezza:
+                etichetta.configure(wraplength=larghezza)
 
     # ─────────────────────────────────────────────────────────────────────────
 

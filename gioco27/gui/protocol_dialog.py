@@ -14,6 +14,7 @@ Sezioni (ognuna attivabile dal dialog):
 """
 import tkinter as tk
 from tkinter import ttk, messagebox
+from .common import prepara_dialogo
 from .help_banner import HelpBanner
 from .i18n import tr
 from .i18n import get_language
@@ -496,6 +497,8 @@ class ProtocolDialog(tk.Toplevel):
         self.title(tr("protocol.dialog.title"))
         self.resizable(False, False)
         self._build_ui()
+        # H2: si comincia dal primo riquadro delle sezioni da includere.
+        prepara_dialogo(self, self._prima_opzione)
 
     def _build_ui(self):
         ttk.Label(self, text=tr("protocol.heading"),
@@ -519,11 +522,14 @@ class ProtocolDialog(tk.Toplevel):
         opt_fr = ttk.Frame(self, padding=(16, 10))
         opt_fr.pack(fill="x")
         self._vars = {}
+        self._prima_opzione = None
         for key, label_key in self._SECTIONS:
             var = tk.BooleanVar(value=True)
             self._vars[key] = var
-            ttk.Checkbutton(opt_fr, text=tr(label_key), variable=var).pack(
-                anchor="w", pady=1)
+            casella = ttk.Checkbutton(opt_fr, text=tr(label_key), variable=var)
+            casella.pack(anchor="w", pady=1)
+            if self._prima_opzione is None:
+                self._prima_opzione = casella
 
         if not self._T_data.get("decompositions"):
             ttk.Label(self,
