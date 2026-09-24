@@ -15,7 +15,14 @@ Convenzioni: T[carta] = posizione finale; T⁻¹[posizione] = carta che la
 occupa (il mazzo finale). DP3 = A: il rovesciamento dello stadio i avviene
 PRIMA della distribuzione.
 """
+import dataclasses
+import subprocess
+import sys
+
+import pytest
+
 from gioco27.core import gioco_reale as gr
+from gioco27.core.dominio import PermutazioneNonValida
 from gioco27.services.procedure import (ProceduraGioco, adattamento_fisico,
                                         servizio_procedure)
 
@@ -235,3 +242,291 @@ def test_f10_f11_rovesciamenti_canonici():
     b = servizio.trasformazione(ProceduraGioco(csd, (0, 1, 0)))
     assert (a[0], a[13], a[26]) == (26, 0, 13)
     assert (b[0], b[13], b[26]) == (25, 2, 12)
+
+
+# ═══════════════════ CONTRATTI: numero ↔ cifre ↔ parola (core) ═════════════
+
+def test_v2_parola_e_inversa_27_su_27():
+    assert sum(gr.parola(n) == _parola_oracolo(n)
+               and gr.posizione_da_parola(_parola_oracolo(n)) == n
+               for n in range(27)) == 27
+
+
+def test_f1_f2_parole_indirizzo_del_libro():
+    assert gr.parola(19) == "DSC" and gr.digits3(19) == (2, 0, 1)
+    assert gr.posizione_da_parola("DSC") == 19
+    assert (gr.parola(0), gr.parola(13), gr.parola(26)) == ("SSS", "CCC", "DDD")
+    assert [gr.posizione_da_parola(w) for w in ("SCD", "DSC", "CDS")] == [5, 19, 15]
+
+
+def test_ordine_numerico_e_lessicografico_con_S_C_D():
+    parole = [gr.parola(n) for n in range(27)]
+    assert parole == sorted(parole, key=lambda w: [LETTERE.index(x) for x in w])
+
+
+@pytest.mark.parametrize("valore", [-1, 27, True, 1.0, "3", None])
+def test_parola_rifiuta_posizioni_non_valide(valore):
+    with pytest.raises(ValueError):
+        gr.parola(valore)
+
+
+@pytest.mark.parametrize("valore", ["dsc", "DS", "DSCC", "DXC", "", 19, None,
+                                    ("D", "S", "C")])
+def test_posizione_da_parola_rifiuta_parole_non_valide(valore):
+    with pytest.raises(ValueError):
+        gr.posizione_da_parola(valore)
+
+
+def test_num_to_sector_delega_con_uscita_invariata():
+    from gioco27.core import detail
+    atteso = ["".join("scd"[d] for d in _cifre(n)) for n in range(27)]
+    assert [detail.num_to_sector(n) for n in range(27)] == atteso
+    assert detail.num_to_sector(0) == "sss" and detail.num_to_sector(19) == "dsc"
+
+
+def test_una_sola_conversione_nel_core():
+    """Presenter e GUI non riscrivono numero → parola (D-I2-4).
+
+    Chiamare una cifra per nome («colonna 1 = C») resta lecito: e' la
+    conversione di una posizione intera in tre lettere che ha un solo padrone.
+    """
+    import pathlib
+    import re
+    radice = pathlib.Path(__file__).resolve().parents[1] / "gioco27"
+    vietati = re.compile(r"join\(.*digits3|_SECT\s*=|num_to_sector\(")
+    sospetti = []
+    for f in list((radice / "services").glob("*.py")) + list((radice / "gui").glob("*.py")):
+        for riga in f.read_text(encoding="utf-8").splitlines():
+            if vietati.search(riga):
+                sospetti.append(f"{f.name}: {riga.strip()}")
+    assert sospetti == []
+
+
+# ═══════════════════ CONTRATTI: presenter services.tabellone ════════════════
+
+from gioco27.services import tabellone as tb  # noqa: E402
+
+
+def test_il_presenter_e_puro():
+    codice = ("import sys; import gioco27.services.tabellone as t; "
+              "t.tabellone(100); t.flusso_carta(t.realizza(list(range(27))), 5); "
+              "print(any(k == 'tkinter' or k.startswith('gioco27.gui') "
+              "for k in sys.modules))")
+    out = subprocess.run([sys.executable, "-c", codice], capture_output=True,
+                         text=True, check=True).stdout.strip()
+    assert out == "False"
+
+
+def test_i_modelli_sono_congelati():
+    t = tb.tabellone(100)
+    with pytest.raises(dataclasses.FrozenInstanceError):
+        t.numero = 1
+    assert isinstance(t.destinazioni, tuple) and isinstance(t.righe, tuple)
+
+
+def test_cronologia_e_griglia_sono_ordini_separati():
+    t = tb.tabellone(100)                       # (CDS, CDS, CSD)
+    assert [f.fase for f in t.cronologia] == [1, 2, 3]
+    assert [f.mescolamento for f in t.cronologia] == ["CDS", "CDS", "CSD"]
+    assert [f.impilamento for f in t.cronologia] == ["DSC", "DSC", "CSD"]
+    assert [(r.fase, r.peso, r.indice_cifra) for r in t.righe] == \
+        [(3, 9, 2), (2, 3, 1), (1, 1, 0)]
+    assert [r.sigla for r in t.righe] == ["CSD", "CDS", "CDS"]
+    # inverso: stesso ordine delle fasi, sigle inverse (CDS <-> DSC)
+    assert [(r.fase, r.sigla) for r in t.righe_inverse] == \
+        [(3, "CSD"), (2, "DSC"), (1, "DSC")]
+
+
+def test_v3_v4_v5_v6_tramite_il_presenter():
+    lette = colonne = inverse = celle = 0
+    for n in range(216):
+        t = tb.tabellone(n)
+        mesc = gr.mescolamenti_da_numero(n)
+        T, mazzo = _T_fisica(mesc), _mazzo_fisico(mesc)
+        lette += _lettura([r.valori for r in t.righe]) == T == list(t.destinazioni)
+        inverse += (_lettura([r.valori for r in t.righe_inverse]) == mazzo
+                    == list(t.mazzo_finale))
+        colonne += ([(c.colonna, c.carta, c.posizione) for c in t.colonne_assi]
+                    == [(0, 0, T[0]), (1, 13, T[13]), (2, 26, T[26])])
+        colonne += ([(c.colonna, c.posizione, c.carta) for c in t.colonne_inverse]
+                    == [(0, 0, mazzo[0]), (1, 13, mazzo[13]), (2, 26, mazzo[26])])
+        assert t.autoinversa == (T == mazzo)
+        for x in range(27):
+            lettura = tb.lettura_cifre(n, x)
+            celle += lettura.destinazione == T[x]
+            for az in lettura.azioni:
+                riga = t.righe[az.riga_visiva]
+                assert (riga.fase, riga.indice_cifra) == (az.fase, az.indice_cifra)
+                assert riga.valori[az.cifra_iniziale] == az.cifra_finale
+    assert (lette, inverse, colonne, celle) == (216, 216, 432, 5832)
+
+
+def test_T_e_mazzo_finale_non_si_confondono():
+    t56 = tb.tabellone(56)
+    assert t56.destinazioni[:9] == (7, 6, 8, 1, 0, 2, 4, 3, 5)
+    assert t56.mazzo_finale[:9] == (4, 3, 5, 7, 6, 8, 1, 0, 2)
+    assert not t56.autoinversa
+    t78 = tb.tabellone(78)
+    assert t78.autoinversa and t78.destinazioni == t78.mazzo_finale
+    campi = {f.name for f in dataclasses.fields(t56)}
+    assert "configurazione_finale" not in campi
+
+
+def test_lettura_cifre_del_paragrafo_7_1_2():
+    lettura = tb.lettura_cifre(100, 10)
+    assert lettura.cifre_iniziali == (1, 0, 1)
+    assert [(a.fase, a.peso, a.cifra_iniziale, a.cifra_finale)
+            for a in lettura.azioni] == [(3, 9, 1, 0), (2, 3, 0, 1), (1, 1, 1, 2)]
+    assert lettura.cifre_finali == (0, 1, 2) and lettura.destinazione == 5
+    assert lettura.celle == ((0, 1), (1, 0), (2, 1))
+    assert (lettura.parola_iniziale, lettura.parola_finale) == ("CSC", "SCD")
+
+
+def test_f5_tabella_delle_27_posizioni():
+    righe = tb.tabella_posizioni(193)
+    assert len(righe) == 27 and [r.carta for r in righe] == list(range(27))
+    assert righe[1].cifre_iniziali == (0, 0, 1)
+    assert righe[1].cifre_finali == (2, 1, 2) and righe[1].destinazione == 23
+    assert [r.destinazione for r in righe] == _T_fisica(("SDC", "CSD", "DCS"))
+    assert righe[19] == tb.lettura_cifre(193, 19)
+
+
+def test_v7_realizza_senza_nuovo_solutore(monkeypatch):
+    from gioco27.services import procedure as sp
+
+    def vietato(*a, **k):
+        raise AssertionError("(R) non deve usare un solutore")
+    monkeypatch.setattr(gr, "risolvi_trucco", vietato)
+    monkeypatch.setattr(sp.ServizioProcedure, "procedura_sicura", vietato)
+    monkeypatch.setattr(sp.ServizioProcedure, "procedura_storica", vietato)
+    esatte = 0
+    for n in range(216):
+        riga = gr.riga_tavola(n)
+        p = tb.realizza(riga["T"])
+        esatte += (p.semplice and p.numero_tavola == n
+                   and p.mescolamenti == riga["mescolamenti"]
+                   and _T_fisica(p.mescolamenti) == list(riga["T"])
+                   and gr.tabellone_da_assi(*riga["assi"])[0] == p.mescolamenti)
+    assert esatte == 216
+
+
+def test_realizza_su_T_con_rovesciamenti_e_fuori_dominio():
+    from gioco27.services.procedure import TrasformazioneFuoriDominio
+    T = servizio_procedure().trasformazione(
+        ProceduraGioco(("SCD", "DCS", "SCD"), (0, 0, 1)))
+    assert tb.realizza(T).numero_tavola == 185               # F10
+    scambio = list(range(27))
+    scambio[0], scambio[1] = 1, 0
+    with pytest.raises(TrasformazioneFuoriDominio):
+        tb.realizza(scambio)
+    with pytest.raises(PermutazioneNonValida):
+        tb.realizza([0] * 27)
+
+
+def test_v8_ritorno():
+    esatti = 0
+    for n in range(216):
+        riga = gr.riga_tavola(n)
+        q = tb.ritorno(n)
+        T, Q = _T_fisica(riga["mescolamenti"]), _T_fisica(q.mescolamenti)
+        esatti += (q.semplice and Q == _inversa(T)
+                   and _comp(Q, T) == list(range(27))
+                   and _comp(T, Q) == list(range(27))
+                   and q.mescolamenti == riga["impilamenti"])
+    assert esatti == 216
+
+
+def test_f6_f7_ritorni_del_libro():
+    assert tb.ritorno(100).numero_tavola == 93
+    assert tb.ritorno(100).mescolamenti == ("DSC", "DSC", "CSD")
+    assert tb.ritorno(56).numero_tavola == 62
+    assert tb.ritorno(177).numero_tavola == 142
+    assert [tb.ritorno(n).numero_tavola for n in (78, 193, 0)] == [78, 193, 0]
+
+
+def test_v9_v10_flusso_del_presenter_senza_rovesciamenti():
+    storia = ricorrenza = registro = 0
+    for n in range(216):
+        p = ProceduraGioco.da_identificatore(n, 0)
+        for flusso in tb.flussi_procedura(p):
+            c = flusso.carta
+            n2, n1, n0 = _cifre(c)
+            storia += flusso.storia_distribuzioni == (n0, n1, n2)
+            ok = all(ps.posizione_dopo == ps.posizione_prima // 3
+                     + 9 * ps.destinazione_blocco for ps in flusso.passi)
+            ricorrenza += ok and flusso.posizione_finale == _T_fisica(p.mescolamenti)[c]
+            s = flusso.storia_raccolte
+            registro += [flusso.passi[0].cifre_prima] + \
+                [ps.cifre_dopo for ps in flusso.passi] == \
+                [(n2, n1, n0), (s[0], n2, n1), (s[1], s[0], n2), (s[2], s[1], s[0])]
+    assert (storia, ricorrenza, registro) == (5832, 5832, 5832)
+
+
+def test_v11_flusso_del_presenter_con_rovesciamenti():
+    servizio = servizio_procedure()
+    finali = intermedi = colonne = corretta = letterale = 0
+    for p in servizio.procedure:
+        T = servizio.trasformazione(p)
+        for flusso in tb.flussi_procedura(p):
+            c = flusso.carta
+            oracolo = _traccia_A(p, c)
+            finali += flusso.posizione_finale == T[c]
+            intermedi += all(
+                (ps.posizione_prima, ps.posizione_distribuita, ps.posizione_dopo)
+                == (o[0], o[1], o[3]) for ps, o in zip(flusso.passi, oracolo))
+            colonne += sum(ps.colonna == o[2] and ps.cifra_uscente == o[2]
+                           for ps, o in zip(flusso.passi, oracolo))
+            origine = _cifre(c)[::-1]
+            e = p.rovesciamenti
+            corretta += flusso.storia_distribuzioni == tuple(
+                2 - origine[k] if sum(e[:k + 1]) % 2 else origine[k]
+                for k in range(3))
+            corretta_flag = all(ps.complementata == bool(sum(e[:k + 1]) % 2)
+                                for k, ps in enumerate(flusso.passi))
+            assert corretta_flag
+            letterale += flusso.storia_distribuzioni == flusso.cifre_origine_nel_tempo
+    assert (finali, intermedi, colonne) == (46656, 46656, 139968)
+    assert corretta == 46656 and letterale == 13824
+
+
+def test_f8_macchina_che_dimentica_carta_19_in_100():
+    f = tb.flusso_carta(ProceduraGioco.da_identificatore(100, 0), 19)
+    assert f.parola_iniziale == "DSC"
+    assert [f.cifre_iniziali] + [ps.cifre_dopo for ps in f.passi] == \
+        [(2, 0, 1), (2, 2, 0), (1, 2, 2), (2, 1, 2)]
+    assert f.posizione_finale == 23
+    assert f.storia_distribuzioni == (1, 0, 2)
+    assert [(ps.cifra_uscente, ps.cifra_entrante) for ps in f.passi] == \
+        [(1, 2), (0, 1), (2, 2)]
+    assert [ps.altezza for ps in f.passi] == [6, 8, 5]
+    assert all(ps.rovesciamento == 0 and ps.posizione_distribuita == ps.posizione_prima
+               for ps in f.passi)
+
+
+def test_f10_flusso_con_rovesciamento_canonico():
+    p = ProceduraGioco(("SCD", "DCS", "SCD"), (0, 0, 1))
+    f = tb.flusso_carta(p, 0)
+    assert f.posizione_finale == 20
+    terzo = f.passi[2]
+    assert terzo.rovesciamento == 1
+    assert terzo.posizione_distribuita == 26 - terzo.posizione_prima
+    assert terzo.cifre_distribuite == tuple(2 - d for d in terzo.cifre_prima)
+    assert [ps.complementata for ps in f.passi] == [False, False, True]
+
+
+def test_validazione_del_presenter():
+    with pytest.raises(ValueError):
+        tb.tabellone(216)
+    with pytest.raises(ValueError):
+        tb.lettura_cifre(0, 27)
+    with pytest.raises(ValueError):
+        tb.flusso_carta(ProceduraGioco.da_identificatore(0, 0), -1)
+    with pytest.raises(ValueError):
+        tb.ritorno(-1)
+
+
+def test_nessun_elenco_delle_procedure_equivalenti():
+    """DP11 aperta: il presenter non espone le 8 procedure di una classe."""
+    pubblici = [n for n in dir(tb) if not n.startswith("_")]
+    assert not [n for n in pubblici if "classe" in n or "fibra" in n
+                or "equivalent" in n]

@@ -23,7 +23,7 @@ mescolamenti cronologici nell'ordine SCD,SDC,CSD,DSC,CDS,DCS.
 from __future__ import annotations
 import itertools
 
-from .dominio import valida_permutazione
+from .dominio import valida_indice, valida_permutazione
 
 # Messaggi mostrati nella GUI (Tavola 216, pulsante Verifica): seguono la
 # lingua attiva. I dati restituiti (rapporto, tabelle) restano invariati.
@@ -139,6 +139,33 @@ def T_da_partita(mescolamenti, rovesciamenti=(False, False, False)):
 def digits3(n):
     """n → (n2, n1, n0) in base 3."""
     return (n // 9, (n // 3) % 3, n % 3)
+
+def parola(n) -> str:
+    """Parola-indirizzo della posizione n (0..26) nell'alfabeto S, C, D.
+
+    Unica autorita' della conversione numero → parola (I2, D-I2-4):
+    ``ω(n) = λ(n2) λ(n1) λ(n0)`` con S = 0, C = 1, D = 2 e le cifre di
+    `digits3`, cifra piu' significativa a sinistra (libro, § 1.8.1).
+    Esempi: 0 → SSS, 13 → CCC, 19 → DSC, 26 → DDD.
+
+    E' un **indirizzo** (una posizione), non una sigla di mescolamento: le due
+    cose usano lo stesso alfabeto ma hanno significati diversi (Oss. 1.4).
+    """
+    n = valida_indice(n, 27, nome="posizione")
+    return "".join(_LETT[d] for d in digits3(n))
+
+def posizione_da_parola(parola_indirizzo: str) -> int:
+    """Inversa di `parola`: ``ω⁻¹(abc) = 9ν(a) + 3ν(b) + ν(c)``.
+
+    Accetta solo tre lettere maiuscole fra S, C, D; altrimenti ValueError.
+    """
+    if (not isinstance(parola_indirizzo, str) or len(parola_indirizzo) != 3
+            or any(ch not in _LETT for ch in parola_indirizzo)):
+        raise ValueError(
+            f"parola-indirizzo non valida: {parola_indirizzo!r} "
+            "(attese tre lettere fra S, C, D)")
+    a, b, c = (_LETT.index(ch) for ch in parola_indirizzo)
+    return 9 * a + 3 * b + c
 
 def numero_tavola(mescolamenti) -> int:
     """Numero # nella tavola delle disposizioni semplici (0..215)."""

@@ -24,6 +24,7 @@ import numpy as np
 
 from .permutations import compute_stage, mat_to_perm27
 from .analysis import order_of
+from .gioco_reale import parola
 
 # Codifica delle 27 carte, identica al programma C.
 DECK = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0"
@@ -35,21 +36,17 @@ MARKERS = [
     ("0", 26, "Asso di cuori"),
 ]
 
-_SECT = {0: "s", 1: "c", 2: "d"}
-
 
 def num_to_sector(n):
     """
     Posizione 0-26 -> tripla ternaria di settori 's'/'c'/'d' (come NumToSector
     del programma C). Cifra piu' significativa = colonna di raccolta.
     Esempi: 0 -> 'sss', 13 -> 'ccc', 26 -> 'ddd'.
+
+    I2 (D-I2-4): delega all'unica autorita' `gioco_reale.parola`; il formato
+    esportato resta quello storico, in minuscolo.
     """
-    R = ["", "", ""]
-    q = n
-    for ctr in range(3):
-        R[2 - ctr] = _SECT[q % 3]
-        q //= 3
-    return "".join(R)
+    return parola(n).lower()
 
 
 def disposition_from_perm(perm):
