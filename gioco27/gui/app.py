@@ -19,8 +19,8 @@ from ..core.config import ConfigNonSalvata, get_config
 from ..core.parallel import (MAX_EXPORT_ITEMS, ExportAnnullato,
                              ExportTooLarge)
 from ..core.log import get_logger
-from .common import (EtaEstimator, prepara_dialogo, run_in_thread,
-                     ui_call)
+from .common import (EtaEstimator, prepara_dialogo, rendi_menu_apribile,
+                     run_in_thread, ui_call)
 from .errori import per_file, per_utente
 from .filter_frame import FilterFrame
 from .cycles_tab import CyclesFrame
@@ -288,6 +288,7 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
         gen_menu.add_command(label=f"📄  {tr('menu.pdf_detailed')}", command=self._gen_pdf_detail)
         gen_menu.add_command(label="📊  CSV (;)", command=self._gen_csv)
         gen_mb["menu"] = gen_menu
+        rendi_menu_apribile(gen_mb)
         _azione(gen_mb, tr("tooltip.generate"))
         _azione(ttk.Button(inner, text=f"↺  {tr('button.reset_all')}",
                            style="Action.TButton", command=self._reset),

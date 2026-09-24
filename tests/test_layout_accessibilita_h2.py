@@ -1014,16 +1014,14 @@ def test_da_tastiera_si_attraversa_la_barra_nell_ordine_visivo(applicazione):
     assert visitati == attesi[1:], [_etichetta(w) for w in visitati]
 
 
-@pytest.mark.xfail(strict=True, reason="«Genera…» e' un tk.Menubutton: "
-                                       "nasce con takefocus 0")
 def test_ogni_azione_essenziale_puo_prendere_il_fuoco(applicazione):
     """H2-G6: nessuna azione essenziale e' raggiungibile solo col mouse.
 
-    Trovato dal collaudo: le azioni della barra sono tutte sullo schermo a
+    Trovato dal collaudo: le azioni della barra erano tutte sullo schermo a
     ogni dimensione, ma «Genera…» — il menu che porta a PDF e CSV — e' un
-    `tk.Menubutton`, che nasce con `takefocus 0`: Tab non lo raggiunge e la
-    sua associazione di classe per lo spazio non arriva mai a servire.
-    L'esportazione principale del programma si apre dunque solo col mouse.
+    `tk.Menubutton`, che nasce con `takefocus 0`: Tab non lo raggiungeva e
+    la sua associazione di classe per lo spazio non arrivava mai a servire.
+    Ora `rendi_menu_apribile` lo mette nel giro di Tab.
     """
     _dimensiona(applicazione, "1280x720")
     attese = {catalogo.tr(k) for k in AZIONI_ESSENZIALI}
@@ -1041,6 +1039,85 @@ def test_ogni_azione_essenziale_puo_prendere_il_fuoco(applicazione):
         if not prendibile:
             senza_fuoco.append(testo)
     assert senza_fuoco == [], senza_fuoco
+
+
+def test_i_menu_di_esportazione_si_aprono_da_tastiera(applicazione):
+    """Non basta raggiungerli: da fermi non servono a niente.
+
+    Il test manda Invio sul pulsante e guarda se la tendina e' sullo schermo;
+    poi la chiude, perche' un menu aperto tiene un grab e i test che seguono
+    non riceverebbero piu' un tasto.
+    """
+    _dimensiona(applicazione, "1366x768")
+    atteso = catalogo.tr("button.generate")
+    menubutton = next(w for w in applicazione._barra_azioni.voci()
+                      if isinstance(w, tk.Menubutton)
+                      and atteso in _etichetta(w))
+    assert str(menubutton.cget("takefocus")) not in ("0", "false")
+
+    menu = applicazione.nametowidget(str(menubutton.cget("menu")))
+    assert not menu.winfo_ismapped()
+
+    applicazione.focus_force()
+    menubutton.focus_set()
+    applicazione.update()
+    try:
+        menubutton.event_generate("<Return>")
+        applicazione.update()
+        assert menu.winfo_ismapped(), "Invio non ha aperto la tendina"
+    finally:
+        try:
+            applicazione.tk.call("tk::MenuUnpost", "")
+        except tk.TclError:
+            pass
+        applicazione.update()
+    assert not menu.winfo_ismapped()
+
+
+def test_un_menu_disabilitato_non_si_apre(applicazione):
+    """La tastiera non scavalca lo stato: se e' spento resta spento."""
+    _dimensiona(applicazione, "1366x768")
+    atteso = catalogo.tr("button.generate")
+    menubutton = next(w for w in applicazione._barra_azioni.voci()
+                      if isinstance(w, tk.Menubutton)
+                      and atteso in _etichetta(w))
+    menu = applicazione.nametowidget(str(menubutton.cget("menu")))
+    precedente = str(menubutton.cget("state"))
+    menubutton.configure(state="disabled")
+    applicazione.focus_force()
+    menubutton.focus_set()
+    applicazione.update()
+    try:
+        menubutton.event_generate("<Return>")
+        applicazione.update()
+        assert not menu.winfo_ismapped()
+    finally:
+        try:
+            applicazione.tk.call("tk::MenuUnpost", "")
+        except tk.TclError:
+            pass
+        menubutton.configure(state=precedente)
+        applicazione.update()
+
+
+def test_tutti_i_menu_a_tendina_passano_dall_aiuto():
+    """Cinque menubutton nel programma: nessuno dimenticato."""
+    import ast
+
+    usano, tutti = {}, {}
+    for percorso in sorted((PACCHETTO / "gui").glob("*.py")):
+        albero = ast.parse(percorso.read_text(encoding="utf-8"))
+        for n in ast.walk(albero):
+            if not isinstance(n, ast.Call):
+                continue
+            nome = (n.func.attr if isinstance(n.func, ast.Attribute)
+                    else n.func.id if isinstance(n.func, ast.Name) else "")
+            if nome == "Menubutton":
+                tutti[percorso.name] = tutti.get(percorso.name, 0) + 1
+            if nome == "rendi_menu_apribile":
+                usano[percorso.name] = usano.get(percorso.name, 0) + 1
+    assert sum(tutti.values()) == 5, tutti
+    assert usano == tutti, {"senza tastiera": sorted(set(tutti) - set(usano))}
 
 
 # ────────────────────────── le due lingue, sul posto ────────────────────────

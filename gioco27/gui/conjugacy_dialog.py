@@ -12,7 +12,7 @@ import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 
 from ..core.parallel import atomic_write
-from .common import prepara_dialogo
+from .common import prepara_dialogo, rendi_menu_apribile
 from ..core.group_theory import get_group_data
 from ..core.log import get_logger
 from .common import run_in_thread, ui_call
@@ -99,6 +99,7 @@ class ConjugacyDialog(tk.Toplevel):
         exp_menu.add_separator()
         exp_menu.add_command(label="📐  LaTeX / SVG…", command=self._export_latex_svg)
         self._exp_mb["menu"] = exp_menu
+        rendi_menu_apribile(self._exp_mb)
         self._exp_mb.pack(side="left", padx=(0, 8))
         _tip(self._exp_mb, tr("conjugacy.tooltip.export"))
         ttk.Button(bf, text=tr("button.close"), command=self.destroy).pack(side="left")

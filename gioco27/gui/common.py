@@ -130,6 +130,35 @@ def rendi_azionabile(etichetta, comando, sfondo=None, colore_focus=None):
     return etichetta
 
 
+def rendi_menu_apribile(menubutton):
+    """Un menu a tendina raggiungibile e apribile da tastiera (H2).
+
+    `tk.Menubutton` nasce con `takefocus 0`: Tab non lo raggiunge, e la sua
+    associazione di classe per lo spazio non arriva mai a servire, perche' il
+    widget non riceve mai il focus. Un menu di esportazione che si apre solo
+    col mouse non e' un dettaglio: e' la via principale per portare fuori un
+    risultato. Qui il pulsante entra nel giro di Tab e Invio, Spazio o Giu'
+    aprono la tendina come farebbe un clic — dentro, i tasti sono quelli di
+    Tk: frecce per scorrere, Invio per scegliere, Esc per chiudere.
+    """
+    menubutton.configure(takefocus=True)
+
+    def apri(_evento=None):
+        menu = str(menubutton.cget("menu") or "")
+        if not menu or str(menubutton.cget("state")) == "disabled":
+            return None
+        try:
+            menubutton.tk.call("tk::MbPost", str(menubutton))
+            menubutton.tk.call("tk::MenuFirstEntry", menu)
+        except tk.TclError:
+            return None
+        return "break"
+
+    for sequenza in ("<Return>", "<KP_Enter>", "<space>", "<Down>"):
+        menubutton.bind(sequenza, apri)
+    return menubutton
+
+
 def fmt_duration(seconds):
     """Formatta una durata (secondi) come stringa breve: '45s', '1m 20s', '1h 05m'."""
     seconds = max(0, int(round(seconds)))

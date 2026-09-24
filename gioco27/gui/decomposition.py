@@ -13,7 +13,7 @@ import pathlib
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 from ..core.parallel import atomic_write
-from .common import prepara_dialogo
+from .common import prepara_dialogo, rendi_menu_apribile
 from ..services import Revisioni
 from .help_banner import HelpBanner
 from .errori import per_file
@@ -201,6 +201,7 @@ class DecompositionDialog(tk.Toplevel):
         exp_menu.add_command(label="📊  CSV (;)",  command=self._export_csv)
         exp_menu.add_command(label="🌐  HTML",     command=self._export_html)
         self._export_mb["menu"] = exp_menu
+        rendi_menu_apribile(self._export_mb)
         self._export_mb.pack(side="left", padx=(0, 8))
         ttk.Button(bf, text=tr("button.close"), command=self.destroy).pack(side="left")
 

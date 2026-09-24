@@ -16,7 +16,8 @@ from ..core.export_analisi import (EXCEL_MAX_CELL_CHARS, scrivi_excel,
                                    scrivi_output)
 from ..core.parallel import atomic_write
 from ..services import Revisioni, RisultatoAnalisi, servizio_analisi
-from .common import configure_matrix_tags, insert_colored, EtaEstimator, run_in_thread
+from .common import (configure_matrix_tags, insert_colored, EtaEstimator,
+                     rendi_menu_apribile, run_in_thread)
 from .errori import diagnostica_import, per_utente
 from .errori import per_file
 from .i18n import tr
@@ -94,6 +95,7 @@ class AnalysisTabMixin:
         #: indici delle voci che richiedono le righe grezze (B02)
         self._analisi_voci_grezzi = (4, 5)
         self._analisi_exp_mb["menu"] = exp_menu2
+        rendi_menu_apribile(self._analisi_exp_mb)
         self._analisi_exp_mb.pack(side="left", padx=4)
         ttk.Button(cmd, text=f"🔬  {tr('analysis.open_explorer')}",
                    style="Preset.TButton",
