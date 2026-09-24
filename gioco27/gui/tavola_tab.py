@@ -49,18 +49,21 @@ class TavolaFrame(ttk.Frame):
     }
 
     def __init__(self, parent, on_usa_T=None, on_apri_explorer=None,
-                 on_apri_cicli=None, scheda_disponibile=None, **kw):
+                 on_apri_cicli=None, scheda_disponibile=None, on_pratica=None,
+                 **kw):
         """I2 (D-I2-7): le azioni verso le altre viste sono callback dell'App.
 
         on_usa_T(perm)            pubblica T come T corrente (esplicito)
         on_apri_explorer(espr)    porta un'espressione nell'Explorer
         on_apri_cicli(perm)       pubblica T e mostra i Cicli
         scheda_disponibile(k)     True se la scheda k e' visibile nel livello
+        on_pratica(numero)        I3 (D-I3-7): pratica con il piano fissato
         """
         super().__init__(parent, **kw)
         self._on_usa_T = on_usa_T
         self._on_apri_explorer = on_apri_explorer
         self._on_apri_cicli = on_apri_cicli
+        self._on_pratica = on_pratica
         self._scheda_disponibile = scheda_disponibile
         self._righe = gr.tavola_216()
         self._build_ui()
@@ -142,7 +145,10 @@ class TavolaFrame(ttk.Frame):
                                         state="disabled")
         self._btn_cicli = ttk.Button(nav, text=tr("nav.open_cycles"),
                                      command=self._apri_cicli, state="disabled")
+        self._btn_pratica = ttk.Button(nav, text=tr("nav.practice_disposition"),
+                                       command=self._pratica, state="disabled")
         self._btn_usa_T.pack(side="left")
+        self._btn_pratica.pack(side="left", padx=(6, 0))
         self._esito_navigazione = ttk.Label(nav, text=tr("nav.select_row"),
                                             foreground="#555", wraplength=360)
         self._nav = nav
@@ -196,7 +202,8 @@ class TavolaFrame(ttk.Frame):
         sel = self._tv.selection()
         if sel:
             self.pannello.mostra_disposizione(int(sel[0]))
-            for b in (self._btn_usa_T, self._btn_explorer, self._btn_cicli):
+            for b in (self._btn_usa_T, self._btn_explorer, self._btn_cicli,
+                      self._btn_pratica):
                 b.state(["!disabled"])
 
     def aggiorna_navigazione(self):
@@ -229,6 +236,11 @@ class TavolaFrame(ttk.Frame):
             return
         procedura = ProceduraGioco.da_identificatore(self.pannello.numero, 0)
         self._on_apri_explorer(_tb.espressione_per_explorer(procedura))
+
+    def _pratica(self):
+        """I3e: la riga diventa il piano fisso della Pratica (azione esplicita)."""
+        if self.pannello.numero is not None and self._on_pratica is not None:
+            self._on_pratica(self.pannello.numero)
 
     def _apri_cicli(self):
         T = self._T_selezionata()

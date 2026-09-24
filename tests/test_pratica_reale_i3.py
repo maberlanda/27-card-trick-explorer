@@ -278,3 +278,71 @@ def test_in_inglese_davvero(lingua):
             "practice.real.mode.consequences")
     finally:
         radice.destroy()
+
+
+# ═══════════════════════ Tavola → Pratica (App vera) ════════════════════════
+
+@pytest.fixture(scope="module")
+def app():
+    try:
+        radice = tk.Tk()
+    except tk.TclError:
+        pytest.skip("display non disponibile")
+    radice.destroy()
+    from gioco27.gui import app as app_module
+    a = app_module.App()
+    a._livello = "esperto"
+    a._apply_livello()
+    a.geometry("1366x768")
+    a.update()
+    try:
+        yield a
+    finally:
+        try:
+            a.destroy()
+        except tk.TclError:
+            pass
+
+
+def _seleziona_riga(app, numero):
+    tv = app._tavola_frame._tv
+    tv.selection_set(str(numero))
+    tv.see(str(numero))
+    app.update()
+
+
+def test_selezionare_una_riga_non_tocca_la_pratica(app):
+    sim = app._simulator_frame
+    sessione = sim._sessione
+    _seleziona_riga(app, 56)
+    assert getattr(sim, "_disposizione_fissa", None) is None
+    assert sim._sessione is sessione
+
+
+def test_pratica_questa_disposizione(app, monkeypatch):
+    def vietato(*a, **k):
+        raise AssertionError("il piano fissato non passa da risolvi_trucco")
+    monkeypatch.setattr(gr, "risolvi_trucco", vietato)
+    _seleziona_riga(app, 100)
+    app._tavola_frame._btn_pratica.invoke()
+    app.update()
+    sim = app._simulator_frame
+    assert str(app._nb.select()) == str(app._schede["simulatore"])
+    assert sim._disposizione_fissa == 100
+    assert sim._sessione.piano["mescolamenti"] == gr.riga_tavola(100)["mescolamenti"]
+    carta = sim._sessione.carta
+    assert sim._sessione.bersaglio == gr.riga_tavola(100)["T"][carta]
+    sim.togli_disposizione_fissa()
+
+
+def test_in_principiante_la_pratica_della_riga_resta(app):
+    try:
+        app._livello = "principiante"
+        app._apply_livello()
+        app._seleziona_scheda("tavola")
+        app.update()
+        assert app._tavola_frame._btn_pratica.winfo_ismapped()
+    finally:
+        app._livello = "esperto"
+        app._apply_livello()
+        app.update()

@@ -954,8 +954,16 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
             nb, on_usa_T=lambda perm: self._notify_T_changed(perm),
             on_apri_explorer=lambda espr: self._apri_nell_explorer(espr),
             on_apri_cicli=lambda perm: self._apri_nei_cicli(perm),
-            scheda_disponibile=lambda k: self._scheda_disponibile(k))
+            scheda_disponibile=lambda k: self._scheda_disponibile(k),
+            on_pratica=lambda n: self._pratica_disposizione(n))
         return self._tavola_frame
+
+    def _pratica_disposizione(self, numero):
+        """I3e (D-I3-7): la Pratica usa la riga #numero come piano fisso."""
+        sim = self._simulator_frame
+        sim.imposta_disposizione_fissa(numero)
+        self._seleziona_scheda("simulatore")
+        sim._find_sequence()
 
     # ── Navigazione minima (I2d, D-I2-7) ────────────────────────────────────
     def _scheda_disponibile(self, chiave):

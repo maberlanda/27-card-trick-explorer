@@ -208,9 +208,18 @@ def test_simulatore_verso_tavola(app):
 
 
 def test_nessun_collegamento_tavola_verso_simulatore():
-    for nome in ("tavola_tab.py", "pannello_ternario.py"):
-        sorgente = (RADICE / "gioco27" / "gui" / nome).read_text(encoding="utf-8")
-        assert "simulat" not in sorgente.lower(), nome
+    """I2: nessun Tavola → Simulatore guidato dal trucco.
+
+    Aggiornato in I3 (D-I3-7): esiste una sola via, esplicita, «Pratica questa
+    disposizione», che fissa il piano della riga. Nessuna via passa per il
+    trucco (carta → bersaglio → risolvi_trucco), e la selezione non la usa.
+    """
+    sorgente = (RADICE / "gioco27" / "gui" / "tavola_tab.py").read_text(encoding="utf-8")
+    assert "risolvi_trucco" not in sorgente
+    assert sorgente.count("self._on_pratica(") == 1
+    pannello = (RADICE / "gioco27" / "gui" / "pannello_ternario.py").read_text(
+        encoding="utf-8")
+    assert "simulat" not in pannello.lower()
 
 
 # ═══════════════════════════════ Principiante ═══════════════════════════════
