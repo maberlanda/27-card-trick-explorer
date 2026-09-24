@@ -1437,3 +1437,100 @@ def test_i3_la_pratica_reale_sta_in_1280_anche_in_inglese(lingua):
         assert sim.winfo_reqwidth() <= 1240, sim.winfo_reqwidth()
     finally:
         radice.destroy()
+
+
+# ════════════ I4 — Spettatore (carta ignota), sotto-scheda del Simulatore ════
+
+def _spettatore(app, geometria, risposte=2):
+    """La vista dello spettatore dopo alcune risposte (testo al suo massimo)."""
+    import random
+    _dimensiona(app, geometria)
+    app._seleziona_scheda("simulatore")
+    sim = app._simulator_frame
+    vista = sim._spettatore
+    sim._notebook.select(vista)
+    vista._modo_var.set("noto")
+    vista._aggiorna_controlli()
+    vista._rnd = random.Random(3)
+    vista.avvia()
+    app.update()
+    for _ in range(risposte):
+        vista.rispondi(0)
+        vista.esegui_raccolta()
+    app.update()
+    return vista
+
+
+@pytest.mark.parametrize("geometria", TARGET)
+@pytest.mark.parametrize("risposte", [0, 3])
+def test_i4_lo_spettatore_si_raggiunge(applicazione, geometria, risposte):
+    vista = _spettatore(applicazione, geometria, risposte)
+    controlli = _discendenti(applicazione._schede["simulatore"])
+    assert [_etichetta(w) for w in _perduti(controlli)] == []
+    for w in (vista._avvia_btn, vista._raccolta_btn, *vista._risposta_btn,
+              vista._modo_noto, vista._modo_b12):
+        assert w.winfo_ismapped(), _etichetta(w)
+    area = applicazione._aree_scorrevoli["simulatore"]
+    fuori = _oltre_il_bordo(applicazione, controlli)
+    assert fuori == [] or area.puo_scorrere(), [_etichetta(w) for w in fuori]
+    assert area.barre_visibili()[1] is False, vista.winfo_reqwidth()
+
+
+def test_i4_ordine_di_tab(applicazione):
+    vista = _spettatore(applicazione, "1920x1080", risposte=0)
+    attesi = [vista._modo_noto, vista._modo_b12, vista._bersaglio_spin,
+              vista._mescolato_chk, vista._avvia_btn, vista._pile,
+              *vista._risposta_btn, vista._fisico_txt, vista._info_txt]
+    vista._modo_noto.focus_set()
+    applicazione.update()
+    visti, w = [], vista._modo_noto
+    for _ in range(80):
+        if w in attesi and w not in visti:
+            visti.append(w)
+        w = w.tk_focusNext()
+        if w is None:
+            break
+    assert visti == attesi, [_etichetta(v) for v in visti]
+
+
+def test_i4_alternative_testuali_e_marcatori(applicazione):
+    vista = _spettatore(applicazione, "1366x768", risposte=1)
+    for testo in (vista._fisico_txt, vista._info_txt):
+        assert testo.cget("takefocus") and testo.cget("state") == "disabled"
+        assert testo.get("1.0", "end").strip()
+    assert "▶[9]" in vista._conteggio_lbl.cget("text")   # non solo colore
+    vista.rispondi(1)
+    vista.rispondi(1)                                       # fuori turno
+    applicazione.update()
+    assert "⚠" in vista._fisico_txt.get("1.0", "end")
+
+
+def test_i4_il_ridimensionamento_non_innesca_cicli(applicazione):
+    vista = _spettatore(applicazione, "1366x768", risposte=3)
+    area = applicazione._aree_scorrevoli["simulatore"]
+    for geometria in ("1280x720", "1920x1080", "1366x768"):
+        _dimensiona(applicazione, geometria)
+        prima = area.barre_visibili()
+        applicazione.update()
+        assert area.barre_visibili() == prima, geometria
+    assert vista.winfo_ismapped()
+
+
+def test_i4_il_simulatore_sta_in_1280_anche_in_inglese(lingua):
+    lingua("en")
+    radice = _display_o_salta()
+    try:
+        radice.deiconify()
+        from gioco27.gui.simulator_tab import SimulatorFrame
+        sim = SimulatorFrame(radice)
+        sim.pack(fill="both", expand=True)
+        sim._notebook.select(sim._spettatore)
+        sim._spettatore.avvia()
+        for _ in range(3):
+            sim._spettatore.rispondi(2)
+            sim._spettatore.esegui_raccolta()
+        radice.update()
+        assert "Spectator" in sim._notebook.tab(sim._spettatore, "text")
+        assert sim.winfo_reqwidth() <= 1240, sim.winfo_reqwidth()
+    finally:
+        radice.destroy()
