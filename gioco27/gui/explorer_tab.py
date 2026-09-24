@@ -318,7 +318,6 @@ class ExplorerTabMixin:
         """
         CELL  = 12
         SMALL = 20
-        MARGINE = 14                     # sotto il titolo e sotto la griglia
 
         outer = ttk.Frame(nb, padding=8)
         nb.add(outer, text=f"  \U0001f4d0  {tr('explorer.tab.matrix')}  ")
@@ -332,10 +331,7 @@ class ExplorerTabMixin:
         def make_panel(col, title_text, tag):
             """Pannello: griglia 27×27 a sinistra, fattori e testo a destra."""
             panel = ttk.Frame(outer, relief="groove", borderwidth=1)
-            # "new": il pannello resta alto quanto il suo contenuto, senza
-            # allungarsi nel vuoto; sotto la griglia lo stesso margine che
-            # c'e' fra il titolo e la griglia (MARGINE).
-            panel.grid(row=0, column=col, rowspan=2, sticky="new",
+            panel.grid(row=0, column=col, rowspan=2, sticky="nsew",
                        padx=(0 if col else 0, 6 if col == 0 else 0))
             panel.columnconfigure(1, weight=1)
 
@@ -344,14 +340,13 @@ class ExplorerTabMixin:
                               font=("Segoe UI", 11, "bold"),
                               foreground="#1F4E79",
                               anchor="center")
-            title.grid(row=0, column=0, columnspan=2, sticky="ew",
-                       pady=(6, MARGINE))
+            title.grid(row=0, column=0, columnspan=2, sticky="ew", pady=(6, 4))
 
             cv = tk.Canvas(panel, width=cv_size, height=cv_size,
                            bg="white", highlightthickness=1,
                            highlightbackground="#AAAAAA")
             cv.grid(row=1, column=0, rowspan=3, sticky="n", padx=(6, 4),
-                    pady=(0, MARGINE))
+                    pady=(0, 8))
             self._draw_empty_grid(cv, 27, CELL)
 
             cf_lbl = ttk.Label(panel,
