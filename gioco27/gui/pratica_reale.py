@@ -192,8 +192,11 @@ class PraticaRealeMixin:
 
     # ── confronto per fase ───────────────────────────────────────────────────
     def _nomi_colonne(self):
-        from .simulator_tab import _column_name
-        return tuple(_column_name(i) for i in range(3))
+        # stesse chiavi di `simulator_tab._column_name`, senza importarlo:
+        # il mixin non deve dipendere dal modulo che lo usa (niente cicli)
+        return tuple(tr(k) for k in ("simulator.column.left",
+                                     "simulator.column.center",
+                                     "simulator.column.right"))
 
     def _confronto_fase(self, passo):
         previsto = self._p_prevista.passi[passo.fase - 1]
