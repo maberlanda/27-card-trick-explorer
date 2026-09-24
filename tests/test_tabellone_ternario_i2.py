@@ -530,3 +530,15 @@ def test_nessun_elenco_delle_procedure_equivalenti():
     pubblici = [n for n in dir(tb) if not n.startswith("_")]
     assert not [n for n in pubblici if "classe" in n or "fibra" in n
                 or "equivalent" in n]
+
+
+def test_parole_nei_passi_e_disposizione_realizzata():
+    p = ProceduraGioco(("SCD", "DCS", "SCD"), (0, 0, 1))
+    f = tb.flusso_carta(p, 19)
+    for ps in f.passi:
+        assert ps.parola_prima == gr.parola(ps.posizione_prima)
+        assert ps.parola_distribuita == gr.parola(ps.posizione_distribuita)
+        assert ps.parola_dopo == gr.parola(ps.posizione_dopo)
+        assert ps.lettera_colonna == LETTERE[ps.colonna]
+    assert tb.disposizione_realizzata(p) == 185
+    assert tb.disposizione_realizzata(ProceduraGioco.da_identificatore(100, 0)) == 100

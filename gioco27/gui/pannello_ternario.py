@@ -19,6 +19,7 @@ import tkinter as tk
 from tkinter import ttk
 
 from ..services import tabellone as _tb
+from ..services.procedure import ProceduraGioco
 from .i18n import tr
 from .scorrimento import AreaScorrevole
 
@@ -57,6 +58,9 @@ class PannelloTernario(ttk.Frame):
         self._numero = None
         self._tabellone = None
         self._celle_evidenziate = ()
+        self._carta = 0
+        self._passo = 0
+        self._flusso = None
         self._stile()
         self._schede = ttk.Notebook(self)
         self._schede.pack(fill="both", expand=True)
@@ -65,8 +69,10 @@ class PannelloTernario(ttk.Frame):
         self._costruisci_tabellone(self._area_tabellone.contenuto)
         self._area_carta = AreaScorrevole(self._schede)
         self._schede.add(self._area_carta, text=tr("ternary.tab.card"))
+        self._costruisci_carta(self._area_carta.contenuto)
         self._area_posizioni = AreaScorrevole(self._schede)
         self._schede.add(self._area_posizioni, text=tr("ternary.tab.positions"))
+        self._costruisci_posizioni(self._area_posizioni.contenuto)
         self._mostra_vuoto()
 
     # ── stato pubblico ───────────────────────────────────────────────────────
@@ -78,6 +84,15 @@ class PannelloTernario(ttk.Frame):
     @property
     def tabellone_corrente(self):
         return self._tabellone
+
+    @property
+    def carta(self):
+        return self._carta
+
+    @property
+    def passo(self):
+        """Passo del flusso mostrato: 0 = prima della fase 1, 3 = fine."""
+        return self._passo
 
     def _stile(self):
         stile = ttk.Style(self)
@@ -169,13 +184,24 @@ class PannelloTernario(ttk.Frame):
     def _mostra_vuoto(self):
         self._titolo.configure(text=tr("ternary.none"))
         _scrivi(self._testo_tabellone, tr("ternary.none"))
+        _scrivi(self._testo_carta, tr("ternary.none"))
+        self._dettaglio_posizione.configure(text=tr("ternary.none"))
+        for b in (self._btn_inizio, self._btn_indietro, self._btn_avanti,
+                  self._vai_realizzata):
+            b.state(["disabled"])
 
     def mostra_disposizione(self, numero):
-        """Mostra la disposizione `numero` (0..215) in tutte le schede."""
+        """Mostra la disposizione `numero` (0..215) in tutte le schede.
+
+        La carta e i rovesciamenti scelti restano; il flusso riparte dal passo 0.
+        """
         t = _tb.tabellone(numero)
         self._numero, self._tabellone = t.numero, t
         self._celle_evidenziate = ()
         self._aggiorna_tabellone()
+        self._riempi_posizioni()
+        self._passo = 0
+        self._aggiorna_carta()
 
     def _aggiorna_tabellone(self):
         t = self._tabellone
@@ -267,7 +293,309 @@ class PannelloTernario(ttk.Frame):
             self._riempi_griglia(self._tabellone.righe, self._etichette_righe,
                                  self._celle, self._celle_evidenziate)
 
+    # ── scheda «Una carta» ───────────────────────────────────────────────────
+    def _costruisci_carta(self, dentro):
+        dentro.columnconfigure(0, weight=1)
+        riga = 0
+        scelta = ttk.Frame(dentro)
+        scelta.grid(row=riga, column=0, sticky="w", padx=6, pady=(6, 2))
+        ttk.Label(scelta, text=tr("ternary.card.card")).pack(side="left")
+        self._carta_var = tk.StringVar(value="0")
+        self._spin_carta = ttk.Spinbox(scelta, from_=0, to=26, width=4,
+                                       textvariable=self._carta_var,
+                                       command=self._su_carta)
+        self._spin_carta.pack(side="left", padx=4)
+        self._spin_carta.bind("<Return>", self._su_carta)
+        self._spin_carta.bind("<FocusOut>", self._su_carta)
+        riga += 1
+
+        rov = ttk.Frame(dentro)
+        rov.grid(row=riga, column=0, sticky="w", padx=6)
+        self._eps_vars, self._eps_check = [], []
+        for fase in (1, 2, 3):
+            v = tk.BooleanVar(value=False)
+            c = ttk.Checkbutton(rov, text=tr("ternary.card.flip", phase=fase),
+                                variable=v, command=self._su_rovesciamenti)
+            c.pack(anchor="w")
+            self._eps_vars.append(v)
+            self._eps_check.append(c)
+        riga += 1
+        ttk.Label(dentro, text=tr("ternary.card.flips_note"), foreground="#555",
+                  wraplength=_LARGHEZZA_TESTO).grid(row=riga, column=0,
+                                                     sticky="w", padx=6)
+        riga += 1
+
+        passi = ttk.Frame(dentro)
+        passi.grid(row=riga, column=0, sticky="w", padx=6, pady=4)
+        self._btn_inizio = ttk.Button(passi, text=tr("ternary.card.start"),
+                                      command=lambda: self._vai_al_passo(0))
+        self._btn_indietro = ttk.Button(
+            passi, text=tr("ternary.card.back"),
+            command=lambda: self._vai_al_passo(self._passo - 1))
+        self._btn_avanti = ttk.Button(
+            passi, text=tr("ternary.card.forward"),
+            command=lambda: self._vai_al_passo(self._passo + 1))
+        for b in (self._btn_inizio, self._btn_indietro, self._btn_avanti):
+            b.pack(side="left", padx=(0, 4))
+        self._etichetta_passo = ttk.Label(passi)
+        self._etichetta_passo.pack(side="left", padx=6)
+        riga += 1
+
+        def etichetta(**kw):
+            nonlocal riga
+            lbl = ttk.Label(dentro, wraplength=_LARGHEZZA_TESTO, justify="left",
+                            **kw)
+            lbl.grid(row=riga, column=0, sticky="w", padx=6, pady=1)
+            riga += 1
+            return lbl
+
+        self._indirizzo = etichetta(font=("Segoe UI", 10, "bold"))
+        self._registro = etichetta(font=("Consolas", 10), foreground="#1F4E79")
+        self._dettaglio_passo = etichetta()
+        etichetta(text=tr("ternary.card.law"), foreground="#555")
+        self._storia_distribuzioni = etichetta()
+        self._storia_raccolte = etichetta()
+        self._lettura = etichetta()
+        self._realizzata = etichetta()
+        self._vai_realizzata = ttk.Button(dentro, command=self._vai_alla_realizzata)
+        self._vai_realizzata.grid(row=riga, column=0, sticky="w", padx=6, pady=4)
+        riga += 1
+        ttk.Label(dentro, text=tr("ternary.text.heading"),
+                  foreground="#555").grid(row=riga, column=0, sticky="w", padx=6)
+        riga += 1
+        self._testo_carta = _testo_sola_lettura(dentro, 12)
+        self._testo_carta.grid(row=riga, column=0, sticky="nsew", padx=6,
+                               pady=(0, 6))
+        dentro.rowconfigure(riga, weight=1)
+
+    def _procedura(self):
+        """La procedura della riga selezionata con i rovesciamenti scelti (D-I2-5)."""
+        return ProceduraGioco(
+            tuple(f.mescolamento for f in self._tabellone.cronologia),
+            tuple(bool(v.get()) for v in self._eps_vars))
+
+    def imposta_carta(self, carta):
+        """Sceglie la carta seguita (0..26): il flusso riparte dal passo 0."""
+        carta = int(carta)
+        if not 0 <= carta <= 26:
+            return
+        self._carta = carta
+        self._carta_var.set(str(carta))
+        self._passo = 0
+        self._aggiorna_carta()
+
+    def _su_carta(self, _ev=None):
+        try:
+            carta = int(self._carta_var.get())
+        except ValueError:
+            self._carta_var.set(str(self._carta))
+            return
+        if carta != self._carta or _ev is None:
+            self.imposta_carta(carta)
+
+    def _su_rovesciamenti(self):
+        self._passo = 0
+        self._aggiorna_carta()
+
+    def _vai_al_passo(self, passo):
+        self._passo = max(0, min(3, passo))
+        self._aggiorna_carta()
+
+    def _aggiorna_carta(self):
+        if self._numero is None:
+            return
+        procedura = self._procedura()
+        f = _tb.flusso_carta(procedura, self._carta)
+        self._flusso = f
+        lettura = _tb.lettura_cifre(self._numero, self._carta)
+        d2, d1, d0 = f.cifre_iniziali
+        self._indirizzo.configure(text=tr(
+            "ternary.card.address", position=f.carta, d2=d2, d1=d1, d0=d0,
+            word=f.parola_iniziale))
+        if self._passo == 0:
+            pos, cifre, parola = f.carta, f.cifre_iniziali, f.parola_iniziale
+            dettaglio = self._frase_iniziale(f)
+        else:
+            ps = f.passi[self._passo - 1]
+            pos, cifre, parola = ps.posizione_dopo, ps.cifre_dopo, ps.parola_dopo
+            dettaglio = "\n".join(self._frasi_passo(ps))
+        self._registro.configure(text=tr(
+            "ternary.card.register", d2=cifre[0], d1=cifre[1], d0=cifre[2],
+            position=pos, word=parola))
+        self._dettaglio_passo.configure(text=dettaglio)
+        self._etichetta_passo.configure(text=tr("ternary.card.step",
+                                                step=self._passo))
+        self._btn_inizio.state(["!disabled"] if self._passo else ["disabled"])
+        self._btn_indietro.state(["!disabled"] if self._passo else ["disabled"])
+        self._btn_avanti.state(["!disabled"] if self._passo < 3 else ["disabled"])
+        self._storia_distribuzioni.configure(text=self._frase_distribuzioni(f))
+        self._storia_raccolte.configure(text=self._frase_raccolte(f))
+        self._lettura.configure(text=self._frase_lettura(lettura))
+        self.evidenzia_celle(lettura.celle)
+        self._numero_realizzato = _tb.disposizione_realizzata(procedura)
+        self._realizzata.configure(text=tr("ternary.card.realized",
+                                           number=self._numero_realizzato))
+        self._vai_realizzata.configure(text=tr("ternary.board.goto",
+                                               number=self._numero_realizzato))
+        self._vai_realizzata.state(["!disabled"] if self._on_vai_alla_riga
+                                   else ["disabled"])
+        _scrivi(self._testo_carta, self._carta_in_testo(f, lettura))
+
+    # ── frasi (catalogo i18n; nessun calcolo) ────────────────────────────────
+    @staticmethod
+    def _frase_iniziale(f):
+        d2, d1, d0 = f.cifre_iniziali
+        return tr("ternary.card.initial", position=f.carta, d2=d2, d1=d1,
+                  d0=d0, word=f.parola_iniziale)
+
+    @staticmethod
+    def _frasi_passo(ps):
+        frasi = []
+        if ps.rovesciamento:
+            b2, b1, b0 = ps.cifre_prima
+            a2, a1, a0 = ps.cifre_distribuite
+            frasi.append(tr("ternary.card.flip_step", phase=ps.fase,
+                            before=ps.posizione_prima, b2=b2, b1=b1, b0=b0,
+                            after=ps.posizione_distribuita, a2=a2, a1=a1, a0=a0))
+        a2, a1, a0 = ps.cifre_dopo
+        frasi.append(tr("ternary.card.phase_step", phase=ps.fase,
+                        position=ps.posizione_distribuita, column=ps.colonna,
+                        letter=ps.lettera_colonna, height=ps.altezza,
+                        shuffle=ps.mescolamento, block=ps.destinazione_blocco,
+                        after=ps.posizione_dopo, a2=a2, a1=a1, a0=a0,
+                        word=ps.parola_dopo, out=ps.cifra_uscente,
+                        into=ps.cifra_entrante))
+        return frasi
+
+    @staticmethod
+    def _frase_distribuzioni(f):
+        colonne = ", ".join(f"{ps.colonna} ({ps.lettera_colonna})"
+                            for ps in f.passi)
+        frasi = [tr("ternary.card.distributions", columns=colonne)]
+        complementate = [str(ps.fase) for ps in f.passi if ps.complementata]
+        if any(f.procedura.rovesciamenti):
+            frasi.append(tr("ternary.card.distributions_flip",
+                            phases=", ".join(complementate)))
+        else:
+            n0, n1, n2 = f.cifre_origine_nel_tempo
+            frasi.append(tr("ternary.card.distributions_rev", position=f.carta,
+                            n0=n0, n1=n1, n2=n2))
+        return "\n".join(frasi)
+
+    @staticmethod
+    def _frase_raccolte(f):
+        s0, s1, s2 = f.storia_raccolte
+        return tr("ternary.card.collections", s0=s0, s1=s1, s2=s2,
+                  position=f.posizione_finale)
+
+    @staticmethod
+    def _frasi_azioni(lettura):
+        return [tr("ternary.card.action", phase=a.fase, weight=a.peso,
+                   digit=a.indice_cifra, before=a.cifra_iniziale,
+                   after=a.cifra_finale, shuffle=a.sigla)
+                for a in lettura.azioni]
+
+    def _frase_lettura(self, lettura):
+        d2, d1, d0 = lettura.cifre_iniziali
+        b2, b1, b0 = lettura.cifre_finali
+        testa = tr("ternary.card.reading", number=lettura.numero, d2=d2, d1=d1,
+                   d0=d0, b2=b2, b1=b1, b0=b0, position=lettura.destinazione,
+                   word=lettura.parola_finale)
+        return "\n".join([testa] + self._frasi_azioni(lettura))
+
+    def _carta_in_testo(self, f, lettura):
+        """Tutti i passi del flusso, qualunque sia il passo mostrato (H2)."""
+        d2, d1, d0 = f.cifre_iniziali
+        righe = [tr("ternary.card.address", position=f.carta, d2=d2, d1=d1,
+                    d0=d0, word=f.parola_iniziale)]
+        if any(f.procedura.rovesciamenti):
+            righe.append(tr("ternary.card.flips_note"))
+        righe += [tr("ternary.card.law"), self._frase_iniziale(f)]
+        for ps in f.passi:
+            righe += self._frasi_passo(ps)
+        c2, c1, c0 = f.cifre_finali
+        righe.append(tr("ternary.card.final", position=f.posizione_finale,
+                        d2=c2, d1=c1, d0=c0, word=f.parola_finale))
+        righe += [self._frase_distribuzioni(f), self._frase_raccolte(f),
+                  self._frase_lettura(lettura),
+                  tr("ternary.card.realized", number=self._numero_realizzato)]
+        return "\n".join(righe)
+
+    # ── scheda «27 posizioni» ────────────────────────────────────────────────
+    _COLONNE = (("n", "ternary.pos.col.n", 36),
+                ("terna", "ternary.pos.col.digits", 62),
+                ("parola", "ternary.pos.col.word", 64),
+                ("terna_finale", "ternary.pos.col.final_digits", 72),
+                ("parola_finale", "ternary.pos.col.final_word", 76),
+                ("dest", "ternary.pos.col.dest", 40))
+
+    def _costruisci_posizioni(self, dentro):
+        dentro.columnconfigure(0, weight=1)
+        ttk.Label(dentro, text=tr("ternary.pos.hint"), foreground="#555",
+                  wraplength=_LARGHEZZA_TESTO).grid(row=0, column=0,
+                                                     columnspan=2, sticky="w",
+                                                     padx=6, pady=(6, 2))
+        tab = ttk.Treeview(dentro, columns=[c for c, _, _ in self._COLONNE],
+                           show="tree headings", selectmode="browse", height=12)
+        tab.heading("#0", text="")
+        tab.column("#0", width=150, stretch=False)
+        for c, chiave, w in self._COLONNE:
+            tab.heading(c, text=tr(chiave))
+            tab.column(c, width=w, anchor="center", stretch=False)
+        vs = ttk.Scrollbar(dentro, orient="vertical", command=tab.yview)
+        hs = ttk.Scrollbar(dentro, orient="horizontal", command=tab.xview)
+        tab.configure(yscrollcommand=vs.set, xscrollcommand=hs.set)
+        tab.grid(row=1, column=0, sticky="nsew", padx=(6, 0))
+        vs.grid(row=1, column=1, sticky="ns")
+        hs.grid(row=2, column=0, sticky="ew", padx=(6, 0))
+        dentro.rowconfigure(1, weight=1)
+        tab.bind("<<TreeviewSelect>>", self._su_posizione)
+        self._tabella = tab
+        self._dettaglio_posizione = ttk.Label(dentro, wraplength=_LARGHEZZA_TESTO,
+                                              justify="left")
+        self._dettaglio_posizione.grid(row=3, column=0, columnspan=2, sticky="w",
+                                       padx=6, pady=6)
+
+    def _riempi_posizioni(self):
+        tab = self._tabella
+        tab.delete(*tab.get_children(""))
+        righe = _tb.tabella_posizioni(self._numero)
+        for blocco in range(3):
+            prima = righe[9 * blocco]
+            gid = f"blocco{blocco}"
+            tab.insert("", "end", iid=gid, open=True, text=tr(
+                "ternary.pos.group", digit=blocco,
+                letter=prima.parola_iniziale[0], first=9 * blocco,
+                last=9 * blocco + 8))
+            for r in righe[9 * blocco: 9 * blocco + 9]:
+                tab.insert(gid, "end", iid=f"pos{r.carta}", values=(
+                    r.carta, "({},{},{})".format(*r.cifre_iniziali),
+                    r.parola_iniziale, "({},{},{})".format(*r.cifre_finali),
+                    r.parola_finale, r.destinazione))
+        self._dettaglio_posizione.configure(text=tr("ternary.pos.hint"))
+
+    def _su_posizione(self, _ev=None):
+        sel = self._tabella.selection()
+        if not sel or not sel[0].startswith("pos") or self._numero is None:
+            return
+        carta = int(sel[0][3:])
+        lettura = _tb.lettura_cifre(self._numero, carta)
+        testa = tr("ternary.pos.detail_heading", position=carta,
+                   word=lettura.parola_iniziale,
+                   destination=lettura.destinazione,
+                   final_word=lettura.parola_finale)
+        self._dettaglio_posizione.configure(
+            text="\n".join([testa] + self._frasi_azioni(lettura)))
+        if carta != self._carta:
+            self.imposta_carta(carta)
+        else:
+            self.evidenzia_celle(lettura.celle)
+
     # ── azioni ───────────────────────────────────────────────────────────────
     def _vai_al_ritorno(self):
         if self._on_vai_alla_riga and self._tabellone is not None:
             self._on_vai_alla_riga(self._numero_ritorno)
+
+    def _vai_alla_realizzata(self):
+        if self._on_vai_alla_riga and self._flusso is not None:
+            self._on_vai_alla_riga(self._numero_realizzato)

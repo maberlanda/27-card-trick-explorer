@@ -201,3 +201,156 @@ def test_il_pannello_non_calcola_matematica_propria():
     for vietato in ("MESCOLAMENTO", "digits3", "T_da_", "esegui_partita",
                     "risolvi_trucco", "procedura_sicura", "// 3"):
         assert vietato not in sorgente, vietato
+
+
+# ═══════════════════════ I2c — scheda «Una carta» ═══════════════════════════
+
+def _carta(tavola, numero, carta):
+    _seleziona(tavola, numero)
+    tavola.pannello.imposta_carta(carta)
+    tavola.update()
+    return tavola.pannello
+
+
+def test_f1_indirizzo_qualificato(tavola):
+    p = _carta(tavola, 100, 19)
+    assert p._indirizzo.cget("text") == catalogo.tr(
+        "ternary.card.address", position=19, d2=2, d1=0, d0=1, word="DSC")
+    # «DSC» qui e' un indirizzo: la parola compare con il suo ruolo
+    assert catalogo.tr("ternary.card.address", position=19, d2=2, d1=0, d0=1,
+                       word="DSC").count("DSC") == 1
+
+
+def test_f8_passo_passo(tavola):
+    p = _carta(tavola, 100, 19)
+    assert p.passo == 0
+    assert p._btn_indietro.instate(["disabled"])
+    registri = [p._registro.cget("text")]
+    for _ in range(3):
+        p._btn_avanti.invoke()
+        registri.append(p._registro.cget("text"))
+    assert p.passo == 3 and p._btn_avanti.instate(["disabled"])
+    attesi = [((2, 0, 1), 19, "DSC"), ((2, 2, 0), 24, "DDS"),
+              ((1, 2, 2), 17, "CDD"), ((2, 1, 2), 23, "DCD")]
+    assert registri == [catalogo.tr("ternary.card.register", d2=a, d1=b, d0=c,
+                                    position=pos, word=w)
+                        for (a, b, c), pos, w in attesi]
+    p._btn_indietro.invoke()
+    assert p.passo == 2
+    p._btn_inizio.invoke()
+    assert p.passo == 0
+
+
+def test_f8_dettaglio_e_storie(tavola):
+    p = _carta(tavola, 100, 19)
+    p._btn_avanti.invoke()
+    atteso = catalogo.tr("ternary.card.phase_step", phase=1, position=19,
+                         column=1, letter="C", height=6, shuffle="CDS", block=2,
+                         after=24, a2=2, a1=2, a0=0, word="DDS", out=1, into=2)
+    assert p._dettaglio_passo.cget("text") == atteso
+    assert p._storia_distribuzioni.cget("text").startswith(catalogo.tr(
+        "ternary.card.distributions", columns="1 (C), 0 (S), 2 (D)"))
+    assert catalogo.tr("ternary.card.distributions_rev", position=19, n0=1,
+                       n1=0, n2=2) in p._storia_distribuzioni.cget("text")
+    assert p._storia_raccolte.cget("text") == catalogo.tr(
+        "ternary.card.collections", s0=2, s1=1, s2=2, position=23)
+
+
+def test_log_testuale_completo_e_raggiungibile(tavola):
+    p = _carta(tavola, 100, 19)
+    area = p._testo_carta
+    assert area.cget("takefocus") and area.cget("state") == "disabled"
+    testo = _testo(area)
+    for fase in (1, 2, 3):          # tutti i passi, qualunque sia il passo corrente
+        assert catalogo.tr("ternary.card.phase_step", **_parametri_passo(100, 19, fase)) in testo
+    assert catalogo.tr("ternary.card.law") in testo
+
+
+def _parametri_passo(numero, carta, fase):
+    from gioco27.services import tabellone as tb
+    from gioco27.services.procedure import ProceduraGioco
+    ps = tb.flusso_carta(ProceduraGioco.da_identificatore(numero, 0), carta).passi[fase - 1]
+    a2, a1, a0 = ps.cifre_dopo
+    return dict(phase=fase, position=ps.posizione_distribuita, column=ps.colonna,
+                letter=ps.lettera_colonna, height=ps.altezza,
+                shuffle=ps.mescolamento, block=ps.destinazione_blocco,
+                after=ps.posizione_dopo, a2=a2, a1=a1, a0=a0,
+                word=ps.parola_dopo, out=ps.cifra_uscente,
+                into=ps.cifra_entrante)
+
+
+def test_lettura_cifra_per_cifra_evidenzia_la_griglia(tavola):
+    p = _carta(tavola, 100, 10)
+    assert p._lettura.cget("text").startswith(catalogo.tr(
+        "ternary.card.reading", number=100, d2=1, d1=0, d0=1, b2=0, b1=1, b0=2,
+        position=5, word="SCD"))
+    marcate = [(r, c) for r in range(3) for c in range(3)
+               if p._celle[r][c].cget("text").startswith("▶")]
+    assert marcate == [(0, 1), (1, 0), (2, 1)]
+    assert catalogo.tr("ternary.card.action", phase=3, weight=9, digit=2,
+                       before=1, after=0, shuffle="CSD") in p._lettura.cget("text")
+
+
+def test_f10_rovesciamento_canonico_di_una_procedura(tavola):
+    p = _carta(tavola, 30, 0)                   # (SCD, DCS, SCD)
+    assert gr.riga_tavola(30)["mescolamenti"] == ("SCD", "DCS", "SCD")
+    p._eps_vars[2].set(True)
+    p._su_rovesciamenti()
+    tavola.update()
+    testo = _testo(p._testo_carta)
+    assert catalogo.tr("ternary.card.flip_step", phase=3, before=18, b2=2,
+                       b1=0, b0=0, after=8, a2=0, a1=2, a0=2) in testo
+    assert p._realizzata.cget("text") == catalogo.tr("ternary.card.realized",
+                                                     number=185)
+    assert catalogo.tr("ternary.card.distributions_flip", phases="3") in \
+        p._storia_distribuzioni.cget("text")
+    assert catalogo.tr("ternary.card.distributions_rev", position=0, n0=0,
+                       n1=0, n2=0) not in p._storia_distribuzioni.cget("text")
+    p._vai_realizzata.invoke()
+    tavola.update()
+    assert tavola._tv.selection() == ("185",)
+
+
+def test_nessun_elenco_di_procedure_equivalenti_nella_vista():
+    sorgente = (RADICE / "gioco27" / "gui" / "pannello_ternario.py").read_text(
+        encoding="utf-8")
+    assert "classe_trasformazione" not in sorgente
+    assert "fibra" not in sorgente
+
+
+# ═══════════════════════ I2c — scheda «27 posizioni» ════════════════════════
+
+def test_f5_tabella_27_posizioni(tavola):
+    _seleziona(tavola, 193)
+    tab = tavola.pannello._tabella
+    gruppi = tab.get_children("")
+    assert len(gruppi) == 3
+    assert [tab.item(g, "text") for g in gruppi] == [
+        catalogo.tr("ternary.pos.group", digit=d, letter=l, first=9 * d,
+                    last=9 * d + 8) for d, l in enumerate("SCD")]
+    righe = [r for g in gruppi for r in tab.get_children(g)]
+    assert len(righe) == 27
+    valori = [tab.item(r, "values") for r in righe]
+    assert [int(v[0]) for v in valori] == list(range(27))
+    assert tuple(str(x) for x in valori[1]) == ("1", "(0,0,1)", "SSC", "(2,1,2)",
+                                                "DCD", "23")
+
+
+def test_selezionare_una_posizione_sincronizza_carta_e_griglia(tavola):
+    _seleziona(tavola, 100)
+    p = tavola.pannello
+    p._tabella.selection_set("pos10")
+    tavola.update()
+    assert p.carta == 10
+    assert [(r, c) for r in range(3) for c in range(3)
+            if p._celle[r][c].cget("text").startswith("▶")] == \
+        [(0, 1), (1, 0), (2, 1)]
+    dettaglio = p._dettaglio_posizione.cget("text")
+    assert catalogo.tr("ternary.card.action", phase=1, weight=1, digit=0,
+                       before=1, after=2, shuffle="CDS") in dettaglio
+
+
+def test_i_blocchi_non_sono_segnati_solo_dal_colore(tavola):
+    _seleziona(tavola, 0)
+    tab = tavola.pannello._tabella
+    assert all(tab.item(g, "text") for g in tab.get_children(""))

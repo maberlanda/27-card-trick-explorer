@@ -42,6 +42,7 @@ __all__ = [
     "AzioneCifra", "LetturaCifre", "PassoFlusso", "FlussoCarta",
     "tabellone", "lettura_cifre", "tabella_posizioni", "flusso_carta",
     "flussi_procedura", "realizza", "ritorno", "numero_di",
+    "disposizione_realizzata",
 ]
 
 Terna = Tuple[int, int, int]
@@ -149,6 +150,14 @@ class PassoFlusso:
     posizione_dopo: int                     # P_{k+1}
     cifre_dopo: Terna
     complementata: bool                     # parita' di ε1+…+ε_fase dispari
+    parola_prima: str
+    parola_distribuita: str
+    parola_dopo: str
+
+    @property
+    def lettera_colonna(self) -> str:
+        """Nome del mazzetto (S, C, D): l'ultima lettera dell'indirizzo distribuito."""
+        return self.parola_distribuita[2]
 
     @property
     def cifra_uscente(self) -> int:
@@ -281,7 +290,9 @@ def flussi_procedura(procedura: ProceduraGioco) -> Tuple[FlussoCarta, ...]:
                 colonna=col, altezza=colonne[k][col].index(cb),
                 destinazione_blocco=_gr.MESCOLAMENTO[sigla][col],
                 posizione_dopo=dopo, cifre_dopo=_gr.digits3(dopo),
-                complementata=bool(sum(eps[:k + 1]) % 2)))
+                complementata=bool(sum(eps[:k + 1]) % 2),
+                parola_prima=_gr.parola(prima), parola_distribuita=_gr.parola(q),
+                parola_dopo=_gr.parola(dopo)))
             prima = dopo
         flussi.append(FlussoCarta(
             procedura=procedura, carta=carta,
@@ -320,6 +331,15 @@ def ritorno(numero) -> ProceduraGioco:
     ordine delle fasi (libro, § 4.10 e § 7.1.2 (R)).
     """
     return realizza(_gr.riga_tavola(_numero(numero))["T_inv"])
+
+
+def disposizione_realizzata(procedura: ProceduraGioco) -> int:
+    """# della disposizione della Tavola che ha la stessa T della procedura.
+
+    Con rovesciamenti canonici la T resta fra le 216 (J e' nel gruppo delle
+    disposizioni semplici): e' (R) applicata a T(procedura).
+    """
+    return realizza(servizio_procedure().trasformazione(procedura)).numero_tavola
 
 
 def numero_di(trasformazione) -> Optional[int]:
