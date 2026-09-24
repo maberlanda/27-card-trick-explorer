@@ -80,6 +80,17 @@ class DistributionFrame(ttk.Frame):
         hsb.grid(row=1, column=0, sticky="ew")
         self._canvas.bind("<Configure>", self._on_canvas_resize)
 
+        # H2: l'istogramma è un disegno, e portava informazione che esisteva
+        # solo lì. Questa riga la dice in parole — quanti T, quante
+        # decomposizioni al massimo e al minimo, dov'è il picco — e rimanda
+        # alla scheda «Tabella dati» per l'elenco completo, che è testo
+        # selezionabile. Non sostituisce il grafico: lo accompagna.
+        self._riassunto = ttk.Label(fr, text=tr("distribution.summary_empty"),
+                                    font=("Segoe UI", 9), foreground="#1F4E79",
+                                    justify="left", anchor="w")
+        self._riassunto.grid(row=2, column=0, columnspan=2, sticky="ew",
+                             padx=6, pady=(4, 2))
+
         self._placeholder(self._canvas, tr("distribution.placeholder_chart"))
 
     def _build_table_tab(self):
@@ -87,9 +98,12 @@ class DistributionFrame(ttk.Frame):
         fr.columnconfigure(0, weight=1)
         fr.rowconfigure(0, weight=1)
 
+        # H2: `takefocus` perché è l'alternativa testuale dell'istogramma, e
+        # una cosa che non si raggiunge con Tab non è un'alternativa.
         self._tbl_txt = tk.Text(fr, font=("Courier New", 10),
                                  state="disabled", wrap="none",
-                                 background="#FAFBFC", relief="flat")
+                                 background="#FAFBFC", relief="flat",
+                                 takefocus=True)
         vsb = ttk.Scrollbar(fr, orient="vertical",   command=self._tbl_txt.yview)
         hsb = ttk.Scrollbar(fr, orient="horizontal", command=self._tbl_txt.xview)
         self._tbl_txt.configure(yscrollcommand=vsb.set, xscrollcommand=hsb.set)
@@ -164,11 +178,30 @@ class DistributionFrame(ttk.Frame):
         self._draw_histogram(r)
         self._fill_table(r)
 
+    @staticmethod
+    def istogramma_in_testo(r):
+        """Il contenuto dell'istogramma, in parole (H2).
+
+        Il grafico mostra quante permutazioni raggiungibili hanno un dato
+        numero di decomposizioni. Qui la stessa lettura è scritta: il totale,
+        gli estremi e il picco. L'elenco completo, riga per riga, è nella
+        scheda «Tabella dati» — testo selezionabile, non un disegno.
+        """
+        histo = r.get("histogram") or {}
+        if not histo:
+            return tr("distribution.summary_empty")
+        picco = max(histo, key=lambda k: histo[k])
+        return tr("distribution.summary",
+                  total=f"{r.get('total_T', 0):,}",
+                  minimum=min(histo), maximum=max(histo),
+                  peak=picco, peak_count=f"{histo[picco]:,}")
+
     def _draw_histogram(self, r):
         histo   = r["histogram"]   # {k_decomp: n_T}
         total_T = r["total_T"]
         canvas  = self._canvas
         canvas.delete("all")
+        self._riassunto.configure(text=self.istogramma_in_testo(r))
 
         if not histo:
             self._placeholder(canvas, tr("distribution.no_data"))

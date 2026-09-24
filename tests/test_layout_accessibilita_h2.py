@@ -493,13 +493,82 @@ def test_i_canvas_del_programma_sono_censiti():
     assert trovati == set(CANVAS), sorted(trovati ^ set(CANVAS))
 
 
-@pytest.mark.xfail(strict=True,
-                   reason="M04: le matrici dell'Explorer sono disegnate e "
-                          "basta; senza leggere il disegno non c'è nulla")
-def test_le_matrici_dell_explorer_hanno_un_alternativa_testuale(applicazione):
-    from gioco27.gui import explorer_tab
+def test_le_matrici_dell_explorer_hanno_un_alternativa_testuale(lingua):
+    """I 27 valori e i tre fattori, scritti: non un riassunto, la permutazione."""
+    from gioco27.gui.explorer_tab import ExplorerTabMixin
 
-    assert hasattr(explorer_tab.ExplorerTabMixin, "_matrice_in_testo")
+    perm = list(range(27))
+    lingua("it")
+    testo = ExplorerTabMixin._matrice_in_testo(perm, ["SCD_U", "CDS_U", "I_3"])
+    for valore in (0, 13, 26):
+        assert str(valore) in testo
+    assert "SCD_U" in testo and "CDS_U" in testo
+    assert "In testo" in testo
+
+    lingua("en")
+    inglese = ExplorerTabMixin._matrice_in_testo(perm)
+    assert "As text" in inglese and "In testo" not in inglese
+    assert "26" in inglese
+
+
+def test_l_alternativa_testuale_compare_nella_vista(applicazione):
+    """Non basta che il metodo esista: deve essere nella scheda, e leggibile."""
+    _dimensiona(applicazione, "1280x720")
+    applicazione._seleziona_scheda("explorer")
+    applicazione.update()
+
+    for area in (applicazione._mat_txt_t, applicazione._mat_txt_inv):
+        assert area.cget("takefocus"), "non si raggiunge con Tab"
+        assert area.cget("state") == "disabled", "è di sola lettura"
+        assert area.get("1.0", "end").strip()
+
+    perm = list(range(27))
+    applicazione._fill_matrix_panel(
+        perm, None, applicazione._mat_cv_t, applicazione._mat_lbl_t,
+        applicazione._mat_fcvs_t, applicazione._mat_flbls_t,
+        applicazione._mat_txt_t)
+    applicazione.update()
+    mostrato = applicazione._mat_txt_t.get("1.0", "end")
+    assert "26" in mostrato and "0" in mostrato
+
+
+def test_l_istogramma_ha_un_alternativa_testuale(lingua):
+    """Totale, estremi e picco in parole; l'elenco completo è già testo."""
+    from gioco27.gui.distribution_tab import DistributionFrame
+
+    risultato = {"histogram": {1: 4, 2: 40, 3: 12}, "total_T": 56,
+                 "total_decomp": 200}
+    lingua("it")
+    testo = DistributionFrame.istogramma_in_testo(risultato)
+    assert "56" in testo and "Tabella dati" in testo
+    assert "2" in testo                      # il picco
+
+    lingua("en")
+    inglese = DistributionFrame.istogramma_in_testo(risultato)
+    assert "Data table" in inglese and "Tabella dati" not in inglese
+
+    vuoto = DistributionFrame.istogramma_in_testo({"histogram": {}})
+    assert vuoto and "56" not in vuoto
+
+
+def test_la_tabella_dati_si_raggiunge_con_tab(applicazione):
+    """È l'alternativa testuale dell'istogramma: deve essere focusabile."""
+    _dimensiona(applicazione, "1280x720")
+    applicazione._seleziona_scheda("distribuzione")
+    applicazione.update()
+    assert applicazione._distrib_frame._tbl_txt.cget("takefocus")
+
+
+def test_i_canvas_informativi_hanno_tutti_un_alternativa():
+    """Se ne compare uno informativo nuovo, deve portarsi dietro il testo."""
+    informativi = {nome for nome, ruolo in CANVAS.items()
+                   if ruolo.startswith("informativo")}
+    assert informativi == {"distribution_tab.py", "explorer_tab.py"}
+
+    from gioco27.gui.distribution_tab import DistributionFrame
+    from gioco27.gui.explorer_tab import ExplorerTabMixin
+    assert callable(ExplorerTabMixin._matrice_in_testo)
+    assert callable(DistributionFrame.istogramma_in_testo)
 
 
 # ════════════════ metrica di partenza, per il documento ════════════════════

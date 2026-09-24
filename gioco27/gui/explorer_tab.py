@@ -337,8 +337,19 @@ class ExplorerTabMixin:
                                foreground="#555")
             cf_lbl.grid(row=2, column=0, sticky="w", padx=8, pady=(4, 2))
 
+            # H2: la matrice 27×27 è un disegno, e finora era l'unico posto in
+            # cui la permutazione esisteva in questa vista. Qui c'è la stessa
+            # informazione in testo, selezionabile e raggiungibile con Tab:
+            # chi non interpreta il disegno legge i 27 valori.
+            testo = tk.Text(panel, height=3, wrap="word", relief="flat",
+                            font=("Consolas", 9), background="#F7F9FC",
+                            foreground="#1F4E79", takefocus=True)
+            testo.grid(row=4, column=0, sticky="ew", padx=8, pady=(2, 8))
+            testo.insert("1.0", tr("explorer.matrix.as_text_empty"))
+            testo.configure(state="disabled")
+
             factors_row = ttk.Frame(panel)
-            factors_row.grid(row=3, column=0, sticky="w", padx=8, pady=(0, 8))
+            factors_row.grid(row=3, column=0, sticky="w", padx=8, pady=(0, 4))
             fcvs, flbls = [], []
             for i in range(3):
                 col_fr = ttk.Frame(factors_row)
@@ -354,11 +365,13 @@ class ExplorerTabMixin:
                 fcvs.append(fcv)
                 flbls.append(flbl)
 
-            return cv, cf_lbl, fcvs, flbls
+            return cv, cf_lbl, fcvs, flbls, testo
 
-        (self._mat_cv_t,   self._mat_lbl_t,   self._mat_fcvs_t,   self._mat_flbls_t
+        (self._mat_cv_t, self._mat_lbl_t, self._mat_fcvs_t, self._mat_flbls_t,
+         self._mat_txt_t
          ) = make_panel(0, tr("explorer.matrix.permutation", symbol="T"), "T")
-        (self._mat_cv_inv, self._mat_lbl_inv, self._mat_fcvs_inv, self._mat_flbls_inv
+        (self._mat_cv_inv, self._mat_lbl_inv, self._mat_fcvs_inv,
+         self._mat_flbls_inv, self._mat_txt_inv
          ) = make_panel(1, tr("explorer.matrix.permutation", symbol="T⁻¹"), "T_inv")
 
         self._mat_cell_size = CELL
@@ -391,16 +404,43 @@ class ExplorerTabMixin:
             x1, y1 = (col+1)*cell-pad, (row+1)*cell-pad
             canvas.create_rectangle(x0, y0, x1, y1, fill=color, outline="")
 
-    def _fill_matrix_panel(self, perm27, canonical_form, cv, cf_lbl, fcvs, flbls):
+    @staticmethod
+    def _matrice_in_testo(perm27, fattori=None):
+        """La stessa informazione della matrice, in parole (H2).
+
+        La griglia 27×27 e i tre quadrati 3×3 sono un disegno: chi non lo
+        interpreta — perché non lo vede, perché lo legge con uno strumento, o
+        perché gli serve copiarlo — qui trova i 27 valori e i tre fattori
+        scritti. Non è un riassunto: è la permutazione, per intero.
+        """
+        valori = ", ".join(str(v) for v in perm27)
+        righe = [tr("explorer.matrix.as_text", values=valori)]
+        if fattori:
+            righe.append(tr("explorer.matrix.factors_as_text",
+                            factors=" ⊗ ".join(str(f) for f in fattori)))
+        return "\n".join(righe)
+
+    def _mostra_matrice_in_testo(self, testo, perm27, fattori=None):
+        if testo is None:
+            return
+        testo.configure(state="normal")
+        testo.delete("1.0", "end")
+        testo.insert("1.0", self._matrice_in_testo(perm27, fattori))
+        testo.configure(state="disabled")
+
+    def _fill_matrix_panel(self, perm27, canonical_form, cv, cf_lbl, fcvs,
+                           flbls, testo=None):
         """Popola un pannello (T o T⁻¹): disegna griglia + fattori Kronecker."""
         CELL  = self._mat_cell_size
         SMALL = self._mat_small_size
         self._draw_perm_on_canvas(cv, perm27, CELL)
+        nomi_fattori = None
         if canonical_form is not None:
             try:
                 names = canonical_form.kron_factor_names()
                 sym   = canonical_form.symbolic()
                 cf_lbl.config(text=tr("explorer.matrix.canonical", form=sym))
+                nomi_fattori = list(names)
                 for i, (fcv, flbl) in enumerate(zip(fcvs, flbls)):
                     self._draw_perm_on_canvas(fcv, canonical_form.kron_factors[i], SMALL)
                     flbl.config(text=f"P{i+1} = {names[i]}")
@@ -414,6 +454,7 @@ class ExplorerTabMixin:
                 factors = None
             if factors is not None:
                 f3, f2, f1 = factors
+                nomi_fattori = [f3, f2, f1]
                 cf_lbl.config(text=tr(
                     "explorer.matrix.canonical_from_matrix",
                     form=f"{f3} ⊗ {f2} ⊗ {f1}"))
@@ -428,6 +469,7 @@ class ExplorerTabMixin:
                 for fcv, flbl in zip(fcvs, flbls):
                     self._draw_empty_grid(fcv, 3, SMALL)
                     flbl.config(text="—")
+        self._mostra_matrice_in_testo(testo, perm27, nomi_fattori)
 
     def _update_matrix_tab(self, r):
         """Aggiorna il tab Matrice con i dati del risultato r di Controller.process()."""
@@ -440,7 +482,8 @@ class ExplorerTabMixin:
         # Pannello T
         self._fill_matrix_panel(perm, cf_t,
                                  self._mat_cv_t, self._mat_lbl_t,
-                                 self._mat_fcvs_t, self._mat_flbls_t)
+                                 self._mat_fcvs_t, self._mat_flbls_t,
+                                 self._mat_txt_t)
 
         # Calcola forma canonica di T⁻¹ dalla forma canonica di T
         cf_inv = None
@@ -459,7 +502,8 @@ class ExplorerTabMixin:
         if inv_perm is not None:
             self._fill_matrix_panel(inv_perm, cf_inv,
                                      self._mat_cv_inv, self._mat_lbl_inv,
-                                     self._mat_fcvs_inv, self._mat_flbls_inv)
+                                     self._mat_fcvs_inv, self._mat_flbls_inv,
+                                     self._mat_txt_inv)
 
     def _reset_matrix_tab(self):
         """Svuota entrambi i pannelli del tab Matrice."""
