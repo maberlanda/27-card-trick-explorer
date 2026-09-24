@@ -865,6 +865,268 @@ def test_nessuna_rotta_mostra_piu_un_errore_di_sistema_nudo():
     }
 
 
+# ═══════ collaudo: ridimensionamento, testo ingrandito, tastiera ════════════
+#
+# Il compartimento chiede il collaudo a 1280×720, 1366×768 e 1920×1080 e alle
+# scale 1.0, 1.5 e 2.0. Le tre dimensioni si provano qui sopra. La scala di
+# sistema — `tk scaling`, che deriva dai DPI dello schermo — **non** si cambia
+# a programma avviato: Tk risolve la dimensione dei font quando li crea, e
+# riscalare dopo non li ridisegna. Il collaudo alle tre scale si fa quindi con
+# un processo per scala, sotto un display ai DPI voluti (72/108/144 → 1.0/1.5/
+# 2.0): i numeri sono nel documento di chiusura. Quello che si puo' misurare
+# in un solo processo, e che qui si fissa, e' la scala che il programma
+# possiede davvero: «Dimensione testo aiuti», il knob delle impostazioni.
+
+
+def _con_scala_aiuti(app, scala):
+    from contextlib import contextmanager
+
+    from gioco27.gui import uifont
+
+    @contextmanager
+    def contesto():
+        precedente = uifont.get_scale()
+        uifont.apply_scale(scala, root=app)
+        app.update_idletasks()
+        try:
+            yield
+        finally:
+            uifont.apply_scale(precedente, root=app)
+            app.update_idletasks()
+
+    return contesto()
+
+
+#: Le tre schede piu' dense: se l'ingrandimento rompe qualcosa, rompe qui.
+DENSE = ("explorer", "analisi", "stadio0")
+
+
+def test_il_programma_non_impone_una_scala_a_tk():
+    """La scala di sistema e' dell'utente: nessuno la sovrascrive.
+
+    `tk scaling` viene dai DPI dello schermo. Se il programma la fissasse,
+    su un monitor ad alta densita' il testo resterebbe minuscolo — e sarebbe
+    un difetto introdotto da noi, non del sistema.
+    """
+    sospette = []
+    for percorso in sorted(PACCHETTO.rglob("*.py")):
+        testo = percorso.read_text(encoding="utf-8")
+        if '"scaling"' in testo or "'scaling'" in testo:
+            sospette.append(percorso.name)
+    assert sospette == [], sospette
+
+
+@pytest.mark.parametrize("scala", [1.0, 1.6, 2.0])
+@pytest.mark.parametrize("geometria", list(TARGET))
+def test_il_testo_di_aiuto_ingrandito_non_perde_niente(applicazione, scala,
+                                                       geometria):
+    """Ingrandire il testo d'aiuto non fa sparire ne' azioni ne' controlli."""
+    with _con_scala_aiuti(applicazione, scala):
+        larghezza, altezza = _dimensiona(applicazione, geometria)
+        assert f"{larghezza}x{altezza}" == geometria
+
+        presenti, attese = _azioni_essenziali_presenti(applicazione)
+        assert presenti == attese, sorted(attese - presenti)
+
+        perduti = {}
+        for chiave in DENSE:
+            applicazione._seleziona_scheda(chiave)
+            applicazione.update()
+            persi = _perduti(_discendenti(applicazione._schede[chiave]))
+            if persi:
+                perduti[chiave] = [_etichetta(w) for w in persi]
+        assert perduti == {}, perduti
+
+
+def test_lo_scorrimento_si_accende_quando_il_testo_cresce(applicazione):
+    """La strategia di overflow non e' decorativa: si vede accendersi.
+
+    Lo stadio 0 a scala 1.0 ci sta tutto e non mostra nulla da scorrere; a
+    scala 2.0 il suo contenuto supera la vista e l'area si apre. E' la stessa
+    area, la stessa scheda: cambia solo quanto e' alto il testo.
+    """
+    _dimensiona(applicazione, "1920x1080")
+    applicazione._seleziona_scheda("stadio0")
+    applicazione.update()
+    area = applicazione._aree_scorrevoli["stadio0"]
+
+    with _con_scala_aiuti(applicazione, 1.0):
+        applicazione.update()
+        basso = area.contenuto.winfo_reqheight()
+        assert area.barre_visibili() == (False, False)
+
+    with _con_scala_aiuti(applicazione, 2.0):
+        applicazione.update()
+        alto = area.contenuto.winfo_reqheight()
+        assert alto > basso, (basso, alto)
+        assert area.puo_scorrere(), "il contenuto e' cresciuto e non si scorre"
+
+
+# ─────────────────────────── tastiera, per davvero ──────────────────────────
+
+def test_un_percorso_di_tastiera_arriva_a_un_risultato(applicazione):
+    """Focus → Spazio → risultato, senza chiamare nessuna callback.
+
+    Il test non invoca `_preset_gioco_reale`: mette il fuoco sul pulsante e
+    manda la pressione del tasto, come farebbe una mano. Cio' che si misura
+    e' l'effetto — il conteggio e la riga di stato — non che la funzione sia
+    stata chiamata.
+    """
+    _dimensiona(applicazione, "1366x768")
+    pulsanti = [w for w in applicazione._barra_preset.voci()
+                if isinstance(w, ttk.Button)]
+    atteso = catalogo.tr("button.real_game")
+    pulsante = next(w for w in pulsanti if atteso in _etichetta(w))
+
+    applicazione.count_var.set("—")
+    # Senza window manager nessuno assegna il fuoco d'ingresso alla
+    # finestra, e un dialogo chiuso poco prima lo lascia a un toplevel che
+    # non esiste piu': Tk scarta allora i tasti. Su un desktop vero la mano
+    # dell'utente non ha questo problema; qui lo si rimedia a mano.
+    applicazione.focus_force()
+    pulsante.focus_set()
+    applicazione.update()
+    assert applicazione.focus_lastfor() is pulsante
+
+    pulsante.event_generate("<space>")
+    applicazione.update()
+
+    assert applicazione.count_var.get() == "1,728"
+    assert applicazione.status_var.get() == catalogo.tr("status.real_game_preset")
+
+
+def test_da_tastiera_si_attraversa_la_barra_nell_ordine_visivo(applicazione):
+    """Tab segue la barra: l'ordine logico e' quello che si vede."""
+    _dimensiona(applicazione, "1366x768")
+    barra = applicazione._barra_azioni
+    attesi = [w for w in barra.voci()
+              if isinstance(w, (ttk.Button, ttk.Menubutton))
+              and str(w.cget("takefocus")) not in ("0", "false")]
+    assert len(attesi) >= 8, len(attesi)
+
+    visitati, corrente = [], attesi[0]
+    for _ in range(8 * len(attesi)):
+        corrente = corrente.tk_focusNext()
+        if corrente is None or corrente is attesi[0]:
+            break
+        if corrente in attesi:
+            visitati.append(corrente)
+    assert visitati == attesi[1:], [_etichetta(w) for w in visitati]
+
+
+@pytest.mark.xfail(strict=True, reason="«Genera…» e' un tk.Menubutton: "
+                                       "nasce con takefocus 0")
+def test_ogni_azione_essenziale_puo_prendere_il_fuoco(applicazione):
+    """H2-G6: nessuna azione essenziale e' raggiungibile solo col mouse.
+
+    Trovato dal collaudo: le azioni della barra sono tutte sullo schermo a
+    ogni dimensione, ma «Genera…» — il menu che porta a PDF e CSV — e' un
+    `tk.Menubutton`, che nasce con `takefocus 0`: Tab non lo raggiunge e la
+    sua associazione di classe per lo spazio non arriva mai a servire.
+    L'esportazione principale del programma si apre dunque solo col mouse.
+    """
+    _dimensiona(applicazione, "1280x720")
+    attese = {catalogo.tr(k) for k in AZIONI_ESSENZIALI}
+    senza_fuoco = []
+    for w in _cornice(applicazione):
+        testo = _etichetta(w)
+        if not any(a and a in testo for a in attese):
+            continue
+        if not w.winfo_ismapped():
+            continue
+        try:
+            prendibile = str(w.cget("takefocus")) not in ("0", "false")
+        except tk.TclError:
+            prendibile = False
+        if not prendibile:
+            senza_fuoco.append(testo)
+    assert senza_fuoco == [], senza_fuoco
+
+
+# ────────────────────────── le due lingue, sul posto ────────────────────────
+
+def test_il_layout_regge_anche_in_inglese(lingua):
+    """Le etichette inglesi sono larghe in modo diverso: la barra tiene.
+
+    Costruire una seconda applicazione costa qualche secondo, ma la lingua si
+    scegli all'avvio: e' l'unico modo di misurare la vista inglese vera
+    invece di una traduzione applicata a widget gia' disposti.
+    """
+    radice = _display_o_salta()
+    radice.destroy()
+    from gioco27.gui import app as app_module
+
+    lingua("en")
+    app = app_module.App()
+    try:
+        app._livello = "esperto"
+        app._apply_livello()
+        app.update_idletasks()
+        for geometria in TARGET:
+            larghezza, altezza = _dimensiona(app, geometria)
+            assert f"{larghezza}x{altezza}" == geometria
+            presenti, attese = _azioni_essenziali_presenti(app)
+            assert presenti == attese, (geometria, sorted(attese - presenti))
+            for barra in (app._barra_azioni, app._barra_preset):
+                assert all(w.winfo_ismapped() for w in barra.voci()), geometria
+
+        # i testi che H2 ha aggiunto esistono anche in inglese
+        nota = app.filter_frames[0]._nota_lbl.cget("text")
+        assert catalogo.tr("filter.never_empty.note") in nota
+        assert "mai vuoto" not in nota, "la nota e' rimasta in italiano"
+    finally:
+        try:
+            app.destroy()
+        except tk.TclError:
+            pass
+
+
+# ───────────────────── il colore non porta da solo ──────────────────────────
+
+def test_il_colore_non_e_l_unico_portatore_di_informazione(applicazione):
+    """Ogni stato che il programma colora, lo dice anche a parole.
+
+    Non e' una dichiarazione di conformita': e' l'elenco dei posti dove in
+    questo programma il colore porta significato, ciascuno con la sua
+    controparte testuale, verificata qui.
+    """
+    from gioco27.gui.distribution_tab import DistributionFrame
+    from gioco27.gui.explorer_tab import ExplorerTabMixin
+
+    _dimensiona(applicazione, "1366x768")
+
+    # conteggio e stato: testo, non colore
+    applicazione._preset_j_uniform()
+    applicazione.update()
+    assert applicazione.count_var.get() not in ("", "—")
+    assert applicazione.status_var.get() == catalogo.tr("status.uniform_j_preset")
+
+    # i Canvas informativi: alternativa testuale nella loro vista
+    testo = ExplorerTabMixin._matrice_in_testo(list(range(27)))
+    assert str(26) in testo and testo.strip()
+    riassunto = DistributionFrame.istogramma_in_testo(
+        {"histogram": {2: 7, 3: 1}, "total_T": 8})
+    assert "7" in riassunto and "8" in riassunto, riassunto
+    assert DistributionFrame.istogramma_in_testo({"histogram": {}}) == \
+        catalogo.tr("distribution.summary_empty")
+
+    # le righe scartate dell'analisi: il motivo e' scritto, non colorato
+    from gioco27.core.analisi import RigaScartata
+    from gioco27.gui.errori import motivo_di
+
+    scarto = RigaScartata(numero=3, campo="T",
+                          motivo="T: lunghezza 2, attesa 27",
+                          codice="lunghezza",
+                          dati={"nome": "T", "ricevuta": 2, "attesa": 27})
+    assert motivo_di(scarto).strip()
+    assert "diagnostica_import" in (PACCHETTO / "gui" / "analysis_tab.py")\
+        .read_text(encoding="utf-8")
+
+    # l'avviso delle impostazioni: testo (il colore e' in aggiunta)
+    sorgente = (PACCHETTO / "gui" / "app.py").read_text(encoding="utf-8")
+    assert "avviso.configure(text=testo," in sorgente
+
+
 # ════════════════ metrica di partenza, per il documento ════════════════════
 
 def test_quante_azioni_essenziali_si_perdono_oggi(applicazione):
