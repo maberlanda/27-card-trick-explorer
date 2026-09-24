@@ -14,6 +14,12 @@ architetturale la verifica.
 from .analisi import ServizioAnalisi, servizio_analisi
 from .lavoro import Revisioni
 from .modelli import Provenienza, RisultatoAnalisi
+from .procedure import (ConfrontoProcedure, Costo, FamigliaGesti,
+                        FibraBersaglio, ProceduraGioco, ServizioProcedure,
+                        servizio_procedure)
 
 __all__ = ["ServizioAnalisi", "servizio_analisi", "Provenienza",
-           "RisultatoAnalisi", "Revisioni"]
+           "RisultatoAnalisi", "Revisioni",
+           # I1: procedure canoniche, relazioni e strategie
+           "ProceduraGioco", "Costo", "FamigliaGesti", "FibraBersaglio",
+           "ConfrontoProcedure", "ServizioProcedure", "servizio_procedure"]
