@@ -1,8 +1,18 @@
-"""Punto di ingresso: python -m gioco27  [--selftest]"""
+"""Punto di ingresso: python -m gioco27  [--selftest | <comando batch> …] (vedi cli.py)"""
 import sys
 
 
+def _comandi_cli():
+    from .cli import COMANDI
+    return COMANDI
+
+
 def main():
+    # J: comandi batch senza Tk (python -m gioco27 validate|replay|…|--help)
+    if len(sys.argv) > 1 and (sys.argv[1] in _comandi_cli() or sys.argv[1] in ("-h", "--help")):
+        from .cli import main as cli_main
+        sys.exit(cli_main(sys.argv[1:]))
+
     from . import __version__
     from .core.log import get_logger
     log = get_logger("main")
