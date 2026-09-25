@@ -495,10 +495,15 @@ riusciti.
 | `4860860` | docs(K0): organize project and historical documentation under docs/ |
 | `90dc0a9` | refactor(K0): remove proven dead code |
 | `8314512` | test(K0): protect cleaned repository structure |
-| (questo) | docs(K0): inventory and close repository cleanup compartment |
+| `ed5e2f4` | docs(K0): inventory and close repository cleanup compartment |
+| (questo) | fix(K0): complete inventory reasons for the font resources |
+
+`ed5e2f4` è stato registrato con due righe dell'inventario (i font) senza
+`reason`: il test K0 l'ha segnalato subito dopo il commit; il commit
+successivo completa le due righe. Nessun codice coinvolto.
 
 ## 22. Git status
 
 Branch `main`; working tree pulito salvo `Articolo.pdf` e `LIBRO_MAIN.pdf`
-non tracciati; 138 commit avanti rispetto a `origin/main` (`54445af`) dopo
+non tracciati; 139 commit avanti rispetto a `origin/main` (`54445af`) dopo
 questo commit; nessun push.

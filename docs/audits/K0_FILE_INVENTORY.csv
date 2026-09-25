@@ -39,8 +39,8 @@ docs/release/NOTE_VERSIONE_3.md,H HISTORICAL / CLOSED,yes,named in 3 file(s),Gio
 gioco27.py,I SCRIPT / TOOL,yes,named in 15 file(s),Launcher: avvia l'applicazione Gioco delle 27 Carte.,KEEP,"launcher utente (README, Guida s28, avvia.bat, gioco27.spec); resta in radice",low
 gioco27/__init__.py,A SOURCE,yes,imported by 16 file(s),Package gioco27 — Gioco delle 27 carte.,KEEP,modulo di produzione importato,low
 gioco27/__main__.py,A SOURCE,yes,python -m gioco27; pyproject gui-scripts,Punto di ingresso: python -m gioco27  [--selftest | <comando batch> …] (vedi cli.py),KEEP,modulo di produzione importato,low
-gioco27/assets/DejaVuSans-Bold.ttf,C RUNTIME RESOURCE,yes,named in 5 file(s),"font PDF (bold), caricato per percorso da core/detail_pdf.py",KEEP,,low
-gioco27/assets/DejaVuSans.ttf,C RUNTIME RESOURCE,yes,named in 5 file(s),"font PDF (regular), caricato per percorso da core/detail_pdf.py",KEEP,,low
+gioco27/assets/DejaVuSans-Bold.ttf,C RUNTIME RESOURCE,yes,named in 5 file(s),"font PDF (bold), caricato per percorso da core/detail_pdf.py",KEEP,risorsa caricata per percorso (core/detail_pdf.py); in package-data e nello spec; licenza dei font -> K,low
+gioco27/assets/DejaVuSans.ttf,C RUNTIME RESOURCE,yes,named in 5 file(s),"font PDF (regular), caricato per percorso da core/detail_pdf.py",KEEP,risorsa caricata per percorso (core/detail_pdf.py); in package-data e nello spec; licenza dei font -> K,low
 gioco27/cli.py,A SOURCE,yes,imported by 1 file(s),"Riga di comando batch (compartimento J): niente Tk, niente GUI.",KEEP,modulo di produzione importato,low
 gioco27/core/__init__.py,A SOURCE,yes,imported by 56 file(s),Nucleo matematico del gioco delle 27 carte.,KEEP,modulo di produzione importato,low
 gioco27/core/algebra.py,A SOURCE,yes,imported by 27 file(s),"Motore algebrico e simbolico: Parser, Rewriter, Evaluator, Controller.",KEEP,modulo di produzione importato,low
