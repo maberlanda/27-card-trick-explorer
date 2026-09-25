@@ -448,7 +448,7 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
             self._aggiungi_scheda(nb, f"stadio{i}", wrap,
                                   _shell_tab_text("tab.stage", number=i))
 
-        # Percorso lineare del principiante: gioco → tavola → esplorazione
+        # Percorso lineare (livello Base): gioco → tavola → esplorazione
         self._aggiungi_scheda(
             nb, "simulatore",
             self._wrap_tab(self._build_simulator_tab, "simulatore", "s19"),
@@ -504,7 +504,7 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
                  font=("Segoe UI", 8, "italic")).pack(side="left", padx=10)
         return bar
 
-    # ── Modalità Principiante / Esperto e navigazione ─────────────────────────
+    # ── Livelli didattici (DP7) e navigazione ──────────────────────────────────
 
     def _mk_banner(self, parent, short, long=None, section=None):
         return HelpBanner(parent, short, long,

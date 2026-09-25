@@ -404,3 +404,88 @@ def test_onboarding_senza_testo_italiano_cablato():
     src = (ROOT / "gioco27" / "gui" / "onboarding_tab.py").read_text(encoding="utf-8")
     assert not re.findall(r'text="[^"]*[a-zà-ù]{4,}[^"]*"', src)
     assert "_livello_onboarding_var" in src and "level.desc." in src
+
+
+# ═════════════ matrice di completezza V4 (righe P0/P1, livello D) ═════════════
+
+def _sezioni(lingua="it"):
+    """{identificatore: testo della sezione} dalla Guida renderizzata."""
+    per_numero, corrente = {}, None
+    for tag, testo in render_guide_segments(lingua):
+        if tag == "h2":
+            corrente = int(testo.split(".", 1)[0])
+            per_numero[corrente] = ""
+        if corrente is not None and tag not in ("part", "tocpart"):
+            per_numero[corrente] += testo
+    return {sid: per_numero[numero_sezione(sid)] for sid in SEZIONI}
+
+
+#: riga dell'audit (V4_MATHEMATICAL_DIDACTIC_COVERAGE_AUDIT.md § 7, priorita'
+#: V4-P0/P1) → (sezione della Guida, frase che la spiega). Dopo I7: D = sì.
+COPERTURA_AUDIT = {
+    "L04": ("i2m", "P = 3·altezza + colonna"),
+    "L05": ("s02", "codificate in base 3"),
+    "L06": ("i2m", "tre gruppi (n₂ = 0, 1, 2)"),
+    "L07": ("i2m", "indirizzo DSC"),
+    "L08": ("i2m", "P′  =  ⌊P / 3⌋  +  9·s"),
+    "L09": ("i2m", "cifra che esce e cifra che entra"),
+    "L10": ("i2m", "rev ω(n)"),
+    "L12": ("i5", "mazzo finale della riga #195"),
+    "L14": ("i5", "T[carta] = posizione finale"),
+    "L15": ("s01", "contando da 0"),
+    "L18": ("i2t", "Tabellone diretto"),
+    "L20": ("i5", "Criterio delle somme"),
+    "L21": ("i2t", "la colonna è la cifra iniziale"),
+    "L22": ("i5", "#195"),
+    "L23": ("i2m", "26 − P"),
+    "L26": ("s17", "trasposta di T"),
+    "L35": ("i2m", "27 posizioni"),
+    "L36": ("i2t", "sigle inverse (CDS ↔ DSC)"),
+    "L39": ("i2m", "capovolgimento"),
+    "L44": ("i1", "esattamente 8 procedure"),
+    "L46": ("s30", "Cronaca"),
+    "L54": ("i3", "J∘T (riga #172)"),
+    "L55": ("s29", "I quattro livelli"),
+    "L57": ("i5", "A1 — «note due, la terza si calcola»"),
+    "L58": ("i2t", "(R) è l'unica procedura semplice"),
+    "L59": ("i5", "39 − q₀ − q₂"),
+    "L63": ("i1", "216 × 8 = 1 728"),
+    "L67": ("i4", "ogni risposta fissa una cifra"),
+    "L70": ("i4", "ordine iniziale noto"),
+    "L81": ("i4", "B12"),
+    "L91": ("i5", "Due carte guida"),
+    "L93": ("i5", "v → w"),
+    "L95": ("s09", "Γ = ⟨S₃³, MSC⟩"),
+    "L97": ("i5", "fibra (i, t)"),
+    "L106": ("s09", "Nel codice storico"),
+    "A02": ("i2m", "Legge del singolo stadio"),
+    "A04": ("i5", "Def. 4.1"),
+    "A06": ("i5", "ρ̂ᵢ(t)"),
+    "A07a": ("i5", "C₀ = 108,  C₁ = 90,  C₂ = 36"),
+    "A09": ("i6", "7 tipi ciclici"),
+    "A12": ("i4", "27  →  9  →  3  →  1"),
+}
+
+#: righe P0/P1 che restano fuori da I7, con il motivo (da approvare).
+FUORI_I7 = {
+    "L11": "Prop. 1.8 (elemento mancante di un blocco dalle somme): nessuno strumento lo calcola; "
+           "la firma 36/117/198 e' spiegata (i5). Richiederebbe matematica nuova.",
+    "L90": "tabellone cumulativo di una successione di procedure: nessuna funzione nel programma.",
+    "A13": "formula di inversione di App. D Cor. 5.2 con rovesciamenti: fonte ambigua (audit § 2.2), "
+           "nessuna decisione; il rovesciamento e le 8 procedure sono spiegati (i1, i2m).",
+}
+
+
+def test_matrice_audit_p0_p1_didattica():
+    csv = (ROOT / "V4_COVERAGE_MATRIX.csv").read_text(encoding="utf-8")
+    righe = {}
+    for linea in csv.splitlines()[1:]:
+        campi = linea.split(";") if linea.count(";") > linea.count(",") else linea.split(",")
+        righe[campi[0].strip('"')] = linea
+    p0p1 = {k for k, v in righe.items() if "V4-P0" in v or "V4-P1" in v}
+    assert p0p1, "matrice V4 non letta"
+    assert set(COPERTURA_AUDIT) | set(FUORI_I7) >= p0p1 - {"L37"}, \
+        sorted(p0p1 - set(COPERTURA_AUDIT) - set(FUORI_I7))
+    sezioni = _sezioni("it")
+    for riga, (sid, frase) in COPERTURA_AUDIT.items():
+        assert frase in sezioni[sid], (riga, sid, frase)

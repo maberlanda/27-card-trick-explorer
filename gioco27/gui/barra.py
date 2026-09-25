@@ -15,11 +15,11 @@ pulsante scompare, nessuna coordinata è fissa, e non c'è nessun menu a
 scomparsa: cambia solo quante righe occupa la barra.
 
     ┌────────────────────────────────────────────────────────────────┐
-    │ Conta  Genera…  Reset │ Principiante │ 1 728        Esci  ⚙  ✔ │   largo
+    │ Conta  Genera…  Reset │ Livello ▾    │ 1 728        Esci  ⚙  ✔ │   largo
     └────────────────────────────────────────────────────────────────┘
 
     ┌──────────────────────────────────┐
-    │ Conta  Genera…  Reset │ Princip… │                                 stretto
+    │ Conta  Genera…  Reset │ Livello  │                                 stretto
     │ 1 728   Coniugio  Cayley  │ …    │
     │ Verifica  Impostazioni  Esci     │
     └──────────────────────────────────┘
