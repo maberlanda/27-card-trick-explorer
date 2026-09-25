@@ -105,6 +105,10 @@ class PraticaRealeMixin:
             self._p_reale_fr.grid_remove()
         if self._sessione is not None:
             self._init_practice(self._sessione)
+        # J: la sessione registra il nuovo stato scientifico (se collegata)
+        avvisa = getattr(self, "on_stato", None)
+        if avvisa is not None:
+            avvisa()
 
     def _p_impilamento_atteso(self):
         """L'impilamento corretto per la fase corrente (in entrambe le modalità)."""

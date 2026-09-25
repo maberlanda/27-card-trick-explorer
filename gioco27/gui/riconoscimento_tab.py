@@ -295,6 +295,10 @@ class RiconoscimentoFrame(ttk.Frame):
         self._mostra_somme()
         self._mostra_estesa()
         self._mostra_vw()
+        # J: la sessione registra il nuovo stato scientifico (se collegata)
+        avvisa = getattr(self, "on_stato", None)
+        if avvisa is not None:
+            avvisa(pi)
 
     def _scrivi(self, testo, righe):
         testo.configure(state="normal")

@@ -39,6 +39,7 @@ from .barra import BarraAdattiva
 from .scorrimento import AreaScorrevole
 from .explorer_tab import ExplorerTabMixin
 from .onboarding_tab import OnboardingTabMixin
+from .sessione_tab import SessioneMixin
 from . import tooltip as _tooltip
 from .i18n import set_language, tr
 from .help_banner import HelpBanner
@@ -85,7 +86,7 @@ def _shell_tab_text(key, icon="", **values):
 
 
 class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
-          OnboardingTabMixin, tk.Tk):
+          OnboardingTabMixin, SessioneMixin, tk.Tk):
 
     # ── Colori semantici ──────────────────────────────────────────────────────
     C_BG        = "#F5F7FA"
@@ -152,7 +153,9 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
                 pass
 
         self._configure_styles()
+        self._sessione_init()      # J: sessione scientifica e cronologia
         self._build_ui()
+        self._sessione_collega()
         self._update_count()   # conteggio iniziale
 
         # Salva config alla chiusura
@@ -349,6 +352,10 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
             ttk.Button(inner, text=f"📋  {tr('button.protocol')}",
                        command=self._open_protocol),
             tr("tooltip.protocol"), padx=2, a_destra=True)
+        # J: esperimento, cronologia, undo/redo e successione (tutti i livelli)
+        self._btn_sessione = _azione(
+            ttk.Button(inner, text=f"🗂  {tr('button.session')}", command=self._open_sessione),
+            tr("tooltip.session"), padx=2, a_destra=True)
         _azione(ttk.Button(inner, text=f"🖥️  {tr('button.presentation')}",
                            command=self._open_presentation),
                 tr("tooltip.presentation"), padx=2, a_destra=True)
@@ -1024,13 +1031,15 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
     def _on_simulator_T(self, perm_27):
         """Il simulatore ha calcolato una nuova sequenza di gioco."""
         self._notify_T_changed(perm_27)
+        self._sessione_nota("simulatore")
 
     # ── Tab Tavola 216 ──────────────────────────────────────────────────────
     def _build_tavola_tab(self, nb):
         # I2d: callback tardivi (lambda), perche' le schede di destinazione
         # si costruiscono dopo e i test possono sostituire _notify_T_changed.
         self._tavola_frame = TavolaFrame(
-            nb, on_usa_T=lambda perm: self._notify_T_changed(perm),
+            nb, on_usa_T=lambda perm: (self._notify_T_changed(perm),
+                                       self._sessione_nota("tavola", perm)),
             on_apri_explorer=lambda espr: self._apri_nell_explorer(espr),
             on_apri_cicli=lambda perm: self._apri_nei_cicli(perm),
             scheda_disponibile=lambda k: self._scheda_disponibile(k),

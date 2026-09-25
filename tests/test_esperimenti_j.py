@@ -12,7 +12,6 @@ from pathlib import Path
 
 import pytest
 
-from gioco27.core import gioco_reale as gr
 from gioco27.services import archivio, esperimento as E, tabellone as tb
 from gioco27.services.cronologia import Cronologia, stato_vuoto
 from gioco27.services.procedure import ProceduraGioco, servizio_procedure

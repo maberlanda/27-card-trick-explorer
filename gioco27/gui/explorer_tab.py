@@ -719,6 +719,9 @@ class ExplorerTabMixin:
                 self._exp_export_btn.configure(state="normal")
             if hasattr(self, "_decomp_btn") and result.get("inverse_perm"):
                 self._decomp_btn.configure(state="normal")
+        # J: l'espressione calcolata e' lo stato scientifico dell'Explorer
+        if hasattr(self, "_sessione_nota"):
+            self._sessione_nota("explorer")
 
     def _aggiorna_link_tavola(self, result=None):
         """Abilita «Mostra nella Tavola» solo se T e' una delle 216 (via (R))."""

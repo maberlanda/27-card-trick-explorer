@@ -134,6 +134,10 @@ class LaboratorioFrame(ttk.Frame):
         v = p.verifica(d)
         self._verifica = v
         self._scrivi(self._dettaglio_txt, self._righe_verifica(p, v))
+        # J: la sessione registra il nuovo stato scientifico (se collegata)
+        avvisa = getattr(self, "on_stato", None)
+        if avvisa is not None:
+            avvisa(p.id, d.value)
 
     def _righe_verifica(self, p, v):
         altri = ", ".join(tr(f"lab.domain.short.{x.value}") for x in p.domini)

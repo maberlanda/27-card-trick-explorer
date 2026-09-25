@@ -1181,7 +1181,7 @@ def test_twelfth_block_catalog_additions_are_symmetric_and_counted():
     assert len([k for k in i18n.CATALOGS["it"] if k.startswith("glossary.long.")]) == 43
     assert len([k for k in i18n.CATALOGS["it"] if k.startswith("help.tab.")]) == 16
     assert len([k for k in i18n.CATALOGS["it"] if k.startswith("filter.")]) == 26  # +7 audit finale, +1 H1 (filter.never_empty)
-    assert len(i18n.CATALOGS["it"]) == 1989  # 820 + 354 guide.* + 32 anomalie UI + 82 audit finale + 1 (E) + 3 (F) + 2 (G2) + 22 (H1) + 9 (H2: nota dei filtri, alternative testuali, cornice degli errori su file) + 24 (I2b: pannello ternario, scheda Tabellone) + 30 (I2c: Una carta, 27 posizioni) + 9 (I2d: navigazione) + 53 (I3: errori fisici, conseguenze reali, piano fissato) + 46 (I4: spettatore) + 102 (I5: riconoscimento) + 161 (I6: laboratorio) + 210 (I7: livelli, glossario, guida, aiuti; − chiavi obsolete) + 7 (I7: L11, A13) + 22 (J: CLI)
+    assert len(i18n.CATALOGS["it"]) == 2043  # 820 + 354 guide.* + 32 anomalie UI + 82 audit finale + 1 (E) + 3 (F) + 2 (G2) + 22 (H1) + 9 (H2: nota dei filtri, alternative testuali, cornice degli errori su file) + 24 (I2b: pannello ternario, scheda Tabellone) + 30 (I2c: Una carta, 27 posizioni) + 9 (I2d: navigazione) + 53 (I3: errori fisici, conseguenze reali, piano fissato) + 46 (I4: spettatore) + 102 (I5: riconoscimento) + 161 (I6: laboratorio) + 210 (I7: livelli, glossario, guida, aiuti; − chiavi obsolete) + 7 (I7: L11, A13) + 22 (J: CLI) + 54 (J: sessione)
 
 
 def _use_config_file(monkeypatch, tmp_path):
