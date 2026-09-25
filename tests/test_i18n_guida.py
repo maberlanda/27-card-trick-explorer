@@ -19,9 +19,11 @@ import pytest
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 GUIDE = ROOT / "gioco27" / "gui" / "guide.py"
 
-N_SECTIONS = 33
-N_SEGMENTS = 542
-N_GUIDE_KEYS = 354
+# I7: 33 sezioni storiche + 8 nuove (i1, i2m, i2t, i3, i4, i5, i6, storia),
+# raccolte in 13 parti; il numero di sezione e' la posizione nel percorso.
+N_SECTIONS = 41
+N_SEGMENTS = 717
+N_GUIDE_KEYS = 448
 
 # Chiavi il cui valore è legittimamente identico nelle due lingue.
 SAME_IN_BOTH = {
@@ -157,7 +159,10 @@ def test_placeholder_nominati_usati_dalla_guida():
     used = set()
     for value in (v for k, v in CATALOGS["it"].items() if k.startswith("guide.")):
         used |= {n for _, n, _, _ in Formatter().parse(value) if n}
-    assert used == {"digits", "j_values", "msc_power", "order", "version"}
+    from gioco27.gui.guide import SEZIONI
+    riferimenti = {f"ref_{sid}" for sid in SEZIONI}
+    assert used - riferimenti == {"digits", "j_values", "msc_power", "order", "version"}
+    assert used & riferimenti            # I7: riferimenti incrociati per identificatore
 
 
 # ───────────────────────────── niente testo cablato ────────────────────────
@@ -167,6 +172,9 @@ _TECHNICAL_WORDS = {
     "numpy", "openpyxl", "pikepdf", "pypdf", "reportlab", "tkinter", "install",
     "permutazione", "simbolica", "simboliche", "distinte", "stage",
 }
+
+
+_IDENTIFICATORI = {"storia", "digits", "part", "tocpart"}
 
 
 def test_guide_py_non_contiene_testo_leggibile_cablato():
@@ -183,8 +191,10 @@ def test_guide_py_non_contiene_testo_leggibile_cablato():
                 or id(node) in docstrings:
             continue
         value = node.value
-        if re.fullmatch(r"(guide|button|shuffle|label)\.[\w.]+", value):
+        if re.fullmatch(r"(guide|button|shuffle|label|level|glossary)\.[\w.]*", value):
             continue                                    # chiave di catalogo
+        if value in _IDENTIFICATORI:
+            continue                                    # I7: id di sezione / placeholder
         words = {w.lower() for w in re.findall(r"[A-Za-zÀ-ÿ]{4,}", value)}
         words -= _TECHNICAL_WORDS
         words = {w for w in words if not re.search(r"[A-Z_]", w)}
@@ -223,9 +233,10 @@ def test_ancore_di_sezione_invariate_in_entrambe_le_lingue():
     assert _anchor_numbers("it") == expected
     assert _anchor_numbers("en") == expected
     app_src = (ROOT / "gioco27" / "gui" / "app.py").read_text(encoding="utf-8")
-    used = set(re.findall(r'section="(\d+)"', app_src))
-    used |= set(re.findall(r'_wrap_tab\([^)]*?,\s*"(\d+)"\)', app_src))
-    assert used and used <= set(expected)
+    from gioco27.gui.guide import numero_sezione
+    used = set(re.findall(r'section="(\w+)"', app_src))
+    used |= set(re.findall(r'_wrap_tab\([^)]*?,\s*"(\w+)"\)', app_src))
+    assert used and {str(numero_sezione(u)) for u in used} <= set(expected)
 
 
 def test_navigazione_reale_con_widget_tk():
@@ -275,13 +286,15 @@ def test_formule_codici_e_numeri_invariati():
     # «Stadioᵢ» del glossario italiano diventa «Stageᵢ», come in glossary.long.stage;
     # le etichette UI inglesi scrivono «1,728»; «TABELLONE DI T⁻¹» ha la glossa inglese;
     # i decimali italiani «0,03» diventano «0.03» (stesse cifre, stessi token).
-    assert diff_it == Counter({"1 728": 2, "1728": 1, "oᵢ": 1}), diff_it
-    assert diff_en == Counter({"1": 3, "728": 3, "eᵢ": 1, "T⁻¹": 1}), diff_en
+    # I7: il glossario della Guida e' generato dalle voci brevi (niente
+    # «Stadioᵢ»); la voce breve inglese del Gioco Reale scrive «1,728».
+    assert diff_it == Counter({"1 728": 3, "1728": 1}), diff_it
+    assert diff_en == Counter({"1": 4, "728": 4, "T⁻¹": 1}), diff_en
     for formula in ("MSC ∘ (A₂ ⊗ A₁ ⊗ A₀)  =  (A₀ ⊗ A₂ ⊗ A₁) ∘ MSC",
                     "f_k = P_k ∘ J_(k+1 mod 3)", "MSC^{(3−k) mod 3}",
                     "T  =  A₂ ∘ MSC ∘ A₁ ∘ MSC ∘ A₀ ∘ MSC", "{0,1,2}³",
                     "46 656 × 8³ = 23 887 872", "216³ = 10 077 696",
-                    "Z(G)", "⟨A,B⟩", "S₃³", "SCD, SDC, CSD, DSC, CDS, DCS"):
+                    "Z(H)", "⟨A,B⟩", "S₃³", "SCD, SDC, CSD, DSC, CDS, DCS"):
         assert formula in _text("it") and formula in _text("en"), formula
 
 
@@ -310,7 +323,9 @@ def test_etichette_ui_inglesi_citate_nella_guida_inglese():
         "distribution.tab.histogram", "distribution.tab.data_table",
         "simulator.tab.instructions", "simulator.tab.deck", "simulator.tab.practice",
         # barra azioni e preset
-        "button.count", "button.generate", "button.reset_all", "button.beginner_mode",
+        "button.count", "button.generate", "button.reset_all", "level.label",
+        "level.name.base", "level.name.intermedio", "level.name.avanzato",
+        "level.name.laboratorio",
         "button.cayley", "button.conjugacy", "button.protocol", "button.presentation",
         "button.verify", "button.settings", "button.exit", "button.cancel_export",
         "button.real_game", "button.uniform_j", "button.quick_reset",
@@ -322,8 +337,8 @@ def test_etichette_ui_inglesi_citate_nella_guida_inglese():
         "export.export_all", "shuffle.card_by_card", "shuffle.play",
         "banner.what_this_tab_does", "banner.open_guide",
         "onboarding.step1.title", "onboarding.step2.title", "onboarding.step3.title",
-        "onboarding.button.try_simulator", "onboarding.button.load_real_game",
-        "onboarding.button.go_preview", "onboarding.button.open_guide",
+        "onboarding.button.try_simulator",
+        "onboarding.button.open_table", "onboarding.button.open_guide",
         "export.document.pdf.ace_position", "export.document.pdf.transpose_list",
         "export.document.pdf.undefined_indices",
     ]
@@ -353,4 +368,6 @@ def test_discrepanze_corrette_restano_corrette():
         text = _text(language)
         assert "Genera CSV" not in text and "Genera PDF" not in text
         assert "Accessibile dall'Explorer" not in text
-        assert re.search(r"(sezioni|sections) 26 (e|and) 32", text)
+        from gioco27.gui.guide import numero_sezione
+        a, b = numero_sezione("s26"), numero_sezione("s32")
+        assert re.search(rf"(sezioni|sections) {a} (e|and) {b}", text)

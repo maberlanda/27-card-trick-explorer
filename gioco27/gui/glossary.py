@@ -1,68 +1,50 @@
 """
-Testi della scheda "Inizia qui" e del glossario, in italiano semplice.
+Testi della scheda «Inizia qui», glossario e aiuti delle schede.
 
-Tenuti separati dalla GUI così si possono rivedere senza toccare il codice.
-Ogni voce del glossario è (termine, descrizione_breve, descrizione_estesa):
-la breve compare nella lista, l'estesa nel tooltip al passaggio del mouse.
+Qui restano solo chiavi e struttura: ogni testo leggibile sta nei cataloghi
+di `gioco27/i18n.py` (IT/EN). Il glossario ha due sezioni (DP8, I7):
+
+* **matematico** — i termini tecnici usati nei controlli e nei risultati;
+* **narrativo** — i nomi del libro (Gaia, Cronaca, Giullare, …) come alias:
+  ogni voce rimanda al termine matematico che il libro stesso indica.
+
+Ogni voce ha le chiavi ``glossary.term.<k>``, ``glossary.short.<k>`` e
+``glossary.long.<k>``.
 """
+
+from .i18n import tr
 
 ONBOARD_INTRO = "onboarding.intro"
 
-# (icona/numero, titolo, descrizione)
+#: (icona/numero, chiave del titolo, chiave della descrizione)
 ONBOARD_STEPS = [
-    ("1", "Prova il Simulatore",
-     "onboarding.step1.desc"),
-    ("2", "Sfoglia la Tavola 216",
-     "onboarding.step2.desc"),
-    ("3", "Approfondisci",
-     "onboarding.step3.desc"),
+    ("1", "onboarding.step1.title", "onboarding.step1.desc"),
+    ("2", "onboarding.step2.title", "onboarding.step2.desc"),
+    ("3", "onboarding.step3.title", "onboarding.step3.desc"),
 ]
 
-    # (termine, breve, chiave della descrizione estesa nel catalogo i18n)
-GLOSSARY = [
-    ("MSC",
-     "Il mescolamento di base: distribuisci le 27 carte in 3 colonne e le raccogli.",
-     "glossary.long.msc"),
-    ("Permutazione",
-     "Un modo di rimescolare: a ogni posizione di partenza associa una posizione d'arrivo.",
-     "glossary.long.permutation"),
-    ("Stadio",
-     "Una singola «mossa» del gioco: una raccolta P, il mescolamento MSC e un'orientazione J.",
-     "glossary.long.stage"),
-    ("P (raccolta)",
-     "Come raccogli i tre pacchetti dopo averli messi in colonna.",
-     "glossary.long.collection"),
-    ("Mescolamento",
-     "La sigla funzionale della raccolta: la cifra N va nella N-esima lettera.",
-     "glossary.long.shuffle"),
-    ("Impilamento",
-     "Il gesto fisico: l'ordine dei mazzetti dal dorso verso il fondo.",
-     "glossary.long.stacking"),
-    ("J (orientazione)",
-     "Come orienti o giri il mazzo prima del mescolamento.",
-     "glossary.long.orientation"),
-    ("Gioco Reale",
-     "Un insieme pronto di 1 728 sequenze: l'esempio classico da cui partire.",
-     "glossary.long.real_game"),
-    ("T  /  T⁻¹",
-     "La trasformazione totale delle 3 mosse (T) e la sua inversa (T⁻¹).",
-     "glossary.long.total_transform"),
-    ("Coniugio",
-     "Due mosse «coniugate» fanno la stessa cosa, a meno di rinominare le posizioni.",
-     "glossary.long.conjugacy"),
-    ("Cayley (tavola)",
-     "La tabella di tutti i prodotti possibili tra due mosse del gruppo.",
-     "glossary.long.cayley"),
-    ("Kronecker",
-     "Scompone una mossa in tre pezzi indipendenti: pacchetti, terzine e carte.",
-     "glossary.long.kronecker"),
-    ("Ciclo",
-     "Un gruppetto di posizioni che ruotano tra loro ripetendo la mossa.",
-     "glossary.long.cycle"),
-    ("Ordine",
-     "Quante volte ripetere una mossa per tornare al punto di partenza.",
-     "glossary.long.order"),
-]
+#: Glossario matematico, in ordine didattico (dal gesto alla struttura).
+GLOSSARIO_MATEMATICO = (
+    "card", "position", "msc", "stage", "collection", "shuffle", "stacking",
+    "orientation", "board", "inverse_board", "forgetting_machine",
+    "procedure", "transformation", "permutation", "total_transform", "inverse",
+    "cycle", "order", "fixed_point", "return", "guide_cards", "recovery",
+    "real_game", "kronecker", "local_factor", "separability", "fiber",
+    "fiber_sum", "canonical_form", "conjugacy", "center", "cayley",
+    "group_h", "group_gamma", "s27", "coset",
+)
+
+#: Nomi narrativi del libro (alias, non sostituti dei termini tecnici).
+GLOSSARIO_NARRATIVO = (
+    "gaia", "cronaca", "giullare", "mondo_di_mazzo", "seldon", "prima_crisi",
+    "seconda_crisi",
+)
+
+GLOSSARIO = GLOSSARIO_MATEMATICO + GLOSSARIO_NARRATIVO
+
+#: Compatibilita': (chiave del termine, chiave breve, chiave estesa)
+GLOSSARY = [(f"glossary.term.{k}", f"glossary.short.{k}", f"glossary.long.{k}")
+            for k in GLOSSARIO]
 
 
 # Testi dei banner d'aiuto in cima a ciascuna scheda: chiave -> (breve, esteso)
@@ -84,3 +66,46 @@ TAB_HELP = {
     "tavola": (
         "help.tab.tavola.short", "help.tab.tavola.long"),
 }
+
+#: I7: sotto-schede di ogni scheda → (chiave dell'etichetta, chiave dell'aiuto).
+#: L'aiuto esteso della scheda elenca le sue sotto-schede con una riga ciascuna.
+SOTTOSCHEDE_HELP = {
+    "simulatore": (
+        ("simulator.tab.instructions", "help.sub.istruzioni"),
+        ("simulator.tab.deck", "help.sub.mazzo"),
+        ("simulator.tab.practice", "help.sub.pratica"),
+        ("spectator.tab", "help.sub.spettatore"),
+    ),
+    "tavola": (
+        ("ternary.tab.board", "help.sub.tabellone"),
+        ("ternary.tab.card", "help.sub.una_carta"),
+        ("ternary.tab.positions", "help.sub.posizioni"),
+    ),
+    "explorer": (
+        ("explorer.tab.numeric", "help.sub.numerico"),
+        ("explorer.tab.rewrite", "help.sub.riscrittura"),
+        ("explorer.tab.algebra", "help.sub.algebra"),
+        ("explorer.tab.partial_steps", "help.sub.passi"),
+        ("explorer.tab.canonical", "help.sub.canonica"),
+        ("explorer.tab.matrix", "help.sub.matrice"),
+        ("explorer.tab.shuffle", "help.sub.mescolamento"),
+        ("recognition.tab", "help.sub.riconoscimento"),
+        ("lab.tab", "help.sub.laboratorio"),
+    ),
+    "cicli": (
+        ("cycles.tab.disjoint", "help.sub.cicli_disgiunti"),
+        ("cycles.tab.orbits", "help.sub.orbite"),
+    ),
+}
+
+
+def testo_aiuto_scheda(chiave):
+    """Aiuto esteso della scheda, con una riga per ogni sotto-scheda."""
+    _breve, esteso = TAB_HELP[chiave]
+    testo = tr(esteso)
+    sotto = SOTTOSCHEDE_HELP.get(chiave)
+    if not sotto:
+        return testo
+    righe = [tr("help.sub.heading", count=len(sotto))]
+    righe += [f"•  {tr(etichetta)} — {tr(aiuto)}" for etichetta, aiuto in sotto]
+    return testo + "\n\n" + "\n".join(righe)

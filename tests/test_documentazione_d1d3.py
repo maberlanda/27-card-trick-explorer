@@ -24,17 +24,19 @@ def text():
 
 def _check_groups(text):
     # S3 ha 3! elementi e tre tipi ciclici: identita', trasposizioni, 3-cicli.
+    # I7 (DP2): nei testi utente H = 216, Γ = 648 (esteso), S27 ambiente.
     order, classes = math.factorial(3) ** 3, 3 ** 3
-    assert re.findall(r"\|G\|\s*=\s*(\d+)", text) == [str(order)]
+    assert re.findall(r"\|H\|\s*=\s*(\d+)", text) == [str(order)]
+    assert not re.search(r"\|G\|\s*=|G_ext", text)
     counts = re.findall(r"\b(\d+) classi", text)
     assert counts and set(counts) == {str(classes)}
-    assert not re.search(r"\b648\b|\b17 classi", text)
-    assert "gruppo del gioco G = S₃³" in text
-    assert "gruppo esteso G_ext = ⟨S₃³, MSC⟩" in text
-    assert "MSC non appartiene a G" in text
-    assert re.search(r"per ogni T ∈ G = S₃³ esistono\s+46 656 decomposizioni", text)
+    assert not re.search(r"\|H\|\s*=\s*648|\bH\s*=\s*648|\b17 classi", text)
+    assert "gruppo H ≅ S₃³ delle 216 trasformazioni" in text
+    assert "Γ = ⟨S₃³, MSC⟩ = H ⊔ H∘MSC ⊔ H∘MSC² ha 648 elementi" in text
+    assert "MSC non appartiene a H" in text
+    assert re.search(r"per ogni T ∈ H ≅ S₃³ esistono\s+46 656 decomposizioni", text)
     assert "per MSC si ottengono 0 decomposizioni a tre stadi" in text
-    assert not re.search(r"per ogni T ∈ G\s*=\s*⟨S₃³, MSC⟩", text)
+    assert not re.search(r"per ogni T ∈ Γ", text)
     assert "Aᵢ ∈ GEN3⊗GEN3⊗GEN3" in text
 
 
@@ -42,8 +44,9 @@ def test_d1_gruppi_distinti_e_decomposizioni_nel_sottogruppo(text):
     _check_groups(text)
 
 
-@pytest.mark.parametrize("obsolete", ["|G| = 648", "17 classi di coniugio",
-                                     "per ogni T ∈ G = ⟨S₃³, MSC⟩ esistono sempre 46 656 decomposizioni"])
+@pytest.mark.parametrize("obsolete", ["|H| = 648", "17 classi di coniugio",
+                                     "per ogni T ∈ Γ esistono sempre 46 656 decomposizioni",
+                                     "G_ext = ⟨S₃³, MSC⟩"])
 def test_d1_rifiuta_vecchie_affermazioni_anche_se_coesistono(text, obsolete):
     with pytest.raises(AssertionError):
         _check_groups(text + "\n" + obsolete)

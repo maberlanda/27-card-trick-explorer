@@ -32,7 +32,7 @@ from .conjugacy_dialog import ConjugacyDialog
 from .cayley_dialog import CayleyDialog
 from .presentation import PresentationWindow
 from .protocol_dialog import ProtocolDialog
-from .guide import build_guide_content
+from .guide import build_guide_content, numero_sezione
 from .preview_tab import PreviewTabMixin
 from .analysis_tab import AnalysisTabMixin
 from .barra import BarraAdattiva
@@ -42,7 +42,8 @@ from .onboarding_tab import OnboardingTabMixin
 from . import tooltip as _tooltip
 from .i18n import set_language, tr
 from .help_banner import HelpBanner
-from .glossary import TAB_HELP
+from .glossary import TAB_HELP, testo_aiuto_scheda
+from . import livelli as _livelli
 from . import uifont
 
 _log = get_logger(__name__)
@@ -109,12 +110,15 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
         # delle stringhe esistenti a tr() avverrà in blocchi successivi.
         set_language(self._cfg.get("language", "it"))
         self.title(_window_title(_APP_VER))
-        self._livello = self._cfg.get("livello", "principiante")
-        # Migrazione una-tantum: alla prima apertura della nuova UI guidata
-        # si parte sempre in modalità Principiante (anche su config esistenti).
+        # DP7 (I7): quattro livelli; i valori salvati dalle versioni
+        # precedenti sono migrati da core.config (principiante → base,
+        # esperto → laboratorio).
+        self._livello = _livelli.normalizza(self._cfg.get("livello", "base"))
+        # Alla prima apertura della UI guidata si parte da Base: gli strumenti
+        # non sono rimossi, si mostrano salendo di livello.
         if not self._cfg.get("ui_intro_done", False):
-            self._livello = "principiante"
-            self._cfg["livello"] = "principiante"
+            self._livello = _livelli.BASE
+            self._cfg["livello"] = _livelli.BASE
             self._cfg["ui_intro_done"] = True
             try:
                 self._cfg.save()
@@ -278,9 +282,12 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
                 _tooltip.attach(widget, suggerimento)
             return widget
 
-        _azione(ttk.Button(inner, text=f"🔢  {tr('button.count')}",
-                           style="Action.TButton", command=self._count),
-                tr("tooltip.count"))
+        #: I7 (DP7): azioni della barra governate dal livello (gui/livelli.py)
+        self._azioni_livello = {}
+        self._azioni_livello["conteggio"] = _azione(
+            ttk.Button(inner, text=f"🔢  {tr('button.count')}",
+                       style="Action.TButton", command=self._count),
+            tr("tooltip.count"))
         gen_mb = tk.Menubutton(inner, text=f"⬇  {tr('button.generate')}",
                                relief="raised")
         gen_menu = tk.Menu(gen_mb, tearoff=0)
@@ -289,18 +296,25 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
         gen_menu.add_command(label="📊  CSV (;)", command=self._gen_csv)
         gen_mb["menu"] = gen_menu
         rendi_menu_apribile(gen_mb)
-        _azione(gen_mb, tr("tooltip.generate"))
+        self._azioni_livello["genera"] = _azione(gen_mb, tr("tooltip.generate"))
         _azione(ttk.Button(inner, text=f"↺  {tr('button.reset_all')}",
                            style="Action.TButton", command=self._reset),
                 tr("tooltip.reset_all"))
 
         inner.separatore()
-        self._beginner_var = tk.BooleanVar(
-            value=(self._livello == "principiante"))
-        self._beginner_chk = ttk.Checkbutton(
-            inner, text=f"🎓  {tr('button.beginner_mode')}",
-            variable=self._beginner_var, command=self._toggle_livello)
-        _azione(self._beginner_chk, tr("tooltip.beginner_mode"))
+        # DP7: selettore dei quattro livelli (tastiera: Tab, poi frecce)
+        scelta = ttk.Frame(inner, style="Action.TFrame")
+        ttk.Label(scelta, text=f"🎓  {tr('level.label')}",
+                  style="Status.TLabel").pack(side="left")
+        self._livello_cb = ttk.Combobox(
+            scelta, state="readonly", width=13,
+            values=[tr(f"level.name.{l}") for l in _livelli.LIVELLI])
+        self._livello_cb.current(_livelli.indice(self._livello))
+        self._livello_cb.pack(side="left", padx=(6, 0))
+        self._livello_cb.bind("<<ComboboxSelected>>",
+                              lambda e: self._imposta_livello(
+                                  _livelli.LIVELLI[self._livello_cb.current()]))
+        _azione(scelta, tr("tooltip.level"))
 
         inner.separatore()
 
@@ -311,7 +325,7 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
         self.count_var = tk.StringVar(value="—")
         ttk.Label(count_frame, textvariable=self.count_var,
                   style="Count.TLabel").pack(side="left", padx=(6, 0))
-        _azione(count_frame, None)
+        self._azioni_livello["combinazioni"] = _azione(count_frame, None)
 
         self.status_var = tk.StringVar(value="")
         self._status_lbl = ttk.Label(inner, textvariable=self.status_var,
@@ -322,16 +336,19 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
 
         # ── Strumenti avanzati: a destra quando tutto sta su una riga ─────────
         inner.separatore(padx=6, a_destra=True)
-        _azione(ttk.Button(inner, text=f"🔬  {tr('button.conjugacy')}",
-                           command=self._open_conjugacy),
-                tr("tooltip.conjugacy"), padx=2, a_destra=True)
-        _azione(ttk.Button(inner, text=f"🔮  {tr('button.cayley')}",
-                           command=self._open_cayley),
-                tr("tooltip.cayley"), padx=2, a_destra=True)
+        self._azioni_livello["coniugio"] = _azione(
+            ttk.Button(inner, text=f"🔬  {tr('button.conjugacy')}",
+                       command=self._open_conjugacy),
+            tr("tooltip.conjugacy"), padx=2, a_destra=True)
+        self._azioni_livello["cayley"] = _azione(
+            ttk.Button(inner, text=f"🔮  {tr('button.cayley')}",
+                       command=self._open_cayley),
+            tr("tooltip.cayley"), padx=2, a_destra=True)
         inner.separatore(padx=6, a_destra=True)
-        _azione(ttk.Button(inner, text=f"📋  {tr('button.protocol')}",
-                           command=self._open_protocol),
-                tr("tooltip.protocol"), padx=2, a_destra=True)
+        self._azioni_livello["protocollo"] = _azione(
+            ttk.Button(inner, text=f"📋  {tr('button.protocol')}",
+                       command=self._open_protocol),
+            tr("tooltip.protocol"), padx=2, a_destra=True)
         _azione(ttk.Button(inner, text=f"🖥️  {tr('button.presentation')}",
                            command=self._open_presentation),
                 tr("tooltip.presentation"), padx=2, a_destra=True)
@@ -352,6 +369,7 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
                               bd=0, highlightthickness=0,
                               highlightbackground="#E65100")
         preset_bar.pack(fill="x")
+        self._barra_preset_frame = preset_bar
 
         pinner = BarraAdattiva(preset_bar, padding=(10, 6))
         pinner.pack(fill="x")
@@ -380,6 +398,7 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
         # ── Progress bar + Annulla ────────────────────────────────────────────
         prog_row = ttk.Frame(self)
         prog_row.pack(fill="x", padx=12, pady=(4, 0))
+        self._riga_progresso = prog_row
         self.progress = ttk.Progressbar(prog_row, orient="horizontal",
                                         mode="determinate", length=400)
         self.progress.pack(side="left", fill="x", expand=True)
@@ -417,7 +436,7 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
             wrap = ttk.Frame(nb)
             short_key, long_key = TAB_HELP["stadio"]
             self._mk_banner(wrap, tr(short_key), tr(long_key),
-                            section="12").pack(fill="x")
+                            section="s12").pack(fill="x")
             area = AreaScorrevole(wrap)
             area.pack(fill="both", expand=True)
             ff = FilterFrame(area.contenuto, stage_num=i,
@@ -432,36 +451,34 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
         # Percorso lineare del principiante: gioco → tavola → esplorazione
         self._aggiungi_scheda(
             nb, "simulatore",
-            self._wrap_tab(self._build_simulator_tab, "simulatore", "19"),
+            self._wrap_tab(self._build_simulator_tab, "simulatore", "s19"),
             _shell_tab_text("tab.simulator", "🎩"))
         self._aggiungi_scheda(
-            nb, "tavola", self._wrap_tab(self._build_tavola_tab, "tavola", "11"),
+            nb, "tavola", self._wrap_tab(self._build_tavola_tab, "tavola", "s11"),
             _shell_tab_text("tab.table", "📚"))
         self._aggiungi_scheda(
             nb, "anteprima",
-            self._wrap_tab(self._build_anteprima_tab, "anteprima", "14"),
+            self._wrap_tab(self._build_anteprima_tab, "anteprima", "s14"),
             _shell_tab_text("tab.preview", "🔍"))
         self._aggiungi_scheda(
             nb, "analisi",
-            self._wrap_tab(self._build_analisi_tab, "analisi", "15"),
+            self._wrap_tab(self._build_analisi_tab, "analisi", "s15"),
             _shell_tab_text("tab.analysis", "📊"))
         self._tab_explorer = self._aggiungi_scheda(
             nb, "explorer",
-            self._wrap_tab(self._build_explorer_tab, "explorer", "16"),
+            self._wrap_tab(self._build_explorer_tab, "explorer", "s16"),
             _shell_tab_text("tab.explorer", "🔬"))
         self._aggiungi_scheda(nb, "guida", self._build_guide_tab(nb),
                               _shell_tab_text("tab.guide", "📖"))
         self._tab_cycles = self._aggiungi_scheda(
-            nb, "cicli", self._wrap_tab(self._build_cycles_tab, "cicli", "20"),
+            nb, "cicli", self._wrap_tab(self._build_cycles_tab, "cicli", "s20"),
             _shell_tab_text("tab.cycles", "🔄"))
         self._tab_distrib = self._aggiungi_scheda(
             nb, "distribuzione",
-            self._wrap_tab(self._build_distrib_tab, "distribuzione", "21"),
+            self._wrap_tab(self._build_distrib_tab, "distribuzione", "s21"),
             _shell_tab_text("tab.distribution", "📊"))
 
-        # Schede avanzate: nascoste in modalità principiante
-        self._advanced_tabs = [self._tab_explorer, self._tab_cycles,
-                               self._tab_distrib]
+        # DP7: visibilita' dal mapping dichiarativo di gui/livelli.py
         self._apply_livello()
 
     # ── Legenda colori ────────────────────────────────────────────────────────
@@ -503,7 +520,7 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
         """
         wrap = ttk.Frame(self._nb)
         short_key, long_key = TAB_HELP[key]
-        self._mk_banner(wrap, tr(short_key), tr(long_key),
+        self._mk_banner(wrap, tr(short_key), testo_aiuto_scheda(key),
                         section=section).pack(fill="x")
         area = AreaScorrevole(wrap)
         area.pack(fill="both", expand=True)
@@ -512,35 +529,75 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
         self._aree_scorrevoli[key] = area
         return wrap
 
-    def _toggle_livello(self):
-        self._livello = ("principiante" if self._beginner_var.get()
-                         else "esperto")
+    def _imposta_livello(self, livello):
+        """DP7: cambia livello, lo ricorda nella config e aggiorna le viste."""
+        self._livello = _livelli.normalizza(livello)
         self._cfg["livello"] = self._livello
         self._apply_livello()
 
+    @property
+    def _advanced_tabs(self):
+        """Le schede principali nascoste al livello Base (vista derivata)."""
+        schede = getattr(self, "_schede", None) or {}
+        return [w for k, w in schede.items()
+                if not _livelli.visibile(_livelli.SCHEDE[k], _livelli.BASE)]
+
     def _apply_livello(self):
-        """Mostra/nasconde le schede avanzate secondo la modalità corrente."""
+        """Mostra/nasconde schede, sotto-schede e azioni secondo il livello.
+
+        Solo visibilita': nessun widget viene distrutto e nessuna sessione
+        viene azzerata. Se la scheda aperta sparisce si torna a «Inizia qui».
+        """
+        self._livello = _livelli.normalizza(self._livello)
         nb = getattr(self, "_nb", None)
         if nb is None:
             return
-        beginner = (self._livello == "principiante")
-        hidden = list(getattr(self, "_advanced_tabs", [])) \
-            + list(getattr(self, "_stadi_wraps", []))
-        for tab in hidden:
+        corrente = self._livello
+        schede = getattr(self, "_schede", None) or {}
+        for chiave, widget in schede.items():
+            vedi = _livelli.visibile(_livelli.SCHEDE[chiave], corrente)
             try:
-                nb.tab(tab, state=("hidden" if beginner else "normal"))
+                nb.tab(widget, state=("normal" if vedi else "hidden"))
             except tk.TclError:
                 pass
-        if beginner:
+        try:
+            aperta = nb.select()
+            if aperta and nb.tab(aperta, "state") == "hidden":
+                nb.select(schede.get("inizio", 0))
+        except tk.TclError:
+            pass
+        enb = getattr(self, "_explorer_nb", None)
+        sotto = getattr(self, "_sottoschede_explorer", None) or {}
+        if enb is not None:
+            for chiave, widget in sotto.items():
+                vedi = _livelli.visibile(_livelli.SOTTOSCHEDE_EXPLORER[chiave], corrente)
+                try:
+                    enb.tab(widget, state=("normal" if vedi else "hidden"))
+                except tk.TclError:
+                    pass
             try:
-                sel = nb.select()
-                hidden_ids = {str(t) for t in hidden}
-                if sel in hidden_ids:
-                    nb.select(0)
+                aperta = enb.select()
+                if aperta and enb.tab(aperta, "state") == "hidden":
+                    enb.select(0)
             except tk.TclError:
                 pass
-        if hasattr(self, "_beginner_var"):
-            self._beginner_var.set(beginner)
+        barra = getattr(self, "_barra_azioni", None)
+        for chiave, widget in (getattr(self, "_azioni_livello", None) or {}).items():
+            if barra is not None:
+                barra.mostra(widget, _livelli.visibile(_livelli.AZIONI[chiave], corrente))
+        preset = getattr(self, "_barra_preset_frame", None)
+        if preset is not None:
+            vedi = _livelli.visibile(_livelli.AZIONI["preset"], corrente)
+            if vedi and not preset.winfo_manager():
+                preset.pack(fill="x", before=self._riga_progresso)
+            elif not vedi and preset.winfo_manager():
+                preset.pack_forget()
+        cb = getattr(self, "_livello_cb", None)
+        if cb is not None:
+            cb.current(_livelli.indice(corrente))
+        onb = getattr(self, "_livello_onboarding_var", None)
+        if onb is not None:
+            onb.set(corrente)
         if hasattr(self, "_tavola_frame"):
             self._tavola_frame.aggiorna_navigazione()
 
@@ -580,6 +637,12 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
         """
         self._seleziona_scheda("guida")
         if not section:
+            return
+        # I7: i banner indicano la sezione con l'identificatore stabile
+        # (es. "s12"); il numero mostrato dipende dalla posizione nel percorso.
+        try:
+            section = numero_sezione(section)
+        except KeyError:
             return
         txt = getattr(self, "_guide_text", None)
         mark = getattr(self, "_guide_marks", {}).get(str(section))
@@ -899,6 +962,12 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
                           foreground="#1a7a1a", background="#EAF8EA")
         txt.tag_configure("toc",     font=("Segoe UI", 11), foreground="#2E75B6",
                           lmargin1=20, lmargin2=20)
+        # I7: le parti del percorso (A…M), nell'indice e nel testo
+        txt.tag_configure("tocpart", font=("Segoe UI", 11, "bold"),
+                          foreground="#1F4E79", spacing1=6)
+        txt.tag_configure("part",    font=("Segoe UI", 14, "bold"),
+                          foreground="#1F4E79", background="#EAF2FB",
+                          spacing1=22, spacing3=6)
 
         # Mappa "numero di sezione" -> mark tkinter, popolata mentre la Guida
         # viene scritta. Serve a far funzionare davvero il link «Apri Guida»

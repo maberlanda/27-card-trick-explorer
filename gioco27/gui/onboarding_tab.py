@@ -9,21 +9,9 @@ from tkinter import ttk
 
 from .tooltip import attach as _tip
 from .help_banner import HelpBanner
-from .glossary import GLOSSARY, ONBOARD_STEPS
+from .glossary import GLOSSARIO_MATEMATICO, GLOSSARIO_NARRATIVO, ONBOARD_STEPS
 from .i18n import tr
-
-
-_ONBOARD_STEP_KEYS = (
-    ("onboarding.step1.title", "onboarding.step1.desc"),
-    ("onboarding.step2.title", "onboarding.step2.desc"),
-    ("onboarding.step3.title", "onboarding.step3.desc"),
-)
-
-_GLOSSARY_KEYS = (
-    "msc", "permutation", "stage", "collection", "shuffle", "stacking",
-    "orientation", "real_game", "total_transform", "conjugacy", "cayley",
-    "kronecker", "cycle", "order",
-)
+from . import livelli as _livelli
 
 
 class OnboardingTabMixin:
@@ -75,8 +63,7 @@ class OnboardingTabMixin:
         steps.grid(row=3, column=0, sticky="ew")
         for i in range(3):
             steps.columnconfigure(i, weight=1, uniform="step")
-        for i, (icon, _title, _desc) in enumerate(ONBOARD_STEPS):
-            title_key, desc_key = _ONBOARD_STEP_KEYS[i]
+        for i, (icon, title_key, desc_key) in enumerate(ONBOARD_STEPS):
             title, desc = tr(title_key), tr(desc_key)
             card = tk.Frame(steps, bg="white", bd=0,
                             highlightthickness=1, highlightbackground="#D6E0EC")
@@ -91,51 +78,73 @@ class OnboardingTabMixin:
                      font="GiocoHelp", wraplength=210, justify="left"
                      ).pack(anchor="w", padx=12, pady=(2, 12))
 
+        # ── DP7: i quattro livelli ────────────────────────────────────────────
+        lv = ttk.LabelFrame(body, text=f"  🎓 {tr('onboarding.levels.title')}  ",
+                            padding=10)
+        lv.grid(row=4, column=0, sticky="ew", pady=(14, 0))
+        lv.columnconfigure(1, weight=1)
+        ttk.Label(lv, text=tr("onboarding.levels.intro"), font="GiocoHelp",
+                  wraplength=900, justify="left").grid(
+            row=0, column=0, columnspan=2, sticky="w", pady=(0, 6))
+        self._livello_onboarding_var = tk.StringVar(
+            value=_livelli.normalizza(getattr(self, "_livello", _livelli.BASE)))
+        self._livelli_rb = []
+        for r, livello in enumerate(_livelli.LIVELLI, start=1):
+            rb = ttk.Radiobutton(
+                lv, text=f"{r} · {tr(f'level.name.{livello}')}",
+                value=livello, variable=self._livello_onboarding_var,
+                command=lambda: self._imposta_livello(
+                    self._livello_onboarding_var.get()))
+            rb.grid(row=r, column=0, sticky="w", padx=(0, 12), pady=1)
+            ttk.Label(lv, text=tr(f"level.desc.{livello}"), font="GiocoHelp",
+                      wraplength=760, justify="left").grid(
+                row=r, column=1, sticky="w", pady=1)
+            self._livelli_rb.append(rb)
+
         qa = ttk.LabelFrame(body, text=f"  {tr('onboarding.quick_actions')}  ", padding=10)
-        qa.grid(row=4, column=0, sticky="ew", pady=(14, 0))
-        b0 = ttk.Button(qa, text="🎩  Prova il Simulatore",
+        qa.grid(row=5, column=0, sticky="ew", pady=(14, 0))
+        b0 = ttk.Button(qa, text=f"🎩  {tr('onboarding.button.try_simulator')}",
                         command=lambda: self._seleziona_scheda("simulatore"))
-        b0.configure(text=f"🎩  {tr('onboarding.button.try_simulator')}")
         b0.pack(side="left", padx=(0, 8))
         _tip(b0, tr("tooltip.try_simulator"))
-        b1 = ttk.Button(qa, text="🎴  Carica «Gioco Reale»",
-                        command=getattr(self, "_preset_gioco_reale",
-                                        lambda: None))
-        b1.configure(text=f"🎴  {tr('onboarding.button.load_real_game')}")
+        b1 = ttk.Button(qa, text=f"📚  {tr('onboarding.button.open_table')}",
+                        command=lambda: self._seleziona_scheda("tavola"))
         b1.pack(side="left", padx=8)
-        _tip(b1, tr("tooltip.load_real_game"))
-        b2 = ttk.Button(qa, text="🔍  Vai all'Anteprima",
-                        command=lambda: self._seleziona_scheda("anteprima"))
-        b2.configure(text=f"🔍  {tr('onboarding.button.go_preview')}")
-        b2.pack(side="left", padx=8)
-        _tip(b2, tr("tooltip.preview"))
-        b3 = ttk.Button(qa, text="📖  Apri la Guida completa",
+        _tip(b1, tr("tooltip.open_table"))
+        b3 = ttk.Button(qa, text=f"📖  {tr('onboarding.button.open_guide')}",
                         command=lambda: self._open_guide())
-        b3.configure(text=f"📖  {tr('onboarding.button.open_guide')}")
         b3.pack(side="left", padx=8)
         _tip(b3, tr("banner.open_guide"))
 
-        gl = ttk.LabelFrame(
-            body, text=f"  {tr('onboarding.glossary.title')} — "
-                       f"{tr('onboarding.glossary.subtitle')}  ", padding=(4, 6))
-        gl.grid(row=5, column=0, sticky="ew", pady=(16, 4))
-        gl.columnconfigure(0, weight=1)
-        for r, (source_term, _short, long_key) in enumerate(GLOSSARY):
-            glossary_key = _GLOSSARY_KEYS[r]
-            term = tr(f"glossary.term.{glossary_key}")
-            short = tr(f"glossary.short.{glossary_key}")
-            rowf = tk.Frame(gl, bg="#FAFCFF")
-            rowf.grid(row=r, column=0, sticky="ew", pady=1)
-            rowf.columnconfigure(1, weight=1)
-            t = tk.Label(rowf, text=term, bg="#FAFCFF", fg="#1F4E79",
-                         font="GiocoHelpMonoBold", width=16, anchor="w")
-            t.grid(row=0, column=0, sticky="nw", padx=(6, 8), pady=3)
-            d = tk.Label(rowf, text=short, bg="#FAFCFF", fg="#1a1a2e",
-                         font="GiocoHelp", wraplength=540,
-                         justify="left", anchor="w")
-            d.grid(row=0, column=1, sticky="w", pady=3)
-            long = tr(long_key)
-            _tip(t, long)
-            _tip(d, long)
+        riga = 6
+        for titolo, chiavi in (("onboarding.glossary.math", GLOSSARIO_MATEMATICO),
+                               ("onboarding.glossary.narrative", GLOSSARIO_NARRATIVO)):
+            gl = ttk.LabelFrame(
+                body, text=f"  {tr('onboarding.glossary.title')} — {tr(titolo)}  ",
+                padding=(4, 6))
+            gl.grid(row=riga, column=0, sticky="ew", pady=(16, 4))
+            riga += 1
+            gl.columnconfigure(0, weight=1)
+            if titolo.endswith("narrative"):
+                ttk.Label(gl, text=tr("onboarding.glossary.narrative_note"),
+                          font="GiocoHelpItalic", wraplength=900,
+                          justify="left").grid(row=0, column=0, sticky="w",
+                                               padx=6, pady=(0, 4))
+            for r, chiave in enumerate(chiavi, start=1):
+                term = tr(f"glossary.term.{chiave}")
+                short = tr(f"glossary.short.{chiave}")
+                rowf = tk.Frame(gl, bg="#FAFCFF")
+                rowf.grid(row=r, column=0, sticky="ew", pady=1)
+                rowf.columnconfigure(1, weight=1)
+                t = tk.Label(rowf, text=term, bg="#FAFCFF", fg="#1F4E79",
+                             font="GiocoHelpMonoBold", width=22, anchor="w")
+                t.grid(row=0, column=0, sticky="nw", padx=(6, 8), pady=3)
+                d = tk.Label(rowf, text=short, bg="#FAFCFF", fg="#1a1a2e",
+                             font="GiocoHelp", wraplength=640,
+                             justify="left", anchor="w")
+                d.grid(row=0, column=1, sticky="w", pady=3)
+                long = tr(f"glossary.long.{chiave}")
+                _tip(t, long)
+                _tip(d, long)
 
         return outer

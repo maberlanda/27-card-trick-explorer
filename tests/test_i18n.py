@@ -1031,7 +1031,7 @@ def test_eleventh_block_conjugacy_types_and_placeholders_are_localized():
     assert english_type == "(transp., 3-cycle, id)"
     assert italian_size == english_size == 6
     assert tr("conjugacy.status.ready", class_count=27, center_size=1) == \
-        "Ready  —  27 conjugacy classes,  |Z(G)| = 1"
+        "Ready  —  27 conjugacy classes,  |Z(H)| = 1"
     assert "{(e,e,e)}" in tr("conjugacy.stats.center", identity="e",
                               center_identity="(e,e,e)")
 
@@ -1105,7 +1105,7 @@ def test_twelfth_block_glossary_and_tab_help_resolve_keys():
     from gioco27.gui.glossary import GLOSSARY, TAB_HELP
     from gioco27.gui.i18n import set_language, tr
 
-    assert len(GLOSSARY) == 14
+    assert len(GLOSSARY) == 43            # I7: 36 termini matematici + 7 nomi del libro
     for _, _, long_key in GLOSSARY:
         assert long_key.startswith("glossary.long.")
         assert tr(long_key)
@@ -1178,10 +1178,10 @@ def test_twelfth_block_catalog_additions_are_symmetric_and_counted():
     from gioco27.gui import i18n
 
     assert set(i18n.CATALOGS["it"]) == set(i18n.CATALOGS["en"])
-    assert len([k for k in i18n.CATALOGS["it"] if k.startswith("glossary.long.")]) == 14
+    assert len([k for k in i18n.CATALOGS["it"] if k.startswith("glossary.long.")]) == 43
     assert len([k for k in i18n.CATALOGS["it"] if k.startswith("help.tab.")]) == 16
     assert len([k for k in i18n.CATALOGS["it"] if k.startswith("filter.")]) == 26  # +7 audit finale, +1 H1 (filter.never_empty)
-    assert len(i18n.CATALOGS["it"]) == 1750  # 820 + 354 guide.* + 32 anomalie UI + 82 audit finale + 1 (E) + 3 (F) + 2 (G2) + 22 (H1) + 9 (H2: nota dei filtri, alternative testuali, cornice degli errori su file) + 24 (I2b: pannello ternario, scheda Tabellone) + 30 (I2c: Una carta, 27 posizioni) + 9 (I2d: navigazione) + 53 (I3: errori fisici, conseguenze reali, piano fissato) + 46 (I4: spettatore) + 102 (I5: riconoscimento) + 161 (I6: laboratorio)
+    assert len(i18n.CATALOGS["it"]) == 1960  # 820 + 354 guide.* + 32 anomalie UI + 82 audit finale + 1 (E) + 3 (F) + 2 (G2) + 22 (H1) + 9 (H2: nota dei filtri, alternative testuali, cornice degli errori su file) + 24 (I2b: pannello ternario, scheda Tabellone) + 30 (I2c: Una carta, 27 posizioni) + 9 (I2d: navigazione) + 53 (I3: errori fisici, conseguenze reali, piano fissato) + 46 (I4: spettatore) + 102 (I5: riconoscimento) + 161 (I6: laboratorio) + 210 (I7: livelli, glossario, guida, aiuti; − chiavi obsolete)
 
 
 def _use_config_file(monkeypatch, tmp_path):

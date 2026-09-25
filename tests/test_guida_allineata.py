@@ -101,7 +101,8 @@ def test_indice_e_intestazioni_coincidono(lingua):
     """Ogni voce dell'indice deve avere la sua sezione, e viceversa."""
     toc = _voci_indice(lingua)
     heads = _intestazioni(lingua)
-    assert len(toc) == 33
+    from gioco27.gui.guide import SEZIONI
+    assert len(toc) == len(SEZIONI) == 41
     assert [n for n, _ in toc] == [n for n, _ in heads], (
         "numeri di sezione disallineati fra indice e intestazioni")
     for (n1, t1), (n2, t2) in zip(toc, heads):
@@ -140,11 +141,12 @@ def test_banner_puntano_a_sezioni_esistenti(app_src):
     I `section=` passati ai banner d'aiuto devono esistere nella Guida:
     altrimenti «Apri Guida» non porta da nessuna parte.
     """
-    esistenti = {str(n) for n, _ in _intestazioni()}
-    usate = set(re.findall(r'section="(\d+)"', app_src))
-    usate |= {m for m in re.findall(r'_wrap_tab\([^)]*?,\s*"(\d+)"\)', app_src)}
+    from gioco27.gui.guide import SEZIONI
+    usate = set(re.findall(r'section="(\w+)"', app_src))
+    usate |= {m for m in re.findall(r'_wrap_tab\([^)]*?,\s*"(\w+)"\)', app_src)}
     assert usate, "nessun riferimento di sezione trovato in app.py"
-    assert usate <= esistenti, f"sezioni citate ma inesistenti: {usate - esistenti}"
+    # I7: i banner usano l'identificatore stabile della sezione, non il numero
+    assert usate <= set(SEZIONI), f"sezioni citate ma inesistenti: {usate - set(SEZIONI)}"
 
 
 def test_ogni_scheda_ha_un_riferimento_alla_guida(app_src):
@@ -381,16 +383,33 @@ def test_pulsanti_della_barra_azioni_documentati(guida_norm):
     assert not mancanti, f"pulsanti non documentati nella Guida: {mancanti}"
 
 
-def test_schede_nascoste_in_modalita_principiante(guida, app_src):
+_ETICHETTE_SCHEDE = {
+    "inizio": "tab.start", "simulatore": "tab.simulator", "tavola": "tab.table",
+    "guida": "tab.guide", "anteprima": "tab.preview", "cicli": "tab.cycles",
+    "explorer": "tab.explorer", "analisi": "tab.analysis",
+    "distribuzione": "tab.distribution", "stadio0": "tab.stage",
+    "stadio1": "tab.stage", "stadio2": "tab.stage",
+}
+
+
+@pytest.mark.parametrize("lingua", ["it", "en"])
+def test_livelli_documentati_come_nel_mapping(lingua):
     """
-    §29 elenca le schede visibili in modalità Principiante: deve corrispondere
-    a quello che _apply_livello nasconde davvero.
+    I7 (DP7): la Guida (§ «Livelli») e «Inizia qui» descrivono i livelli con
+    le stesse righe `level.desc.*`; ogni scheda compare nella descrizione del
+    SUO livello minimo, cosi' Guida e mapping non possono divergere.
     """
-    assert "_advanced_tabs = [self._tab_explorer, self._tab_cycles,\n" \
-           "                               self._tab_distrib]" in app_src, \
-        "l'elenco delle schede avanzate è cambiato: aggiornare la Guida (§29)"
-    for nome in ("Explorer", "Cicli", "Distribuzione"):
-        assert nome in guida
+    from gioco27.gui import livelli
+    from gioco27.gui.i18n import CATALOGS
+    cat = CATALOGS[lingua]
+    guida = _norm(_testo_guida(lingua))
+    assert set(_ETICHETTE_SCHEDE) == set(livelli.SCHEDE)
+    for chiave, etichetta in _ETICHETTE_SCHEDE.items():
+        nome = cat[etichetta].replace(" {number}", "")
+        assert nome in cat[f"level.desc.{livelli.SCHEDE[chiave]}"], (chiave, nome)
+    for livello in livelli.LIVELLI:
+        assert _norm(cat[f"level.name.{livello}"]) in guida
+        assert _norm(cat[f"level.desc.{livello}"]) in guida
 
 
 def test_glossario_tab_help_copre_tutte_le_schede(app_src):
@@ -407,8 +426,10 @@ def test_azioni_rapide_di_inizia_qui_documentate(guida_norm):
     §29 elencava tre azioni rapide quando erano quattro: mancava
     «Prova il Simulatore».
     """
+    from gioco27.gui.i18n import tr
     src = (ROOT / "gioco27" / "gui" / "onboarding_tab.py").read_text(encoding="utf-8")
-    etichette = re.findall(r'ttk\.Button\(qa, text="([^"]*)"', src)
+    chiavi = re.findall(r"ttk\.Button\(qa, text=f\"[^\"]*\{tr\('([\w.]+)'\)\}", src)
+    etichette = [tr(k) for k in chiavi]
     assert len(etichette) >= 3, "azioni rapide non individuate"
     for e in etichette:
         assert _norm(e) in guida_norm, \
@@ -418,6 +439,8 @@ def test_azioni_rapide_di_inizia_qui_documentate(guida_norm):
 def test_passi_di_onboarding_documentati(guida_norm):
     """I titoli dei tre passi della scheda «Inizia qui»."""
     from gioco27.gui.glossary import ONBOARD_STEPS
-    for _icona, titolo, _desc in ONBOARD_STEPS:
+    from gioco27.gui.i18n import tr
+    for _icona, chiave, _desc in ONBOARD_STEPS:
+        titolo = tr(chiave)
         assert _norm(titolo) in guida_norm, \
             f"passo «{titolo}» di «Inizia qui» non documentato nella Guida"
