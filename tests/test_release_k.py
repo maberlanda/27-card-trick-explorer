@@ -136,6 +136,7 @@ def test_ogni_import_esterno_e_dichiarato():
                    progetto["dependencies"] + extra["export"] + extra["test"] + extra["build"]}
                   if n != "gioco27"}
     std = set(getattr(sys, "stdlib_module_names", ())) or pytest.skip("Python < 3.10")
+    std.add("tomllib")                       # stdlib da 3.11; su 3.10 si usa tomli
     importati = set()
     sorgenti = list((ROOT / "gioco27").rglob("*.py")) + list((ROOT / "tests").glob("*.py"))
     for p in sorgenti:
