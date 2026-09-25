@@ -1,15 +1,22 @@
-# Dipendenze di Gioco delle 27 Carte
+# Gioco delle 27 carte — installazione DESKTOP COMPLETA (runtime + export)
 #
-# OBBLIGATORIE
-numpy>=1.20
-# (tkinter fa parte della libreria standard ma su Linux va installato a parte:
-#  sudo apt install python3-tk)
+# Politica delle dipendenze (compartimento K):
+#   * pyproject.toml e' la fonte autorevole: numpy e' l'unica dipendenza
+#     obbligatoria; gli export sono l'extra `export`.
+#   * questo file installa TUTTO cio' che serve per usare ogni funzione del
+#     programma: equivale a   pip install .[export]
+#   * requirements-dev.txt aggiunge test, analisi statica e build.
 #
-# OPZIONALI — servono solo per gli export. Il programma parte e funziona anche
-# senza: i pulsanti di export lo segnalano. Per installarle tutte in un colpo:
-#     pip install .[export]
-reportlab>=3.6   # opzionale: export in PDF
-openpyxl>=3.0    # opzionale: export in Excel (.xlsx)
-pypdf>=3.0       # opzionale: unione dei PDF nell'export parallelo
-pikepdf>=8.0     # opzionale: deduplica le risorse nei PDF uniti
-                 #            (senza, i PDF paralleli pesano ~50% in piu')
+# tkinter NON si installa con pip: fa parte della distribuzione di Python
+# (Windows/macOS da python.org) o del sistema (Linux: sudo apt install python3-tk).
+# Verifica:   python controlla_requisiti.py
+
+# OBBLIGATORIA
+numpy>=1.21
+
+# FACOLTATIVE (extra `export`): il programma parte anche senza, e i
+# rispettivi export lo segnalano.
+reportlab>=3.6   # export PDF
+openpyxl>=3.0    # export Excel (.xlsx)
+pypdf>=3.0       # unione dei PDF nell'export parallelo
+pikepdf>=8.0     # deduplica delle risorse nei PDF uniti (senza: ~50% piu' pesanti)

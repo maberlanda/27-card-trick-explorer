@@ -1,41 +1,79 @@
 [build-system]
-requires = ["setuptools>=68"]
+# setuptools >= 77: metadati di licenza PEP 639 (`license` SPDX, `license-files`).
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "gioco27"
-version = "3.1.3"
+# Fonte unica della versione: gioco27/__init__.py (__version__), letta
+# staticamente da setuptools (vedi [tool.setuptools.dynamic]).
+dynamic = ["version"]
 description = "Gioco delle 27 carte — analisi combinatoria e algebrica del trucco delle 27 carte"
 readme = "README.md"
-requires-python = ">=3.9"
-license = { text = "Proprietary" }
+# 3.10–3.14 certificate dalla suite (docs/release/K_RELEASE_CANDIDATE_CLOSED.md § 6).
+requires-python = ">=3.10"
+license = "GPL-3.0-only"
+license-files = ["LICENSE", "gioco27/assets/LICENSE-DejaVu.txt"]
 authors = [{ name = "Maurizio Berlanda" }]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Operating System :: OS Independent",
+    "Environment :: X11 Applications",
+    "Environment :: Win32 (MS Windows)",
+    "Intended Audience :: Education",
+    "Topic :: Scientific/Engineering :: Mathematics",
+    "Natural Language :: Italian",
+    "Natural Language :: English",
+]
+# Runtime: solo numpy. Tkinter fa parte della distribuzione di Python (o del
+# sistema, es. `python3-tk`), non e' una wheel PyPI e non si dichiara qui.
 dependencies = [
-    "numpy>=1.20",
+    "numpy>=1.21",
 ]
 
+[project.urls]
+"Articolo associato" = "https://github.com/maberlanda/27-card-tensor-structure"
+
 [project.optional-dependencies]
+# Export facoltativi: senza, il programma parte e quei formati lo segnalano.
 export = [
-    "reportlab>=3.6",   # export PDF
-    "openpyxl>=3.0",    # export Excel (.xlsx)
-    "pypdf>=3.0",       # unione PDF nell'export parallelo
-    "pikepdf>=8.0",     # deduplicazione risorse nei PDF uniti
+    "reportlab>=3.6",   # PDF (standard, esteso, dettagliato)
+    "openpyxl>=3.0",    # Excel (.xlsx) dell'Analisi
+    "pypdf>=3.0",       # unione dei PDF nell'export parallelo
+    "pikepdf>=8.0",     # deduplica delle risorse nei PDF uniti
 ]
-dev = [
-    "gioco27[export]",
+# Solo per i test e l'analisi statica.
+test = [
     "pytest>=7.0",
     "pyflakes>=3.0",
+    "pypdfium2>=4.0",   # rasterizza il PDF in tests/test_layout_dettaglio.py (N03)
+    "pillow>=9.0",      # richiesto da pypdfium2 .to_pil() nello stesso test
+]
+# Costruzione degli artefatti (sdist/wheel, eseguibile PyInstaller).
+build = [
+    "build>=1.0",
     "pyinstaller>=6.0",
+]
+dev = [
+    "gioco27[export,test,build]",
 ]
 
 [project.gui-scripts]
 gioco27 = "gioco27.__main__:main"
 
+[project.scripts]
+# CLI batch del compartimento J (niente Tk); stessa funzione di `python -m gioco27 <comando>`.
+gioco27-cli = "gioco27.cli:main_console"
+
+[tool.setuptools.dynamic]
+version = { attr = "gioco27.__version__" }
+
 [tool.setuptools.packages.find]
 include = ["gioco27*"]
 
 [tool.setuptools.package-data]
-gioco27 = ["assets/*.ttf"]
+gioco27 = ["assets/*.ttf", "assets/LICENSE-DejaVu.txt"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

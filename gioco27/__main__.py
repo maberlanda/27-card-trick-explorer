@@ -9,7 +9,7 @@ def _comandi_cli():
 
 def main():
     # J: comandi batch senza Tk (python -m gioco27 validate|replay|…|--help)
-    if len(sys.argv) > 1 and (sys.argv[1] in _comandi_cli() or sys.argv[1] in ("-h", "--help")):
+    if len(sys.argv) > 1 and (sys.argv[1] in _comandi_cli() or sys.argv[1] in ("-h", "--help", "--version")):
         from .cli import main as cli_main
         sys.exit(cli_main(sys.argv[1:]))
 

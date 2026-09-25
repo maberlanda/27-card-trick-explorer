@@ -70,7 +70,7 @@ def test_guida_completa_in_italiano():
     for phrase in ("Gioco delle 27 carte  —  Guida completa & How-To",
                    "Il gioco delle 27 carte è un classico trucco di magia matematica",
                    "Relazione fondamentale di commutazione con MSC",
-                   "Il programma richiede Python 3.9 o superiore",
+                   "Il programma richiede Python 3.10 o superiore",
                    "Domande frequenti (FAQ)",
                    "I nove sotto-tab"):
         assert phrase in text
@@ -87,7 +87,7 @@ def test_guida_completa_in_inglese():
     for phrase in ("27-card trick  —  Complete Guide & How-To",
                    "The 27-card trick is a classic piece of mathematical magic",
                    "Fundamental commutation relation with MSC",
-                   "The program requires Python 3.9 or later",
+                   "The program requires Python 3.10 or later",
                    "Frequently asked questions (FAQ)",
                    "The nine sub-tabs", "the nine sub-tabs"):
         assert phrase in text

@@ -1,4 +1,12 @@
-# Dipendenze per sviluppo e test di Gioco delle 27 Carte
+# Gioco delle 27 carte — sviluppo, test e build (equivale a  pip install .[dev])
 -r requirements.txt
+
+# test / analisi statica (extra `test`)
 pytest>=7.0
-pyflakes>=3.0      # test statico (tests/test_static.py)
+pyflakes>=3.0       # tests/test_static.py
+pypdfium2>=4.0      # tests/test_layout_dettaglio.py rasterizza il PDF (N03)
+pillow>=9.0         # richiesto da pypdfium2 .to_pil() nello stesso test
+
+# build (extra `build`)
+build>=1.0          # sdist e wheel
+pyinstaller>=6.0    # eseguibile desktop (gioco27.spec)

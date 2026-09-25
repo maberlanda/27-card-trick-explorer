@@ -30,6 +30,7 @@ import argparse
 import json
 import sys
 
+from . import __version__
 from .i18n import set_language, tr
 
 __all__ = ["main", "COMANDI", "USCITA"]
@@ -64,6 +65,7 @@ class _Uscita:
 def _parser():
     p = argparse.ArgumentParser(prog="python -m gioco27",
                                 description=tr("cli.description"))
+    p.add_argument("--version", action="version", version=f"gioco27 {__version__}")
     sub = p.add_subparsers(dest="comando", metavar="{" + ",".join(COMANDI) + "}")
 
     def comune(sp):
@@ -320,3 +322,8 @@ def main(argv=None, flusso=None) -> int:
     if a.comando == "replay":
         return _cmd_validate(a, out, replay=True)
     return comandi[a.comando](a, out)
+
+
+def main_console() -> None:
+    """Entry point installato `gioco27-cli` (console): esce col codice di `main`."""
+    sys.exit(main())
