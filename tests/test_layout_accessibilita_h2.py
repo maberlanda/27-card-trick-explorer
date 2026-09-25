@@ -1753,8 +1753,9 @@ def test_explorer_le_altre_sotto_schede_restano_come_prima(applicazione):
     nb = applicazione._explorer_nb
     assert int(str(nb.cget("height"))) > 0
     for indice in range(len(nb.tabs())):
-        if nb.tabs()[indice] == str(applicazione._mat_scheda):
-            continue
+        if nb.tabs()[indice] in (str(applicazione._mat_scheda),
+                                 str(applicazione._riconoscimento)):
+            continue                                   # pagine compatte (I5 incluso)
         nb.select(indice)
         applicazione.update()
         assert int(str(nb.cget("height"))) == 0
