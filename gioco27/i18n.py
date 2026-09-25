@@ -2002,6 +2002,14 @@ _ITALIAN = {
     "guide.s30.math.title": "  Termini matematici",
     "guide.s30.narrative.title": "  Nomi del libro",
     "guide.s30.narrative.note": "Nomi narrativi usati nel libro come alias. Nel programma i controlli e i risultati usano sempre il termine tecnico indicato.\n",
+    # ── I7: firma dei blocchi (L11) e Cor. 5.2 (A13) ──
+    "guide.i2m.signature.title": "  La firma dei blocchi e l'elemento mancante (§ 1.10)",
+    "guide.i2m.signature": "I tre blocchi Bⱼ, le posizioni da 9j a 9j + 8 (quelle con n₂ = j), hanno somme 36, 117, 198 (Prop. 1.7): la somma non cambia se il blocco viene rimescolato, quindi riconosce il blocco ma non il suo ordine interno. Poiché le firme distano 81, più di qualunque differenza tra due posizioni, se da un blocco manca un solo elemento la somma S₈ degli otto rimasti dice sia il blocco sia l'elemento mancante (Prop. 1.8):\n\n",
+    "guide.i2m.signature.example": "Esempio: gli otto valori rimasti sommano S₈ = 104. Solo il blocco B₁ ha S₈ fra 100 e 108 (per B₀ fra 28 e 36, per B₂ fra 172 e 180), quindi j = 1 e x = 36 + 81 − 104 = 13: manca la posizione centrale. Il Riconoscimento usa le stesse somme, livello per livello (sezione {ref_i5}).\n\n",
+    "guide.i1.reversals.title": "  Rovesciamenti e raccolte (App. D, Cor. 5.2)",
+    "guide.i1.reversals": "Con la convenzione del programma (il mazzo si rovescia prima della distribuzione dello stadio) la cifra di livello i subisce i rovesciamenti degli stadi 0…i prima della raccolta Sᵢ e quelli degli stadi successivi dopo. Nota la storia ε, il fattore finale Qᵢ della trasformazione e la raccolta fisica Sᵢ si ricavano l'uno dall'altra (R è il rovesciamento locale d ↦ 2 − d, con R ∘ R = identità):\n\n",
+    "guide.i1.reversals.example": "Esempio (App. D, Es. 7.2): S₀ = (0 1 2), S₁ = (0 1), S₂ = (0 2) con ε = (1, 0, 1) danno Q₀ = (0 2 1), Q₁ = (1 2), Q₂ = (0 2); la posizione 5 = (0,1,2) finisce in 25 = (2,2,1). Il programma rispetta la formula su tutte le 1 728 procedure.\n\n",
+    "guide.i1.reversals.note": "Attenzione al verso: le somme di fibra e i fattori finali ricostruiscono la trasformazione, non la storia ε che l'ha prodotta — le 8 procedure di una stessa trasformazione hanno lo stesso tabellone. Se invece ε è nota, le tre raccolte si ricostruiscono in modo unico con la formula inversa.\n",
 }
 
 _ENGLISH = {
@@ -3994,6 +4002,14 @@ _ENGLISH = {
     "guide.s30.math.title": "  Mathematical terms",
     "guide.s30.narrative.title": "  Names from the book",
     "guide.s30.narrative.note": "Narrative names used in the book as aliases. In the program the controls and results always use the technical term indicated.\n",
+    # ── I7: firma dei blocchi (L11) e Cor. 5.2 (A13) ──
+    "guide.i2m.signature.title": "  The block signature and the missing element (§ 1.10)",
+    "guide.i2m.signature": "The three blocks Bⱼ, the positions from 9j to 9j + 8 (those with n₂ = j), have sums 36, 117, 198 (Prop. 1.7): the sum does not change if the block is reshuffled, so it recognises the block but not its inner order. Since the signatures are 81 apart, more than any difference between two positions, if a single element is missing from a block the sum S₈ of the remaining eight tells both the block and the missing element (Prop. 1.8):\n\n",
+    "guide.i2m.signature.example": "Example: the eight remaining values sum to S₈ = 104. Only block B₁ has S₈ between 100 and 108 (for B₀ between 28 and 36, for B₂ between 172 and 180), so j = 1 and x = 36 + 81 − 104 = 13: the central position is missing. Recognition uses the same sums, level by level (section {ref_i5}).\n\n",
+    "guide.i1.reversals.title": "  Reversals and pickups (App. D, Cor. 5.2)",
+    "guide.i1.reversals": "With the program's convention (the deck is reversed before the stage's deal) the level-i digit undergoes the reversals of stages 0…i before the pickup Sᵢ and those of the later stages after it. Given the history ε, the final factor Qᵢ of the transformation and the physical pickup Sᵢ are derived from each other (R is the local reversal d ↦ 2 − d, with R ∘ R = identity):\n\n",
+    "guide.i1.reversals.example": "Example (App. D, Ex. 7.2): S₀ = (0 1 2), S₁ = (0 1), S₂ = (0 2) with ε = (1, 0, 1) give Q₀ = (0 2 1), Q₁ = (1 2), Q₂ = (0 2); position 5 = (0,1,2) ends in 25 = (2,2,1). The program satisfies the formula on all 1 728 procedures.\n\n",
+    "guide.i1.reversals.note": "Mind the direction: fibre sums and final factors rebuild the transformation, not the history ε that produced it — the 8 procedures of one transformation have the same board. If instead ε is known, the three pickups are rebuilt uniquely with the inverse formula.\n",
 }
 
 

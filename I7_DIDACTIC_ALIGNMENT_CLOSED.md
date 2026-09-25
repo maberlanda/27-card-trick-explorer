@@ -1,7 +1,7 @@
 # I7 — Percorso didattico, guida, glossario e livelli
 
-**Stato: CHIUSO**, con tre righe P0/P1 dell'audit fuori da I7 la cui
-giustificazione va approvata (§ 11). Non è stata aggiunta matematica e non
+**Stato: CHIUSO.** 43 righe P0/P1 su 44 hanno D = sì; l'unica eccezione è
+L90, rinviata a J con approvazione (§ 11). Non è stata aggiunta matematica e non
 sono stati toccati gli algoritmi di I1–I6. J e K non sono stati iniziati;
 nessun push.
 
@@ -9,9 +9,9 @@ nessun push.
 |---|---|
 | HEAD iniziale | `7c308c8` (main, `origin/main` = `54445af`, 120 avanti) |
 | Baseline | 2179 raccolti · 2177 passati · 1 skipped · 1 failure nota Tk9 |
-| Suite finale | **2240 raccolti · 2238 passati · 1 skipped · 1 failure nota Tk9** |
-| Test nuovi | 61 (`test_didattica_i7.py` 39, H2 20, D1 +1, guida allineata +1) |
-| Catalogo i18n | 1750 → 1960 chiavi per lingua, IT/EN simmetrici |
+| Suite finale | **2242 raccolti · 2240 passati · 1 skipped · 1 failure nota Tk9** |
+| Test nuovi | 63 (`test_didattica_i7.py` 41, H2 20, D1 +1, guida allineata +1) |
+| Catalogo i18n | 1750 → 1967 chiavi per lingua, IT/EN simmetrici |
 
 ---
 
@@ -117,7 +117,7 @@ riordinare le parti non rompe nessun collegamento.
 |---|---|
 | A Inizia qui | 1 livelli e interfaccia (s29) · 2 flusso consigliato (s25) |
 | B Il gesto fisico | 3 gioco fisico (s01) · 4 Simulatore (s19) |
-| C Posizioni e base 3 | 5 coordinate (s02) · 6 MSC (s03) · **7 macchina che dimentica (i2m)** |
+| C Posizioni e base 3 | 5 coordinate (s02) · 6 MSC (s03) · **7 macchina che dimentica e firma dei blocchi (i2m)** |
 | D Tavola e tabellone | 8 P (s04) · 9 J (s05) · 10 Gioco Reale (s10) · 11 Tavola (s11) · **12 tabellone diretto/inverso, (R), ritorno (i2t)** |
 | E Permutazioni, inversa, cicli e matrici | 13–15 modello (s06–s08) · 16 Anteprima (s14) · 17 Cicli (s20) · 18 Matrice (s17) · 19 Mescolamento (s18) |
 | F Procedure ed equivalenze | **20 procedura, trasformazione, carta al bersaglio (i1)** |
@@ -139,8 +139,8 @@ Il test `test_ogni_funzionalita_i1_i6_ha_una_spiegazione` controlla la copertura
 
 | Compartimento | Dove | Contenuto |
 |---|---|---|
-| I1 | § 20 | procedura (#, m); 216 × 8 = 1 728; 8 procedure per trasformazione (esempio J); le tre relazioni; fibra di 64; costi k1/k2/k3; strategia storica (= Simulatore, 729/729) e variante sicura (386 coppie diverse, senza vista); controesempio «stessa carta ≠ stessa trasformazione» |
-| I2 | § 7, § 12 | tabellone diretto/inverso, ternario, macchina che dimentica (P′ = ⌊P/3⌋ + 9·s), n → Π(n) → n′, rev ω(n), ε, (R), ritorno; controesempio T(10) = 5 ≠ T⁻¹(10) = 6 |
+| I1 | § 20 | procedura (#, m); rovesciamenti e raccolte (App. D, Cor. 5.2, con l'Es. 7.2); 216 × 8 = 1 728; 8 procedure per trasformazione (esempio J); le tre relazioni; fibra di 64; costi k1/k2/k3; strategia storica (= Simulatore, 729/729) e variante sicura (386 coppie diverse, senza vista); controesempio «stessa carta ≠ stessa trasformazione» |
+| I2 | § 7, § 12 | firma dei blocchi 36/117/198 ed elemento mancante x = 36 + 81j − S₈ (§ 1.10); tabellone diretto/inverso, ternario, macchina che dimentica (P′ = ⌊P/3⌋ + 9·s), n → Π(n) → n′, rev ω(n), ε, (R), ritorno; controesempio T(10) = 5 ≠ T⁻¹(10) = 6 |
 | I3 | § 21 | le due modalità; ordine fisico; E1–E6 con perimetro (E6 solo catalogo); previsto ≠ eseguito; recupero; perché E1 ed E4 non si recuperano; piano fissato |
 | I4 | § 22 | 27 → 9 → 3 → 1; protocollo adattivo; ordine noto; B12 con l'esempio #100 |
 | I5 | § 24 | separabilità, riconoscimento diretto, somme di fibra (formula e C₀, C₁, C₂), avanti/indietro, Teor. 6.4, due guide, A1, A8, v → w, C1/C9/C18; controesempio delle somme equilibrate («intero non basta») |
@@ -230,7 +230,7 @@ Explorer → Matrice, Riconoscimento e Laboratorio restano verdi (suite H2, I5 e
 
 ## 9. i18n
 
-* Catalogo: +210 chiavi nette; rimosse le chiavi obsolete, tra cui `button.beginner_mode`,
+* Catalogo: +217 chiavi nette (+7 della correzione finale per L11 e A13); rimosse le chiavi obsolete, tra cui `button.beginner_mode`,
   `tooltip.beginner_mode`, `onboarding.button.go_preview`, `guide.s30.terms` e `guide.s29.mode.items`.
 * Aggiornati i tre test di conteggio.
 * Oltre ai conteggi, due test sulle chiavi:
@@ -263,15 +263,34 @@ quella frase sia davvero lì.
 
 | Esito | Righe |
 |---|---|
-| **D = sì dopo I7** (41 righe) | L04 L05 L06 L07 L08 L09 L10 L12 L14 L15 L18 L20 L21 L22 L23 L26 L35 L36 L39 L44 L46 L54 L55 L57 L58 L59 L63 L67 L70 L81 L91 L93 L95 L97 L106 · A02 A04 A06 A07a A09 A12 (ramo 27) |
-| **Fuori da I7, giustificazione da approvare** (3 righe) | **L11**: Prop. 1.8, elemento mancante di un blocco dalle somme; nessuno strumento lo calcola, servirebbe matematica nuova (la firma 36/117/198 è spiegata). **L90**: tabellone cumulativo di una successione di procedure; non esiste nel programma. **A13**: formula di inversione di App. D Cor. 5.2 con rovesciamenti; fonte ambigua (audit § 2.2), nessuna decisione (rovesciamento e fibra di 8 sono spiegati). |
+| **D = sì dopo I7** (43 righe su 44) | L04 L05 L06 L07 L08 L09 L10 **L11** L12 L14 L15 L18 L20 L21 L22 L23 L26 L35 L36 L39 L44 L46 L54 L55 L57 L58 L59 L63 L67 L70 L81 L91 L93 L95 L97 L106 · A02 A04 A06 A07a A09 A12 (ramo 27) **A13** |
+| **Rinvio approvato** (1 riga) | **L90**: tabellone cumulativo di una successione di procedure. È fuori da I7 perché richiede una successione di Procedure, il tabellone cumulativo e il replay, che il programma non ha. **Proprietario futuro: J.** Non è stato implementato nulla. |
 | Ramo 21 di A12 | oltre il perimetro 4.0 per l'audit stesso; citato solo nella storia |
+
+Chiusure della correzione finale:
+
+* **L11 — Libro § 1.10, Prop. 1.7–1.8** (Guida § 7, «La firma dei blocchi e l'elemento mancante»):
+  * le firme sono ΣBⱼ = 36 + 81j (36, 117, 198), invarianti per riordino;
+  * sono distanti 81, quindi dalla somma S₈ di un blocco con un elemento mancante si ricava x = 36 + 81j − S₈;
+  * esempio: S₈ = 104 cade fra 100 e 108, quindi j = 1 e x = 13.
+
+  Il test `test_l11_…` verifica le tre firme, i tre intervalli disgiunti ({28…36}, {100…108}, {172…180}), la formula
+  per ogni elemento rimosso e l'esempio. Nessuna nuova vista.
+* **A13 — App. D, Cor. 5.2** (Guida § 20, «Rovesciamenti e raccolte»):
+  * formule, con somme mod 2: uᵢ = ε₀ + … + εᵢ, vᵢ = εᵢ₊₁ + … + εₘ₋₁; Qᵢ = R^vᵢ ∘ Sᵢ ∘ R^uᵢ; Sᵢ = R^vᵢ ∘ Qᵢ ∘ R^uᵢ;
+  * esempio dell'Es. 7.2: ε = (1, 0, 1), la posizione 5 va in 25;
+  * la Guida chiarisce che somme di fibra e fattori finali non ricostruiscono da soli la storia ε (le 8 procedure
+    di una trasformazione hanno lo stesso tabellone), mentre con ε nota le raccolte si ricostruiscono in modo unico.
+
+  La vecchia motivazione del rinvio («fonte ambigua / decisione non presa») non vale più: DP1 = C e DP3 = A sono
+  approvate. Il test `test_a13_…` verifica il corollario con la convenzione del programma sulle 1 728 procedure,
+  l'Es. 7.2 e le 8 storie ε distinte di J.
 
 ## 12. Suite
 
 La suite è stata eseguita file per file (56 file):
 
-* **2240 raccolti, 2238 passati, 1 skipped, 1 failure**;
+* **2242 raccolti, 2240 passati, 1 skipped, 1 failure**;
 * la failure è quella nota Tk9, `test_lo_scorrimento_si_accende_quando_il_testo_cresce`: **nessuna nuova
   failure**;
 * comprese la baseline matematica (25/25) e le suite I1–I6.
@@ -327,7 +346,7 @@ La suite è stata eseguita file per file (56 file):
 * **Aiuti delle sotto-schede.** Stanno nell'aiuto esteso della scheda madre, non in un banner per ogni sotto-scheda:
   un banner in più avrebbe tolto altezza alle pagine compatte a 1280×720.
 * **Variante sicura di I1**: descritta, ma ancora senza vista.
-* **Righe L11, L90 e A13** (§ 11): da approvare, oppure da assegnare a un compartimento successivo.
+* **L90 → J** (rinvio approvato): successione di Procedure, tabellone cumulativo e replay.
 * **Lunghezza della Guida.** Le sezioni storiche del modello algebrico (§ 13–15, § 37–40) sono rimaste com'erano,
   salvo le correzioni; ora 41 sezioni.
 * **Azioni sempre visibili**: Presentazione, Verifica, Impostazioni ed Esci compaiono a tutti i livelli.
@@ -341,4 +360,5 @@ La suite è stata eseguita file per file (56 file):
 | `e7ad4ad` | feat(I7): percorso della Guida, glossario, onboarding, aiuti, DP2 |
 | `56e04d8` | test(I7): allineamento didattico, livelli, H2 |
 | `2d1ebfb` | docs(I7): lacune didattiche P0/P1 e matrice eseguibile |
-| (questo) | docs(I7): chiusura |
+| `5a44841` | docs(I7): chiusura |
+| (questo) | docs(I7): chiusura di L11 e A13, rinvio di L90 a J |

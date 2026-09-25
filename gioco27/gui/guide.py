@@ -661,6 +661,10 @@ def _i2m(ins, sep):
     ins("body", _t("guide.i2m.example"))
     ins("body", _t("guide.i2m.epsilon"))
     ins("body", _t("guide.i2m.positions"))
+    ins("h3", _t("guide.i2m.signature.title") + "\n")
+    ins("body", _t("guide.i2m.signature"))
+    ins("formula", "    Σ Bⱼ  =  36 + 81j   (36, 117, 198)          x  =  36 + 81j − S₈\n\n")
+    ins("body", _t("guide.i2m.signature.example"))
     ins("note", _t("guide.i2m.note"))
     sep()
 
@@ -691,6 +695,13 @@ def _i1(ins, sep):
     ins("bullet", _t("guide.i1.strategies"))
     ins("note", _t("guide.i1.where"))
     ins("warn", _t("guide.i1.counterexample"))
+    ins("h3", _t("guide.i1.reversals.title") + "\n")
+    ins("body", _t("guide.i1.reversals"))
+    ins("formula",
+        "    uᵢ = ε₀ + … + εᵢ  (mod 2)          vᵢ = εᵢ₊₁ + … + εₘ₋₁  (mod 2)\n"
+        "    Qᵢ = R^vᵢ ∘ Sᵢ ∘ R^uᵢ             Sᵢ = R^vᵢ ∘ Qᵢ ∘ R^uᵢ\n\n")
+    ins("body", _t("guide.i1.reversals.example"))
+    ins("note", _t("guide.i1.reversals.note"))
     sep()
 
 

@@ -430,6 +430,7 @@ COPERTURA_AUDIT = {
     "L08": ("i2m", "P′  =  ⌊P / 3⌋  +  9·s"),
     "L09": ("i2m", "cifra che esce e cifra che entra"),
     "L10": ("i2m", "rev ω(n)"),
+    "L11": ("i2m", "x  =  36 + 81j − S₈"),
     "L12": ("i5", "mazzo finale della riga #195"),
     "L14": ("i5", "T[carta] = posizione finale"),
     "L15": ("s01", "contando da 0"),
@@ -464,15 +465,13 @@ COPERTURA_AUDIT = {
     "A07a": ("i5", "C₀ = 108,  C₁ = 90,  C₂ = 36"),
     "A09": ("i6", "7 tipi ciclici"),
     "A12": ("i4", "27  →  9  →  3  →  1"),
+    "A13": ("i1", "Qᵢ = R^vᵢ ∘ Sᵢ ∘ R^uᵢ"),
 }
 
-#: righe P0/P1 che restano fuori da I7, con il motivo (da approvare).
+#: righe P0/P1 fuori da I7: unica eccezione, rinvio approvato.
 FUORI_I7 = {
-    "L11": "Prop. 1.8 (elemento mancante di un blocco dalle somme): nessuno strumento lo calcola; "
-           "la firma 36/117/198 e' spiegata (i5). Richiederebbe matematica nuova.",
-    "L90": "tabellone cumulativo di una successione di procedure: nessuna funzione nel programma.",
-    "A13": "formula di inversione di App. D Cor. 5.2 con rovesciamenti: fonte ambigua (audit § 2.2), "
-           "nessuna decisione; il rovesciamento e le 8 procedure sono spiegati (i1, i2m).",
+    "L90": "rinvio approvato: richiede successione di Procedure / tabellone cumulativo / "
+           "replay; proprietario futuro = J.",
 }
 
 
@@ -486,6 +485,54 @@ def test_matrice_audit_p0_p1_didattica():
     assert p0p1, "matrice V4 non letta"
     assert set(COPERTURA_AUDIT) | set(FUORI_I7) >= p0p1 - {"L37"}, \
         sorted(p0p1 - set(COPERTURA_AUDIT) - set(FUORI_I7))
+    assert len(p0p1 - {"L37"}) == 44 and set(FUORI_I7) == {"L90"}
+    assert len(set(COPERTURA_AUDIT) & p0p1) == 43
     sezioni = _sezioni("it")
     for riga, (sid, frase) in COPERTURA_AUDIT.items():
         assert frase in sezioni[sid], (riga, sid, frase)
+
+
+def test_l11_firma_dei_blocchi_e_elemento_mancante():
+    """Libro § 1.10, Prop. 1.7–1.8, e l'esempio della Guida (S₈ = 104 → 13)."""
+    blocchi = [range(9 * j, 9 * j + 9) for j in range(3)]
+    assert [sum(b) for b in blocchi] == [36 + 81 * j for j in range(3)] == [36, 117, 198]
+    intervalli = []
+    for j, b in enumerate(blocchi):
+        s8 = {sum(b) - x: x for x in b}
+        intervalli.append((min(s8), max(s8)))
+        for somma, x in s8.items():
+            assert 36 + 81 * j - somma == x
+    assert intervalli == [(28, 36), (100, 108), (172, 180)]
+    assert 36 + 81 * 1 - 104 == 13
+
+
+def test_a13_corollario_5_2_su_tutte_le_procedure():
+    """App. D Cor. 5.2 con la convenzione DP3 = A del programma, e l'Es. 7.2."""
+    from itertools import product
+    from gioco27.services.procedure import ProceduraGioco
+    s = servizio_procedure()
+    R, ident = (2, 1, 0), (0, 1, 2)
+
+    def comp(a, b):
+        return tuple(a[b[x]] for x in range(3))
+
+    def rp(k):
+        return R if k % 2 else ident
+    for sig, eps in product(product(gr.SIGLE, repeat=3), product((0, 1), repeat=3)):
+        fattori = rc.separabile(s.trasformazione(ProceduraGioco(sig, eps))).fattori
+        for i in range(3):
+            u, v = sum(eps[:i + 1]) % 2, sum(eps[i + 1:]) % 2
+            S = tuple(gr.MESCOLAMENTO[sig[i]])
+            assert comp(rp(v), comp(S, rp(u))) == tuple(fattori[i])
+            assert comp(rp(v), comp(tuple(fattori[i]), rp(u))) == S
+    # Es. 7.2: S0 = (0 1 2), S1 = (0 1), S2 = (0 2) in cicli; ε = (1, 0, 1)
+    S = ((1, 2, 0), (1, 0, 2), (2, 1, 0))
+    eps = (1, 0, 1)
+    Q = [comp(rp(sum(eps[i + 1:])), comp(S[i], rp(sum(eps[:i + 1])))) for i in range(3)]
+    assert Q == [(2, 0, 1), (0, 2, 1), (2, 1, 0)]          # (0 2 1), (1 2), (0 2)
+    d2, d1, d0 = gr.digits3(5)
+    assert 9 * Q[2][d2] + 3 * Q[1][d1] + Q[0][d0] == 25
+    # le 8 procedure di una trasformazione hanno lo stesso tabellone: ε non si ricostruisce
+    J = tuple(26 - i for i in range(27))
+    storie = {p.rovesciamenti for p in s.classe_trasformazione(J)}
+    assert len(storie) == 8
