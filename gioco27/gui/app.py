@@ -554,6 +554,12 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
             return
         corrente = self._livello
         schede = getattr(self, "_schede", None) or {}
+        # la selezione va letta PRIMA di nascondere: Tk sposta da solo la
+        # scheda aperta sulla successiva visibile
+        try:
+            aperta = nb.select()
+        except tk.TclError:
+            aperta = ""
         for chiave, widget in schede.items():
             vedi = _livelli.visibile(_livelli.SCHEDE[chiave], corrente)
             try:
@@ -561,14 +567,19 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
             except tk.TclError:
                 pass
         try:
-            aperta = nb.select()
             if aperta and nb.tab(aperta, "state") == "hidden":
                 nb.select(schede.get("inizio", 0))
         except tk.TclError:
             pass
         enb = getattr(self, "_explorer_nb", None)
         sotto = getattr(self, "_sottoschede_explorer", None) or {}
-        if enb is not None:
+        # Le sotto-schede contano solo quando l'Explorer stesso e' visibile
+        # (ttk non nasconde l'ultima sotto-scheda rimasta di un notebook).
+        if enb is not None and _livelli.visibile(_livelli.SCHEDE["explorer"], corrente):
+            try:
+                aperta = enb.select()
+            except tk.TclError:
+                aperta = ""
             for chiave, widget in sotto.items():
                 vedi = _livelli.visibile(_livelli.SOTTOSCHEDE_EXPLORER[chiave], corrente)
                 try:
@@ -576,7 +587,6 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
                 except tk.TclError:
                     pass
             try:
-                aperta = enb.select()
                 if aperta and enb.tab(aperta, "state") == "hidden":
                     enb.select(0)
             except tk.TclError:

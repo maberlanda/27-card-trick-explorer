@@ -2020,3 +2020,86 @@ def test_i6_la_vista_sta_in_1280_anche_in_inglese(lingua):
         assert vista.winfo_reqheight() <= 640, vista.winfo_reqheight()
     finally:
         radice.destroy()
+
+
+# ═════════════════ I7: livelli, onboarding e Guida (H2) ══════════════════════
+
+@pytest.mark.parametrize("geometria", TARGET)
+@pytest.mark.parametrize("livello", ["base", "intermedio", "avanzato", "laboratorio"])
+def test_i7_selettore_di_livello_sempre_raggiungibile(applicazione, geometria, livello):
+    try:
+        applicazione._imposta_livello(livello)
+        _dimensiona(applicazione, geometria)
+        barra = applicazione._barra_azioni
+        assert applicazione._livello_cb.winfo_ismapped()
+        assert _oltre_il_bordo(applicazione, [applicazione._livello_cb]) == []
+        persi = _perduti([w for w in barra.voci() if w.winfo_manager()])
+        assert [_etichetta(w) for w in persi] == []
+        assert applicazione._livello_cb.cget("takefocus") in ("", "1", 1, True) \
+            or str(applicazione._livello_cb.cget("state")) == "readonly"
+    finally:
+        applicazione._livello = "esperto"            # legacy: normalizzato a laboratorio
+        applicazione._apply_livello()
+        applicazione.update()
+
+
+@pytest.mark.parametrize("geometria", TARGET)
+def test_i7_onboarding_livelli_e_glossario_senza_barra_orizzontale(applicazione, geometria):
+    _dimensiona(applicazione, geometria)
+    applicazione._seleziona_scheda("inizio")
+    applicazione.update()
+    scheda = applicazione._schede["inizio"]
+    larghezza = scheda.winfo_width()
+    for rb in applicazione._livelli_rb:
+        assert rb.winfo_ismapped()
+        assert rb.winfo_rootx() + rb.winfo_width() <= scheda.winfo_rootx() + larghezza + 1
+    tele = [w for w in _discendenti(scheda, (tk.Canvas,))]
+    assert tele, "l'onboarding scorre in un Canvas"
+    for tela in tele:
+        assert tela.xview() == (0.0, 1.0)
+    # tastiera: i quattro livelli sono in fila nell'ordine di Tab
+    primo = applicazione._livelli_rb[0]
+    primo.focus_set()
+    applicazione.update()
+    visti, w = [], primo
+    for _ in range(12):
+        if w in applicazione._livelli_rb and w not in visti:
+            visti.append(w)
+        w = w.tk_focusNext()
+    assert visti == applicazione._livelli_rb
+
+
+@pytest.mark.parametrize("geometria", TARGET)
+def test_i7_guida_scorre_a_ogni_sezione_senza_barra_orizzontale(applicazione, geometria):
+    from gioco27.gui.guide import SEZIONI, numero_sezione
+    _dimensiona(applicazione, geometria)
+    txt = applicazione._guide_text
+    assert str(txt.cget("wrap")) == "word"
+    assert sorted(applicazione._guide_marks, key=int) == [str(n) for n in range(1, len(SEZIONI) + 1)]
+    for sid in ("s12", "i3", "i6", "storia", "s30"):
+        applicazione._open_guide(sid)
+        applicazione.update()
+        mark = applicazione._guide_marks[str(numero_sezione(sid))]
+        assert txt.bbox(mark) is not None, sid                 # la sezione e' in vista
+        assert txt.xview() == (0.0, 1.0)
+
+
+@pytest.mark.parametrize("lingua_", ["it", "en"])
+def test_i7_onboarding_sta_in_1280_nelle_due_lingue(lingua, lingua_):
+    from types import SimpleNamespace
+    from gioco27.gui.onboarding_tab import OnboardingTabMixin
+    lingua(lingua_)
+    radice = _display_o_salta()
+    try:
+        radice.deiconify()
+        radice.geometry("1280x720")
+        finto = SimpleNamespace(_livello="base", _imposta_livello=lambda l: None,
+                                _seleziona_scheda=lambda k: None, _open_guide=lambda s=None: None)
+        pagina = OnboardingTabMixin._build_onboarding_tab(finto, radice)
+        pagina.pack(fill="both", expand=True)
+        radice.update()
+        assert len(finto._livelli_rb) == 4
+        corpo = pagina.winfo_children()[0].winfo_children()[0]      # canvas → body
+        assert corpo.winfo_reqwidth() <= 1260, corpo.winfo_reqwidth()
+    finally:
+        radice.destroy()
