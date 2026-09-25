@@ -91,6 +91,7 @@ class ExplorerTabMixin:
         enb = ttk.Notebook(outer)
         enb.grid(row=2, column=0, sticky="nsew")
         self._explorer_nb = enb
+        enb.bind("<<NotebookTabChanged>>", self._exp_adatta_altezza, add="+")
         self._build_explorer_tab_numeric(enb)
         self._build_explorer_tab_rewrite(enb)
         self._build_explorer_tab_algebra(enb)
@@ -99,6 +100,41 @@ class ExplorerTabMixin:
         self._build_explorer_tab_matrix(enb)
         self._build_explorer_tab_shuffle(enb)
         return outer
+
+    def _exp_adatta_altezza(self, _evento=None):
+        """Matrice: il riquadro delle sotto-schede e' alto quanto il contenuto.
+
+        Un `ttk.Notebook` chiede l'altezza della sua sotto-scheda piu' alta
+        (671 px) e la riga dell'Explorer lo allunga ancora (weight=1): sotto i
+        pannelli della Matrice restava un grande vuoto grigio, e lo
+        scorrimento H2 lo attraversava. Con Matrice selezionata l'altezza del
+        riquadro e' quella richiesta dalla pagina e la riga non si allunga;
+        le altre sotto-schede tornano al comportamento di prima.
+        """
+        nb = getattr(self, "_explorer_nb", None)
+        pagina = getattr(self, "_mat_scheda", None)
+        if nb is None or pagina is None:
+            return
+        try:
+            matrice = nb.select() == str(pagina)
+            if matrice:
+                pagina.update_idletasks()
+                nb.configure(height=pagina.winfo_reqheight())
+                nb.master.rowconfigure(2, weight=0)
+            else:
+                nb.configure(height=0)
+                nb.master.rowconfigure(2, weight=1)
+        except tk.TclError:
+            return
+        area = getattr(self, "_aree_scorrevoli", {}).get("explorer")
+        if area is not None:
+            # prima si propaga la nuova altezza richiesta, poi l'area
+            # scorrevole ricalcola regione e barre sul contenuto reale
+            try:
+                area.update_idletasks()
+            except tk.TclError:
+                return
+            area.ricalcola()
 
     # ── Explorer sub-tab helpers ──────────────────────────────────────────────
 
@@ -320,14 +356,16 @@ class ExplorerTabMixin:
         della parte alta della griglia: visibili appena si apre la sotto-scheda
         anche a 1280×720, senza scorrere.
         """
-        # CELL 8: la griglia 27×27 (218 px) entra intera, con i fattori e il
-        # testo, nell'area visibile anche a 1280×720, in italiano e in inglese,
-        # con lo scorrimento in cima.
-        CELL  = 8
+        # CELL 12: griglia 27×27 di 328 px, la dimensione originale. I fattori
+        # stanno accanto alla sua parte alta; lo spazio verticale non si
+        # recupera rimpicciolendola, ma togliendo il vuoto sotto (vedi
+        # `_exp_adatta_altezza`).
+        CELL  = 12
         SMALL = 20
 
         outer = ttk.Frame(nb, padding=(8, 2, 8, 4))
         nb.add(outer, text=f"  \U0001f4d0  {tr('explorer.tab.matrix')}  ")
+        self._mat_scheda = outer
         outer.columnconfigure(0, weight=1)
         outer.columnconfigure(1, weight=1)
         outer.rowconfigure(1, weight=1)
@@ -366,7 +404,7 @@ class ExplorerTabMixin:
                                text=tr("explorer.matrix.canonical_empty"),
                                font=("Consolas", 9),
                                foreground="#555",
-                               wraplength=360, justify="left")
+                               wraplength=220, justify="left")
             cf_lbl.grid(row=0, column=1, sticky="nw")
 
             factors_row = ttk.Frame(corpo)
