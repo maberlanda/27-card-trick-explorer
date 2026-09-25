@@ -104,6 +104,14 @@ class ExplorerTabMixin:
         self._build_explorer_tab_shuffle(enb)
         self._build_explorer_tab_riconoscimento(enb)
         self._build_explorer_tab_laboratorio(enb)
+        # K: nove linguette in una riga. Gli spazi attorno alle etichette
+        # facevano da margine: con DejaVu Sans (il font di ripiego di Tk 8.6
+        # su Linux) la riga superava i 1242 px utili a 1280×720 e compariva la
+        # barra orizzontale (H2). Il margine lo da' ora lo stile, piu' stretto.
+        ttk.Style(enb).configure("Explorer.TNotebook.Tab", padding=(6, 2))
+        enb.configure(style="Explorer.TNotebook")
+        for scheda in enb.tabs():
+            enb.tab(scheda, text=" ".join(enb.tab(scheda, "text").split()))
         # I7 (DP7): chiavi stabili delle nove sotto-schede, per il livello
         self._sottoschede_explorer = dict(zip(
             _livelli.ORDINE_SOTTOSCHEDE_EXPLORER,
@@ -156,7 +164,10 @@ class ExplorerTabMixin:
         fr = ttk.Frame(parent)
         fr.rowconfigure(0, weight=1)
         fr.columnconfigure(0, weight=1)
-        w = tk.Text(fr, height=height, font=font,
+        # width=1: la larghezza la decide il layout (sticky/fill). Il default di
+        # Tk (80 caratteri) con i font monospazio di ripiego di Linux rendeva
+        # due colonne affiancate piu' larghe di 1280 px (K, CI con Tk 8.6).
+        w = tk.Text(fr, height=height, width=1, font=font,
                     bg="#FAFCFF", fg="#1a1a2e",
                     padx=6, pady=4, relief="flat", wrap=wrap, state="disabled")
         sb = ttk.Scrollbar(fr, orient="vertical", command=w.yview)
@@ -294,7 +305,7 @@ class ExplorerTabMixin:
         ]):
             box = ttk.LabelFrame(row_meta, text=f"  {label}  ", padding=(6, 4))
             box.grid(row=0, column=col_i, sticky="nsew", padx=4)
-            w = tk.Text(box, height=1, font=("Consolas", 10, "bold"),
+            w = tk.Text(box, height=1, width=1, font=("Consolas", 10, "bold"),
                         bg="#EBF5FB", fg="#1F4E79",
                         padx=4, pady=2, relief="flat", state="disabled")
             w.pack(fill="x")

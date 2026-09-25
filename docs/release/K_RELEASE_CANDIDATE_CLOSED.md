@@ -444,3 +444,55 @@ file ignorato residuo nel repository (`build/`, `gioco27.egg-info/` rimossi);
 nessun push, nessun tag.
 
 **AUDIT FINALE MATEMATICO, TERMINOLOGICO E LINGUISTICO: ANCORA DA ESEGUIRE.**
+
+---
+
+## 25. Dopo la chiusura: push e primo run reale della CI
+
+**Push.** Alle 23:13:00 UTC del 2026-09-25, un minuto dopo il commit di
+chiusura `6e77210`, `origin/main` è stato aggiornato a `6e77210` da un push
+dell'account `maberlanda` (confermato dall'utente: push fatto per errore dal
+proprio client Git). Nessun comando K contiene `git push`. K-G34 va quindi
+letto così: **nessun push eseguito da K**; il remoto è comunque allineato a
+`6e77210`. La scelta se mantenere o revocare quel push è dell'utente.
+
+**Run CI #1** (`ci`, evento push su `6e77210`, runner GitHub reali):
+
+| job | esito |
+|---|---|
+| static + core, Python 3.10 · 3.11 · 3.12 · 3.13 · 3.14 | ✔ success |
+| sdist, wheel, installazione pulita | ✔ success |
+| Windows (3.12) + PyInstaller | ✔ success — `avvia.bat --selftest`, test senza GUI, build PyInstaller Windows, avvio dell'eseguibile (selftest e CLI per codice di uscita), licenze presenti, nessun PDF |
+| suite completa xvfb, Python 3.10–3.14 | ✘ failure |
+
+Con il run reale diventano PASS anche K-G20 (CI eseguita, non solo
+configurata, tranne il job GUI) e la parte Windows di K-G24 (build eseguita e
+avvio verde; lo smoke della GUI Windows non è automatizzato).
+
+**Causa del job GUI rosso** (i log richiedono l'accesso a GitHub: riprodotta
+in locale con lo stesso interprete di setup-python, CPython 3.12.14 per
+Ubuntu 22.04 collegato al Tk **8.6.12 di sistema**): con il Tk di sistema il
+font predefinito è **DejaVu Sans**, più largo e più alto del Nimbus Sans
+usato dal Tk 9 degli interpreti standalone su cui H2 e K erano stati
+certificati. Due effetti in `test_layout_accessibilita_h2.py` (18 fallimenti,
+tutti a 1280×720 e 1366×768, tutti nell'Explorer):
+
+1. **Barra orizzontale** — bug reale di layout su Linux: i `tk.Text`
+   dell'Explorer avevano la larghezza predefinita di Tk (80 caratteri), due
+   colonne affiancate facevano 1348 px, e le nove linguette con gli spazi di
+   margine 1309 px, contro i 1242 px utili. **Corretto** (commit successivo):
+   larghezza decisa dal layout (`width=1` con `sticky`/`fill`), margine delle
+   linguette dato da uno stile (`Explorer.TNotebook.Tab`) invece che dagli
+   spazi. Contenuto a 1280×720: 1392 → 1234 px. 13 fallimenti su 18
+   risolti; nessun cambiamento con Tk 9.
+2. **Visibile senza scorrere** — restano 5 controlli: a 1280×720 e 1366×768
+   l'elenco del Laboratorio e la barra delle sezioni del Riconoscimento
+   finiscono qualche decina di pixel sotto il bordo della vista (si
+   raggiungono scorrendo). Con Tk 9 il margine era di soli 3–5 px. Non è una
+   regressione di K: è un limite preesistente del layout H2 con font più
+   alti. Correggerlo richiede di compattare l'intestazione dell'Explorer, cioè
+   una modifica di interfaccia fuori dal perimetro di K: **rinviato, da
+   decidere** (non marcato come «noto», non disattivato).
+
+Il resto della suite, sullo stesso interprete con Tk 8.6.12, è verde
+file per file. Nessuna nuova failure su Tk 9 dopo la correzione.
