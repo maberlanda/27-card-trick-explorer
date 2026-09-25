@@ -475,8 +475,8 @@ class ConjugacyExportDialog(_PreviewExportDialog):
             "% " + tr("export.document.conjugacy.latex.classes"),
             "% " + tr("export.document.latex.requires_booktabs_longtable"),
             "",
-            f"$|G| = {len(gd.kron_arr)}$, \\quad {tr('export.document.conjugacy.class_count')}: "
-            f"${len(classes)}$, \\quad $|Z(G)| = {len(gd.center)}$.",
+            f"$|H| = {len(gd.kron_arr)}$, \\quad {tr('export.document.conjugacy.class_count')}: "
+            f"${len(classes)}$, \\quad $|Z(H)| = {len(gd.center)}$.",
             "",
             "% --- " + tr("export.document.conjugacy.summary") + " ---",
             "\\begin{center}",
