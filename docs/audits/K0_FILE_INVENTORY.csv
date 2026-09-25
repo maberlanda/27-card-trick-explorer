@@ -1,0 +1,186 @@
+path,category,tracked,referenced,purpose,action,reason,risk
+.gitattributes,D BUILD / CONFIGURATION,yes,named in 4 file(s),Auto detect text files and perform LF normalization,KEEP,normalizzazione dei fine riga (text=auto),low
+.gitignore,D BUILD / CONFIGURATION,yes,named in 12 file(s),Byte-compiled / optimized / DLL files,KEEP,"modello GitHub Python, invariato; '*.spec' esclude gioco27.spec (N04 -> K)",low
+LICENSE,E USER DOCUMENTATION CURRENT,yes,named in 4 file(s),GNU General Public License v3,KEEP,"GPL v3, coerente col README; incoerente con pyproject license=Proprietary -> K (packaging)",low
+README.md,E USER DOCUMENTATION CURRENT,yes,named in 9 file(s),Gioco delle 27 carte,KEEP,documentazione utente corrente; K0 aggiunge la sezione Documentazione,low
+avvia.bat,I SCRIPT / TOOL,yes,named in 6 file(s),@echo off,KEEP,"launcher Windows (README, Guida s28); resta in radice accanto a gioco27.py",low
+conftest.py,D BUILD / CONFIGURATION,yes,named in 11 file(s),Configurazione pytest: rende importabile il package `gioco27` dai test.,KEEP,rende importabile il package dai test; deve stare nella radice,low
+controlla_requisiti.py,I SCRIPT / TOOL,yes,named in 10 file(s),Controlla che le dipendenze di «Gioco delle 27 carte» siano installate.,KEEP,"diagnostica per l'utente (README, Guida s28, test_guida_allineata, test_static); resta in radice",low
+docs/README.md,F DEVELOPER DOCUMENTATION CURRENT,yes,named in 9 file(s),Documentazione del progetto,KEEP,indice della documentazione di progetto (nuovo in K0),low
+docs/audits/K0_FILE_INVENTORY.csv,G PROJECT AUDIT / DESIGN,yes,named in 3 file(s),"path,category,tracked,referenced,purpose,action,reason,risk",KEEP,questo inventario (deliverable K0),low
+docs/audits/V4_COVERAGE_MATRIX.csv,G PROJECT AUDIT / DESIGN,yes,named in 6 file(s),"""ID"";""Fonte"";""Posizione fonte"";""Concetto"";""Obiettivo matematico"";""Obiettivo didattico"";""C"";""V"";""I"";""D"";""Stato"";""Evidenza programma"";""Gap"";""P",MOVE,"da V4_COVERAGE_MATRIX.csv (git mv, contenuto invariato); letta da tests/test_didattica_i7.py; documento corrente",low
+docs/audits/V4_MATHEMATICAL_DIDACTIC_COVERAGE_AUDIT.md,G PROJECT AUDIT / DESIGN,yes,named in 8 file(s),V4 — Audit di copertura matematica e didattica,MOVE,"da V4_MATHEMATICAL_DIDACTIC_COVERAGE_AUDIT.md (git mv, contenuto invariato); catalogo autorevole citato da services/errori.py e dai test I3/I7; corrente",low
+docs/decisions/GIT_BASELINE_AND_RECONCILIATION.md,G PROJECT AUDIT / DESIGN,yes,named in 12 file(s),GIT_BASELINE_AND_RECONCILIATION,MOVE,"da GIT_BASELINE_AND_RECONCILIATION.md (git mv, contenuto invariato)",low
+docs/decisions/V4_PRE_I1_PRODUCT_DECISIONS.md,G PROJECT AUDIT / DESIGN,yes,named in 7 file(s),"V4 — Decisioni di prodotto pre-I1 (DP3, DP4, DP5)",MOVE,"da V4_PRE_I1_PRODUCT_DECISIONS.md (git mv, contenuto invariato)",low
+docs/decisions/V4_PRE_I2_VIEW_DECISIONS.md,G PROJECT AUDIT / DESIGN,yes,named in 9 file(s),"V4 — Decisioni pre-I2: tabellone, livello ternario e collegamenti fra viste",MOVE,"da V4_PRE_I2_VIEW_DECISIONS.md (git mv, contenuto invariato)",low
+docs/decisions/V4_PRE_I5_DECISIONS.md,G PROJECT AUDIT / DESIGN,yes,named in 3 file(s),V4 PRE-I5 — Decisioni DP1 e DP10,MOVE,"da V4_PRE_I5_DECISIONS.md (git mv, contenuto invariato)",low
+docs/history/A_BASELINE_CLOSED.md,H HISTORICAL / CLOSED,yes,named in 8 file(s),A_BASELINE_CLOSED — chiusura del compartimento A,MOVE,"da A_BASELINE_CLOSED.md (git mv, contenuto invariato)",low
+docs/history/B_IO_CLOSED.md,H HISTORICAL / CLOSED,yes,named in 5 file(s),B_IO_CLOSED — chiusura del compartimento B (Integrità I/O),MOVE,"da B_IO_CLOSED.md (git mv, contenuto invariato)",low
+docs/history/C_STATE_CLOSED.md,H HISTORICAL / CLOSED,yes,named in 4 file(s),C_STATE_CLOSED — chiusura del compartimento C (Stato e concorrenza),MOVE,"da C_STATE_CLOSED.md (git mv, contenuto invariato)",low
+docs/history/D_DOMAIN_CLOSED.md,H HISTORICAL / CLOSED,yes,named in 6 file(s),D_DOMAIN_CLOSED — chiusura del compartimento D (Dominio matematico),MOVE,"da D_DOMAIN_CLOSED.md (git mv, contenuto invariato)",low
+docs/history/E_LANGUAGE_SIMULATION_CLOSED.md,H HISTORICAL / CLOSED,yes,named in 3 file(s),"E_LANGUAGE_SIMULATION_CLOSED — chiusura del compartimento E (Linguaggio, AST e simulazione)",MOVE,"da E_LANGUAGE_SIMULATION_CLOSED.md (git mv, contenuto invariato)",low
+docs/history/F_ANALYSIS_CLOSED.md,H HISTORICAL / CLOSED,yes,named in 3 file(s),"F_ANALYSIS_CLOSED — chiusura del compartimento F (Analisi, filtri, aggregazione e performance)",MOVE,"da F_ANALYSIS_CLOSED.md (git mv, contenuto invariato)",low
+docs/history/G1_SERVICES_MODELS_CLOSED.md,H HISTORICAL / CLOSED,yes,named in 2 file(s),G1_SERVICES_MODELS_CLOSED — modelli applicativi e confini dei servizi,MOVE,"da G1_SERVICES_MODELS_CLOSED.md (git mv, contenuto invariato)",low
+docs/history/G2_LIFECYCLE_PERSISTENCE_CLOSED.md,H HISTORICAL / CLOSED,yes,named in 3 file(s),"G2 — Lifecycle dei lavori, persistenza ed export",MOVE,"da G2_LIFECYCLE_PERSISTENCE_CLOSED.md (git mv, contenuto invariato)",low
+docs/history/H1_PRESENTATION_I18N_CLOSED.md,H HISTORICAL / CLOSED,yes,named in 3 file(s),H1 — Correttezza della presentation e localizzazione,MOVE,"da H1_PRESENTATION_I18N_CLOSED.md (git mv, contenuto invariato)",low
+docs/history/H2_ACCESSIBILITY_LAYOUT_CLOSED.md,H HISTORICAL / CLOSED,yes,named in 2 file(s),"H2 — Layout adattivo, tastiera e accessibilità",MOVE,"da H2_ACCESSIBILITY_LAYOUT_CLOSED.md (git mv, contenuto invariato)",low
+docs/history/I1_PROCEDURE_EQUIVALENCES_CLOSED.md,H HISTORICAL / CLOSED,yes,named in 2 file(s),"I1 — Modello di procedura, relazioni e strategie: chiusura",MOVE,"da I1_PROCEDURE_EQUIVALENCES_CLOSED.md (git mv, contenuto invariato)",low
+docs/history/I2_BOARD_TERNARY_CLOSED.md,H HISTORICAL / CLOSED,yes,named in 2 file(s),"I2 — Tabellone, livello ternario e collegamenti fra viste: chiusura",MOVE,"da I2_BOARD_TERNARY_CLOSED.md (git mv, contenuto invariato)",low
+docs/history/I3_PHYSICAL_ERRORS_RECOVERY_CLOSED.md,H HISTORICAL / CLOSED,yes,named in 2 file(s),"I3 — Traccia fisica, errori e recupero: chiusura",MOVE,"da I3_PHYSICAL_ERRORS_RECOVERY_CLOSED.md (git mv, contenuto invariato)",low
+docs/history/I4_SPECTATOR_INFORMATION_CLOSED.md,H HISTORICAL / CLOSED,yes,named in 2 file(s),I4 — Spettatore e dinamica informativa: chiusura,MOVE,"da I4_SPECTATOR_INFORMATION_CLOSED.md (git mv, contenuto invariato)",low
+docs/history/I5_DECODING_RECOGNITION_CLOSED.md,H HISTORICAL / CLOSED,yes,named in 2 file(s),I5 — Decodifica e riconoscimento: resoconto di chiusura,MOVE,"da I5_DECODING_RECOGNITION_CLOSED.md (git mv, contenuto invariato)",low
+docs/history/I6_MATHEMATICAL_LAB_CLOSED.md,H HISTORICAL / CLOSED,yes,named in 1 file(s),"I6 — Laboratorio matematico: proprietà, gruppo di riferimento e piccoli grafi",MOVE,"da I6_MATHEMATICAL_LAB_CLOSED.md (git mv, contenuto invariato)",low
+docs/history/I7_DIDACTIC_ALIGNMENT_CLOSED.md,H HISTORICAL / CLOSED,yes,named in 1 file(s),"I7 — Percorso didattico, guida, glossario e livelli",MOVE,"da I7_DIDACTIC_ALIGNMENT_CLOSED.md (git mv, contenuto invariato)",low
+docs/history/J_EXPERIMENTS_REPRODUCIBILITY_CLOSED.md,H HISTORICAL / CLOSED,yes,named in 2 file(s),"J — Esperimenti, sessioni, cronologia, undo/redo e riproducibilità",MOVE,"da J_EXPERIMENTS_REPRODUCIBILITY_CLOSED.md (git mv, contenuto invariato)",low
+docs/history/K0_REPOSITORY_CLEANUP_CLOSED.md,H HISTORICAL / CLOSED,yes,no textual reference,K0 — Bonifica completa e riordino strutturale del repository,KEEP,documento di chiusura K0,low
+docs/release/NOTE_VERSIONE_3.1.1.md,H HISTORICAL / CLOSED,yes,named in 5 file(s),Gioco delle 27 carte — note della versione 3.1.1,MOVE,"da NOTE_VERSIONE_3.1.1.md (git mv, contenuto invariato)",low
+docs/release/NOTE_VERSIONE_3.1.3.md,H HISTORICAL / CLOSED,yes,named in 3 file(s),Gioco delle 27 carte — note della versione 3.1.3,MOVE,"da NOTE_VERSIONE_3.1.3.md (git mv, contenuto invariato)",low
+docs/release/NOTE_VERSIONE_3.md,H HISTORICAL / CLOSED,yes,named in 3 file(s),Gioco delle 27 carte — v3.0.1 (note di versione),MOVE,"da NOTE_VERSIONE_3.md (git mv, contenuto invariato)",low
+gioco27.py,I SCRIPT / TOOL,yes,named in 15 file(s),Launcher: avvia l'applicazione Gioco delle 27 Carte.,KEEP,"launcher utente (README, Guida s28, avvia.bat, gioco27.spec); resta in radice",low
+gioco27/__init__.py,A SOURCE,yes,imported by 16 file(s),Package gioco27 — Gioco delle 27 carte.,KEEP,modulo di produzione importato,low
+gioco27/__main__.py,A SOURCE,yes,python -m gioco27; pyproject gui-scripts,Punto di ingresso: python -m gioco27  [--selftest | <comando batch> …] (vedi cli.py),KEEP,modulo di produzione importato,low
+gioco27/assets/DejaVuSans-Bold.ttf,C RUNTIME RESOURCE,yes,named in 5 file(s),"font PDF (bold), caricato per percorso da core/detail_pdf.py",KEEP,,low
+gioco27/assets/DejaVuSans.ttf,C RUNTIME RESOURCE,yes,named in 5 file(s),"font PDF (regular), caricato per percorso da core/detail_pdf.py",KEEP,,low
+gioco27/cli.py,A SOURCE,yes,imported by 1 file(s),"Riga di comando batch (compartimento J): niente Tk, niente GUI.",KEEP,modulo di produzione importato,low
+gioco27/core/__init__.py,A SOURCE,yes,imported by 56 file(s),Nucleo matematico del gioco delle 27 carte.,KEEP,modulo di produzione importato,low
+gioco27/core/algebra.py,A SOURCE,yes,imported by 27 file(s),"Motore algebrico e simbolico: Parser, Rewriter, Evaluator, Controller.",KEEP,modulo di produzione importato,low
+gioco27/core/analisi.py,A SOURCE,yes,imported by 10 file(s),"Pipeline dell'analisi: schema, validazione, piano, aggregazione.",DEFER,"nome vicino a core/analysis.py: rinomina rinviata (rischio, ~15 importatori)",medium
+gioco27/core/analysis.py,A SOURCE,yes,imported by 10 file(s),"Analisi matematica del gruppo: cicli, ordine, orbite, distribuzione.",DEFER,"nome vicino a core/analisi.py: rinomina rinviata (rischio, ~15 importatori)",medium
+gioco27/core/cache.py,A SOURCE,yes,imported by 5 file(s),Cache su disco per le decomposizioni Kronecker.,KEEP,modulo di produzione importato,low
+gioco27/core/combinations.py,A SOURCE,yes,imported by 20 file(s),Generazione e conteggio combinazioni filtrate; export PDF/CSV.,KEEP,K0: rimosso il flag privato mai letto _HAS_REPORTLAB,low
+gioco27/core/config.py,A SOURCE,yes,imported by 13 file(s),Configurazione persistente salvata in ~/.gioco27/config.json.,KEEP,modulo di produzione importato,low
+gioco27/core/constants.py,A SOURCE,yes,imported by 26 file(s),Costanti simboliche del gioco delle 27 carte.,KEEP,modulo di produzione importato,low
+gioco27/core/detail.py,A SOURCE,yes,imported by 4 file(s),"Dati di dettaglio per l'export PDF ""stile-C"" (elenco_disposizioni).",KEEP,modulo di produzione importato,low
+gioco27/core/detail_pdf.py,A SOURCE,yes,imported by 14 file(s),Export PDF dettagliato — riproduzione fedele del layout HTML del programma C,KEEP,modulo di produzione importato,low
+gioco27/core/dominio.py,A SOURCE,yes,imported by 17 file(s),Contratti del dominio matematico: validazione degli ingressi e glossario.,KEEP,modulo di produzione importato,low
+gioco27/core/espressione.py,A SOURCE,yes,imported by 4 file(s),Linguaggio delle espressioni: un solo ingresso da testo ad AST e a traccia.,KEEP,modulo di produzione importato,low
+gioco27/core/export_analisi.py,A SOURCE,yes,imported by 2 file(s),Export dei risultati dell'analisi: CSV e Excel.,KEEP,modulo di produzione importato,low
+gioco27/core/export_combinazioni.py,A SOURCE,yes,imported by 3 file(s),"Export CSV del dominio delle combinazioni: orchestrazione, non matematica.",KEEP,modulo di produzione importato,low
+gioco27/core/gioco_reale.py,A SOURCE,yes,imported by 48 file(s),gioco_reale.py — Il gioco fisico delle 27 carte.,KEEP,modulo di produzione importato,low
+gioco27/core/group_theory.py,A SOURCE,yes,imported by 9 file(s),Analisi algebrica del gruppo G = GEN3 x GEN3 x GEN3  (|G| = 216).,KEEP,modulo di produzione importato,low
+gioco27/core/kronecker.py,A SOURCE,yes,imported by 15 file(s),Ricerca vettorizzata di tutte le decomposizioni Kronecker di T^-1.,KEEP,"identificatori legacy appartiene_a_G / appartiene_a_H (H=648): registrati per K, non migrati",low
+gioco27/core/log.py,A SOURCE,yes,imported by 15 file(s),Logging centralizzato su ~/.gioco27/gioco27.log.,KEEP,modulo di produzione importato,low
+gioco27/core/parallel.py,A SOURCE,yes,imported by 30 file(s),"Infrastruttura comune per gli export massivi (CSV, PDF, PDF dettagliato).",KEEP,modulo di produzione importato,low
+gioco27/core/pdfgrid.py,A SOURCE,yes,imported by 3 file(s),Disegno efficiente delle matrici di permutazione sui PDF.,KEEP,modulo di produzione importato,low
+gioco27/core/pdfmerge.py,A SOURCE,yes,imported by 4 file(s),Fusione dei PDF parziali prodotti dai processi figli.,KEEP,modulo di produzione importato,low
+gioco27/core/permutations.py,A SOURCE,yes,imported by 27 file(s),"Utilità sulle permutazioni: perm_to_mat3, build_P27, build_J27,",KEEP,modulo di produzione importato,low
+gioco27/gui/__init__.py,A SOURCE,yes,imported by 26 file(s),Componenti GUI del gioco delle 27 carte.,KEEP,modulo di produzione importato,low
+gioco27/gui/analysis_tab.py,A SOURCE,yes,imported by 9 file(s),"Tab ""📊 Analisi"" — molteplicità delle permutazioni e relativi export.",KEEP,modulo di produzione importato,low
+gioco27/gui/app.py,A SOURCE,yes,imported by 18 file(s),App: finestra principale e orchestrazione di tutti i tab.,KEEP,modulo di produzione importato,low
+gioco27/gui/barra.py,A SOURCE,yes,imported by 1 file(s),Barre di azioni che vanno a capo invece di uscire dalla finestra.,KEEP,modulo di produzione importato,low
+gioco27/gui/cayley_dialog.py,A SOURCE,yes,imported by 1 file(s),CayleyDialog: calcolatore interattivo di prodotti in G = GEN3^3,KEEP,modulo di produzione importato,low
+gioco27/gui/common.py,A SOURCE,yes,imported by 14 file(s),Widget e tag tkinter condivisi tra tutti i moduli GUI.,KEEP,K0: rimossa la seconda classe Tooltip mai importata (+_GEN3_DESCRIPTIONS),low
+gioco27/gui/conjugacy_dialog.py,A SOURCE,yes,imported by 3 file(s),ConjugacyDialog: mostra le classi di coniugio e il centro di GEN3^3.,KEEP,modulo di produzione importato,low
+gioco27/gui/cycles_tab.py,A SOURCE,yes,imported by 2 file(s),"Tab ""🔄 Cicli e Ordine""",KEEP,modulo di produzione importato,low
+gioco27/gui/decomposition.py,A SOURCE,yes,imported by 4 file(s),"DecompositionDialog: cerca e mostra tutte le decomposizioni di T o T^-1,",KEEP,modulo di produzione importato,low
+gioco27/gui/distribution_tab.py,A SOURCE,yes,imported by 4 file(s),"Tab ""📊 Distribuzione""",KEEP,modulo di produzione importato,low
+gioco27/gui/errori.py,A SOURCE,yes,imported by 11 file(s),Come dire all'utente cio' che il core ha constatato.,KEEP,modulo di produzione importato,low
+gioco27/gui/explorer_tab.py,A SOURCE,yes,imported by 6 file(s),"Tab ""🔬 Explorer"" — analisi simbolica, traccia di riscrittura, forma canonica,",KEEP,modulo di produzione importato,low
+gioco27/gui/export_dialog.py,A SOURCE,yes,imported by 4 file(s),ExportDialog — Esportazione per il libretto,KEEP,modulo di produzione importato,low
+gioco27/gui/export_group_dialog.py,A SOURCE,yes,imported by 4 file(s),Export LaTeX / SVG per il gruppo G = GEN3^3.,KEEP,modulo di produzione importato,low
+gioco27/gui/filter_frame.py,A SOURCE,yes,imported by 4 file(s),FilterFrame: selettore combinazioni P/J per ogni stadio.,KEEP,modulo di produzione importato,low
+gioco27/gui/glossary.py,A SOURCE,yes,imported by 6 file(s),"Testi della scheda «Inizia qui», glossario e aiuti delle schede.",KEEP,modulo di produzione importato,low
+gioco27/gui/guide.py,A SOURCE,yes,imported by 8 file(s),Contenuto della Guida / How-To del Gioco delle 27 carte.,KEEP,modulo di produzione importato,low
+gioco27/gui/help_banner.py,A SOURCE,yes,imported by 5 file(s),HelpBanner: banner d'aiuto riusabile da mettere in cima a schede e dialog.,KEEP,modulo di produzione importato,low
+gioco27/gui/i18n.py,M LEGACY BUT REQUIRED,yes,imported by 35 file(s),Adattatore di compatibilita': il catalogo i18n vive in `gioco27.i18n`.,KEEP,"re-export di gioco27/i18n.py (A2); 29 moduli GUI lo importano: rimuoverlo e' refactoring, non bonifica",low
+gioco27/gui/laboratorio_tab.py,A SOURCE,yes,imported by 3 file(s),Explorer → «Laboratorio» (compartimento I6).,KEEP,modulo di produzione importato,low
+gioco27/gui/livelli.py,A SOURCE,yes,imported by 7 file(s),"Livelli didattici (DP7, compartimento I7): chi vede che cosa.",KEEP,modulo di produzione importato,low
+gioco27/gui/onboarding_tab.py,A SOURCE,yes,imported by 2 file(s),"Scheda ""🚀 Inizia qui"": orientamento rapido, azioni rapide e glossario.",KEEP,modulo di produzione importato,low
+gioco27/gui/pannello_ternario.py,A SOURCE,yes,imported by 1 file(s),Pannello ternario della Tavola (compartimento I2).,KEEP,modulo di produzione importato,low
+gioco27/gui/pratica_reale.py,A SOURCE,yes,imported by 1 file(s),"Pratica con conseguenze reali (compartimento I3, D-I3-4/5/6).",KEEP,modulo di produzione importato,low
+gioco27/gui/presentation.py,A SOURCE,yes,imported by 2 file(s),"PresentationWindow — ""Vista esecutore"" a schermo intero.",KEEP,modulo di produzione importato,low
+gioco27/gui/preview_tab.py,A SOURCE,yes,imported by 4 file(s),"Tab ""🔍 Anteprima"" — calcolo di una singola combinazione al volo.",KEEP,modulo di produzione importato,low
+gioco27/gui/protocol_dialog.py,A SOURCE,yes,imported by 6 file(s),"ProtocolDialog: genera e apre nel browser un documento HTML stampabile,",KEEP,K0: rimossi gli helper privati morti _compose e _kron27,low
+gioco27/gui/riconoscimento_tab.py,A SOURCE,yes,imported by 3 file(s),Explorer → «Riconoscimento» (compartimento I5).,KEEP,modulo di produzione importato,low
+gioco27/gui/scorrimento.py,A SOURCE,yes,imported by 2 file(s),"Un'area che scorre quando il contenuto non ci sta, e non scorre quando ci sta.",KEEP,modulo di produzione importato,low
+gioco27/gui/sessione_tab.py,A SOURCE,yes,imported by 2 file(s),"Sessione, cronologia, undo/redo e successione L90 (compartimento J).",KEEP,modulo di produzione importato,low
+gioco27/gui/shuffle.py,A SOURCE,yes,imported by 6 file(s),ShuffleViewerFrame: visualizzatore animato del mescolamento.,KEEP,modulo di produzione importato,low
+gioco27/gui/simulator_tab.py,A SOURCE,yes,imported by 7 file(s),"Tab ""🎩 Simulatore""",KEEP,modulo di produzione importato,low
+gioco27/gui/spettatore_tab.py,A SOURCE,yes,imported by 2 file(s),Vista «Spettatore (carta ignota)» del Simulatore — compartimento I4.,KEEP,modulo di produzione importato,low
+gioco27/gui/tavola_tab.py,A SOURCE,yes,imported by 5 file(s),"Tab ""📚 Tavola 216"" — la tavola delle disposizioni semplici del libro.",KEEP,modulo di produzione importato,low
+gioco27/gui/tooltip.py,A SOURCE,yes,imported by 6 file(s),Tooltip leggero per Tkinter (non esiste un widget nativo).,KEEP,modulo di produzione importato,low
+gioco27/gui/uifont.py,A SOURCE,yes,imported by 2 file(s),"Font con nome per i testi di aiuto / note, scalabili dall'utente.",KEEP,modulo di produzione importato,low
+gioco27/i18n.py,A SOURCE,yes,imported by 20 file(s),Minimal runtime localization support for the GUI.,KEEP,modulo di produzione importato,low
+gioco27/services/__init__.py,A SOURCE,yes,imported by 43 file(s),"Servizi applicativi: orchestrano il dominio, non lo reimplementano.",KEEP,modulo di produzione importato,low
+gioco27/services/analisi.py,A SOURCE,yes,imported by 3 file(s),"Servizio applicativo dell'analisi: orchestrazione, non algoritmi.",KEEP,modulo di produzione importato,low
+gioco27/services/archivio.py,A SOURCE,yes,imported by 4 file(s),Persistenza degli esperimenti e export interoperabili (compartimento J).,KEEP,modulo di produzione importato,low
+gioco27/services/cronologia.py,A SOURCE,yes,imported by 2 file(s),Cronologia dell'applicazione e undo/redo (compartimento J).,KEEP,modulo di produzione importato,low
+gioco27/services/errori.py,A SOURCE,yes,imported by 2 file(s),"Errori fisici, confronto piano/eseguito e recupero (compartimento I3).",KEEP,modulo di produzione importato,low
+gioco27/services/esperimento.py,A SOURCE,yes,imported by 8 file(s),"Esperimenti versionati, verificabili e riproducibili (compartimento J).",KEEP,modulo di produzione importato,low
+gioco27/services/laboratorio.py,A SOURCE,yes,imported by 6 file(s),Laboratorio matematico (compartimento I6).,KEEP,modulo di produzione importato,low
+gioco27/services/lavoro.py,A SOURCE,yes,imported by 1 file(s),Identita' delle richieste: cio' che distingue «obsoleto» da tutto il resto.,KEEP,modulo di produzione importato,low
+gioco27/services/modelli.py,A SOURCE,yes,imported by 5 file(s),Modelli applicativi condivisi: il risultato di un'analisi.,KEEP,modulo di produzione importato,low
+gioco27/services/procedure.py,A SOURCE,yes,imported by 21 file(s),"Procedure del gioco, relazioni fra procedure e strategie (compartimento I1).",KEEP,modulo di produzione importato,low
+gioco27/services/riconoscimento.py,A SOURCE,yes,imported by 7 file(s),Decodifica e riconoscimento (compartimento I5).,KEEP,modulo di produzione importato,low
+gioco27/services/sessione.py,A SOURCE,yes,imported by 2 file(s),"Sessione di lavoro J: stato scientifico, annotazioni, presentazione, cronologia.",KEEP,modulo di produzione importato,low
+gioco27/services/spettatore.py,A SOURCE,yes,imported by 3 file(s),Lo spettatore con la carta ignota: dinamica informativa (compartimento I4).,KEEP,modulo di produzione importato,low
+gioco27/services/successione.py,A SOURCE,yes,imported by 4 file(s),"Successione di Procedure, tabellone cumulativo e ritorno (J, riga L90).",KEEP,modulo di produzione importato,low
+gioco27/services/tabellone.py,A SOURCE,yes,imported by 21 file(s),Presenter del tabellone e del livello ternario (compartimento I2).,KEEP,modulo di produzione importato,low
+pyproject.toml,D BUILD / CONFIGURATION,yes,named in 12 file(s),[build-system],KEEP,"metadati, package-data, pytest; license=Proprietary incoerente con LICENSE -> K",low
+requirements-dev.txt,D BUILD / CONFIGURATION,yes,named in 5 file(s),Dipendenze per sviluppo e test di Gioco delle 27 Carte,KEEP,dipendenze di sviluppo; pypdfium2 non dichiarata (N03) -> K,low
+requirements.txt,D BUILD / CONFIGURATION,yes,named in 8 file(s),Dipendenze di Gioco delle 27 Carte,KEEP,dipendenze runtime/export (Guida s28); R06 -> K,low
+tests/test_alias_nomi.py,B TEST,yes,pytest (testpaths),Nomi doppi: I_3/SCD_U e R_U/DCS_U sono la stessa permutazione.,KEEP,test attivo di un comportamento esistente,low
+tests/test_analisi_filtri_f.py,B TEST,yes,pytest (testpaths),"Compartimento F — analisi, filtri, aggregazione e budget.",KEEP,test attivo di un comportamento esistente,low
+tests/test_annullamento.py,B TEST,yes,pytest (testpaths),Annullamento degli export.,KEEP,test attivo di un comportamento esistente,low
+tests/test_architettura_j.py,B TEST,yes,pytest (testpaths),Compartimento J — confini architetturali dei moduli nuovi.,KEEP,test attivo di un comportamento esistente,low
+tests/test_baseline_matematica.py,B TEST,yes,pytest (testpaths),Baseline matematica del repository: rete di sicurezza per i compartimenti successivi.,KEEP,test attivo di un comportamento esistente,low
+tests/test_chiusura_regressioni.py,B TEST,yes,pytest (testpaths),Regressioni B18-B19: percorso di chiusura e tre fasi obbligatorie.,KEEP,test attivo di un comportamento esistente,low
+tests/test_cli_j.py,B TEST,yes,pytest (testpaths),"Compartimento J — riga di comando batch, come processo reale e senza Tk.",KEEP,test attivo di un comportamento esistente,low
+tests/test_core.py,B TEST,yes,pytest (testpaths),Test delle proprietà matematiche del motore di Gioco delle 27 carte.,KEEP,test attivo di un comportamento esistente,low
+tests/test_decomposition_integrita.py,B TEST,yes,pytest (testpaths),"Regressioni B9-B11, senza finestre o dipendenze dal timing dei thread.",KEEP,test attivo di un comportamento esistente,low
+tests/test_didattica_i7.py,B TEST,yes,pytest (testpaths),"Compartimento I7 — percorso didattico, guida, glossario e livelli.",KEEP,test attivo di un comportamento esistente,low
+tests/test_documentazione_d1d3.py,B TEST,yes,pytest (testpaths),"D1-D3: ambito dei gruppi, conteggi e indici tecnici, senza correggere D4.",KEEP,test attivo di un comportamento esistente,low
+tests/test_documentazione_d4d5.py,B TEST,yes,pytest (testpaths),D4-D5: guida confrontata con UI/export e limiti descritti senza promesse assolute.,KEEP,test attivo di un comportamento esistente,low
+tests/test_dominio_indici.py,B TEST,yes,pytest (testpaths),"M02 — le convenzioni sugli indici sono verificate, non soltanto dichiarate.",KEEP,test attivo di un comportamento esistente,low
+tests/test_dominio_permutazioni.py,B TEST,yes,pytest (testpaths),R04 — contratti agli ingressi delle API matematiche pubbliche.,KEEP,test attivo di un comportamento esistente,low
+tests/test_dominio_selftest.py,B TEST,yes,pytest (testpaths),B09 — la diagnostica del dominio non deve dipendere da `assert`.,KEEP,test attivo di un comportamento esistente,low
+tests/test_errori_fisici_i3.py,B TEST,yes,pytest (testpaths),"Compartimento I3 — errori fisici, conseguenze e recupero.",KEEP,test attivo di un comportamento esistente,low
+tests/test_esperimenti_j.py,B TEST,yes,pytest (testpaths),"Compartimento J — esperimenti, persistenza, cronologia, undo/redo, L90.",KEEP,test attivo di un comportamento esistente,low
+tests/test_export_integrita.py,B TEST,yes,pytest (testpaths),"Regressioni B3-B5: contenuto, fallimenti parziali e cancellazione.",KEEP,test attivo di un comportamento esistente,low
+tests/test_fuori_dal_gioco.py,B TEST,yes,pytest (testpaths),Il PDF dettagliato deve restare leggibile anche fuori dalle 1728 del gioco.,KEEP,test attivo di un comportamento esistente,low
+tests/test_gioco_reale.py,B TEST,yes,pytest (testpaths),"Test del modulo gioco_reale: fisica, tavola, ancore del libro, trucco.",KEEP,test attivo di un comportamento esistente,low
+tests/test_gui_stato.py,B TEST,yes,pytest (testpaths),"Regressioni B15-B17: callback reali, widget sostituiti senza aprire finestre.",KEEP,test attivo di un comportamento esistente,low
+tests/test_guida_allineata.py,B TEST,yes,pytest (testpaths),La Guida deve restare allineata al programma.,KEEP,test attivo di un comportamento esistente,low
+tests/test_hardening.py,B TEST,yes,pytest (testpaths),Test delle correzioni di robustezza e delle ottimizzazioni introdotte,KEEP,test attivo di un comportamento esistente,low
+tests/test_i18n.py,B TEST,yes,pytest (testpaths),Focused tests for the first Italian/English localization block.,KEEP,test attivo di un comportamento esistente,low
+tests/test_i18n_anomalie_ui.py,B TEST,yes,pytest (testpaths),Anomalie i18n rilevate a mano con l'interfaccia in inglese.,KEEP,test attivo di un comportamento esistente,low
+tests/test_i18n_audit_finale.py,B TEST,yes,pytest (testpaths),Audit i18n finale: output dinamici visibili solo dopo un'azione.,KEEP,test attivo di un comportamento esistente,low
+tests/test_i18n_guida.py,B TEST,yes,pytest (testpaths),Blocco i18n 14 — Guida completa bilingue italiano/inglese.,KEEP,test attivo di un comportamento esistente,low
+tests/test_io_integrita_b.py,B TEST,yes,pytest (testpaths),"Compartimento B — integrita' dell'I/O: export, cache, temporanei, pubblicazione.",KEEP,test attivo di un comportamento esistente,low
+tests/test_laboratorio_i6_caratterizzazione.py,B TEST,yes,pytest (testpaths),Compartimento I6 — caratterizzazione del laboratorio (oracoli e fonte).,KEEP,test attivo di un comportamento esistente,low
+tests/test_laboratorio_i6_gui.py,B TEST,yes,pytest (testpaths),Compartimento I6 — vista Explorer → «Laboratorio».,KEEP,test attivo di un comportamento esistente,low
+tests/test_laboratorio_i6_servizio.py,B TEST,yes,pytest (testpaths),"Compartimento I6 — service del laboratorio (catalogo, domini, verifiche).",KEEP,test attivo di un comportamento esistente,low
+tests/test_layout_accessibilita_h2.py,B TEST,yes,pytest (testpaths),"Compartimento H2 — layout adattivo, tastiera e accessibilità.",KEEP,test attivo di un comportamento esistente,low
+tests/test_layout_dettaglio.py,B TEST,yes,pytest (testpaths),Layout della colonna centrale del PDF dettagliato.,KEEP,test attivo di un comportamento esistente,low
+tests/test_lifecycle_persistenza_g2.py,B TEST,yes,pytest (testpaths),"Compartimento G2 — lifecycle dei lavori, persistenza e pubblicazione atomica.",KEEP,test attivo di un comportamento esistente,low
+tests/test_linguaggio_espressioni_e.py,B TEST,yes,pytest (testpaths),Compartimento E — un solo linguaggio per Explorer e Mescolamento.,KEEP,test attivo di un comportamento esistente,low
+tests/test_navigazione_i2.py,B TEST,yes,pytest (testpaths),"Compartimento I2d — navigazione minima fra Tavola, Explorer, Cicli, Simulatore.",KEEP,test attivo di un comportamento esistente,low
+tests/test_numerazione_base0.py,B TEST,yes,pytest (testpaths),Stadi e fattori sono numerati a BASE 0.,KEEP,test attivo di un comportamento esistente,low
+tests/test_output_integrita.py,B TEST,yes,pytest (testpaths),Regressioni B12-B14: temporanei propri e output senza perdite silenziose.,KEEP,test attivo di un comportamento esistente,low
+tests/test_parallel_limiti.py,B TEST,yes,pytest (testpaths),"Regressioni B6-B8: input limitato, ingressi PDF e attesa ordinata.",KEEP,test attivo di un comportamento esistente,low
+tests/test_pdf_memoria.py,B TEST,yes,pytest (testpaths),R3: nessun buffer applicativo dell'intero PDF nei percorsi sequenziali.,KEEP,test attivo di un comportamento esistente,low
+tests/test_perm_matrix_convention.py,B TEST,yes,pytest (testpaths),Verifica della convenzione di conversione permutazione -> matrice.,KEEP,test attivo di un comportamento esistente,low
+tests/test_pratica_reale_i3.py,B TEST,yes,pytest (testpaths),Compartimento I3d/I3e — Pratica con conseguenze reali e piano fissato.,KEEP,test attivo di un comportamento esistente,low
+tests/test_presentation_i18n_h1.py,B TEST,yes,pytest (testpaths),Compartimento H1 — correttezza della presentation e localizzazione.,KEEP,test attivo di un comportamento esistente,low
+tests/test_procedure_i1_caratterizzazione.py,B TEST,yes,pytest (testpaths),"Compartimento I1 — caratterizzazione dei fatti matematici, senza il servizio.",KEEP,test attivo di un comportamento esistente,low
+tests/test_procedure_i1_servizio.py,B TEST,yes,pytest (testpaths),Compartimento I1 — modello canonico di procedura e servizio delle relazioni.,KEEP,test attivo di un comportamento esistente,low
+tests/test_procedure_i1_strategie.py,B TEST,yes,pytest (testpaths),"Compartimento I1 — fibre carta→bersaglio, solutore storico e variante sicura.",KEEP,test attivo di un comportamento esistente,low
+tests/test_riconoscimento_i5_caratterizzazione.py,B TEST,yes,pytest (testpaths),Compartimento I5 — caratterizzazione di decodifica e riconoscimento.,KEEP,test attivo di un comportamento esistente,low
+tests/test_riconoscimento_i5_gui.py,B TEST,yes,pytest (testpaths),Compartimento I5 — vista Explorer → «Riconoscimento».,KEEP,test attivo di un comportamento esistente,low
+tests/test_riconoscimento_i5_servizio.py,B TEST,yes,pytest (testpaths),Compartimento I5 — service `services.riconoscimento`.,KEEP,test attivo di un comportamento esistente,low
+tests/test_rischi_concorrenza.py,B TEST,yes,pytest (testpaths),R1-R2: chiusura controllata e due processi sui file persistenti condivisi.,KEEP,test attivo di un comportamento esistente,low
+tests/test_servizi_g1.py,B TEST,yes,pytest (testpaths),Compartimento G1 — modelli applicativi e confini dei servizi.,KEEP,test attivo di un comportamento esistente,low
+tests/test_sessione_j_gui.py,B TEST,yes,pytest (testpaths),"Compartimento J — sessione, cronologia, undo/redo e L90 nell'interfaccia.",KEEP,test attivo di un comportamento esistente,low
+tests/test_spettatore_i4_caratterizzazione.py,B TEST,yes,pytest (testpaths),Compartimento I4 — caratterizzazione della dinamica informativa (oracoli).,KEEP,test attivo di un comportamento esistente,low
+tests/test_spettatore_i4_gui.py,B TEST,yes,pytest (testpaths),Compartimento I4 — vista «Spettatore (carta ignota)» del Simulatore.,KEEP,test attivo di un comportamento esistente,low
+tests/test_spettatore_i4_servizio.py,B TEST,yes,pytest (testpaths),Compartimento I4 — service dello spettatore (`services.spettatore`).,KEEP,test attivo di un comportamento esistente,low
+tests/test_static.py,B TEST,yes,pytest (testpaths),Controllo statico con pyflakes su tutto il package.,KEEP,test attivo di un comportamento esistente,low
+tests/test_stato_concorrenza_c.py,B TEST,yes,pytest (testpaths),"Compartimento C — stato e concorrenza: provenienza, revisioni, sessioni.",KEEP,test attivo di un comportamento esistente,low
+tests/test_struttura_repository_k0.py,B TEST,yes,pytest (testpaths),Compartimento K0 — la struttura bonificata del repository resta tale.,KEEP,nuovo in K0: protegge la struttura bonificata,low
+tests/test_tabellone_inverso.py,B TEST,yes,pytest (testpaths),Il secondo tabellone del PDF dettagliato è quello di T⁻¹.,KEEP,test attivo di un comportamento esistente,low
+tests/test_tabellone_ternario_i2.py,B TEST,yes,pytest (testpaths),"Compartimento I2 — tabellone, livello ternario e flusso delle cifre.",KEEP,test attivo di un comportamento esistente,low
+tests/test_tavola_ternaria_i2.py,B TEST,yes,pytest (testpaths),Compartimento I2 — il pannello ternario della Tavola (viste).,KEEP,test attivo di un comportamento esistente,low
+Articolo.pdf,P USER INPUT - DO NOT TOUCH,no (untracked),hash opzionale: gui/sessione_tab.fonti_disponibili,articolo sorgente (input dell'utente),KEEP,"input dell'utente; DP12 aperta: non tracciare, non spostare, non rinominare",high if touched
+LIBRO_MAIN.pdf,P USER INPUT - DO NOT TOUCH,no (untracked),hash opzionale: gui/sessione_tab.fonti_disponibili,libro sorgente (input dell'utente),KEEP,"input dell'utente; DP12 aperta: non tracciare, non spostare, non rinominare",high if touched
+gioco27.spec,D BUILD / CONFIGURATION,no (ignored: .gitignore '*.spec'),README (pyinstaller gioco27.spec); Guida,spec PyInstaller dell'eseguibile Windows,DEFER,"necessario per riprodurre la build: N04 aperto per decisione, proprietario K; non toccato in K0",medium
+gioco27/**/__pycache__/,L CACHE / TEMPORARY,no (ignored),-,"bytecode generato (CPython 3.10/3.12, in parte obsoleto)",DELETE,residuo generato e rigenerabile; 4 directory rimosse in K0 (fase D),none
