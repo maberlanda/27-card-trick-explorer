@@ -52,7 +52,10 @@ def test_documentazione_classificata(tracciati):
     assert not [p for p in tracciati if "/" not in p and p.endswith((".md", ".csv"))
                 and p != "README.md"]
     chiusure = [p for p in tracciati if p.endswith("_CLOSED.md")]
-    assert chiusure and all(p.startswith("docs/history/") for p in chiusure)
+    # K: la chiusura della release candidate sta con le note di versione.
+    ammesse_fuori = {"docs/release/K_RELEASE_CANDIDATE_CLOSED.md"}
+    assert chiusure and all(p.startswith("docs/history/") or p in ammesse_fuori
+                            for p in chiusure)
     for p in tracciati:
         if p.startswith("docs/"):
             assert p == "docs/README.md" or p.split("/")[1] in {

@@ -9,7 +9,7 @@ Questa cartella raccoglie la documentazione **di progetto e di sviluppo**.
 | `audits/` | **corrente** | audit di copertura matematico-didattica V4 e la sua matrice (`V4_COVERAGE_MATRIX.csv`, letta dai test di I7); inventario dei file K0 |
 | `decisions/` | **corrente come riferimento** | decisioni approvate prima dei compartimenti (`V4_PRE_I1`, `V4_PRE_I2`, `V4_PRE_I5`) e la baseline di riconciliazione Git (`GIT_BASELINE_AND_RECONCILIATION.md`), citate da codice e test |
 | `history/` | **storico, chiuso** | documenti di chiusura dei compartimenti A … J e K0, in ordine di esecuzione |
-| `release/` | **storico** | note delle versioni 3, 3.1.1 e 3.1.3 |
+| `release/` | **storico**, tranne la 4.0.0 | note delle versioni 3, 3.1.1, 3.1.3 e della **4.0.0 release candidate** (`NOTE_VERSIONE_4.0.0.md`, corrente); chiusura del compartimento K (`K_RELEASE_CANDIDATE_CLOSED.md`) |
 
 ## Regole
 
@@ -28,4 +28,5 @@ A baseline · B I/O · C stato · D dominio · E linguaggio e simulazione ·
 F analisi · G1 servizi · G2 ciclo di vita · H1 presentazione e i18n ·
 H2 accessibilità · I1 procedure · I2 tabellone ternario · I3 errori fisici ·
 I4 spettatore · I5 riconoscimento · I6 laboratorio · I7 allineamento
-didattico · J esperimenti e riproducibilità · K0 bonifica del repository.
+didattico · J esperimenti e riproducibilità · K0 bonifica del repository ·
+K packaging e release candidate 4.0.0 (in `release/`).

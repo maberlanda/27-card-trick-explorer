@@ -182,5 +182,16 @@ tests/test_tabellone_ternario_i2.py,B TEST,yes,pytest (testpaths),"Compartimento
 tests/test_tavola_ternaria_i2.py,B TEST,yes,pytest (testpaths),Compartimento I2 — il pannello ternario della Tavola (viste).,KEEP,test attivo di un comportamento esistente,low
 Articolo.pdf,P USER INPUT - DO NOT TOUCH,no (untracked),hash opzionale: gui/sessione_tab.fonti_disponibili,articolo sorgente (input dell'utente),KEEP,"input dell'utente; DP12 aperta: non tracciare, non spostare, non rinominare",high if touched
 LIBRO_MAIN.pdf,P USER INPUT - DO NOT TOUCH,no (untracked),hash opzionale: gui/sessione_tab.fonti_disponibili,libro sorgente (input dell'utente),KEEP,"input dell'utente; DP12 aperta: non tracciare, non spostare, non rinominare",high if touched
-gioco27.spec,D BUILD / CONFIGURATION,no (ignored: .gitignore '*.spec'),README (pyinstaller gioco27.spec); Guida,spec PyInstaller dell'eseguibile Windows,DEFER,"necessario per riprodurre la build: N04 aperto per decisione, proprietario K; non toccato in K0",medium
+gioco27.spec,D BUILD / CONFIGURATION,yes,README; Guida; CI (job windows),spec PyInstaller ufficiale (N04 chiusa in K),KEEP,"K: versionata (.gitignore '*.spec' + '!/gioco27.spec'); percorsi da SPECPATH, licenze incluse, nessun PDF",low
 gioco27/**/__pycache__/,L CACHE / TEMPORARY,no (ignored),-,"bytecode generato (CPython 3.10/3.12, in parte obsoleto)",DELETE,residuo generato e rigenerabile; 4 directory rimosse in K0 (fase D),none
+MANIFEST.in,D BUILD / CONFIGURATION,yes,setuptools (sdist),contenuto esplicito della sdist,KEEP,"K: launcher, spec, requirements, docs, fixture; esclusi PDF, cache e build",low
+.github/workflows/ci.yml,D BUILD / CONFIGURATION,yes,GitHub Actions,"CI: static/core, suite GUI xvfb, packaging, Windows + PyInstaller",KEEP,K: CI configurata (non ancora eseguita su runner reale),low
+gioco27/assets/LICENSE-DejaVu.txt,C RUNTIME RESOURCE,yes,pyproject license-files e package-data; gioco27.spec; tests/test_release_k.py,licenza dei font DejaVu,KEEP,"K: copia letterale della licenza incorporata nei font (nameID 13), verificata dai test",low
+tests/fixtures/esperimento_j1_programma_3.1.3.json,J TEST DATA / FIXTURE,yes,"tests/test_release_k.py, tests/test_pacchetto_k.py",esperimento J salvato dal programma 3.1.3,KEEP,K: compatibilita' degli esperimenti 3.1.3 con la 4.0.0,low
+tests/benchmark_k.py,I SCRIPT / TOOL,yes,"docs/release (note 4.0.0, chiusura K)",benchmark deterministici della 4.0 (non raccolto da pytest),KEEP,"K: baseline di prestazione, nessuna soglia",low
+docs/release/NOTE_VERSIONE_4.0.0.md,H HISTORICAL / CLOSED,yes,"README, docs/README.md",note della release candidate 4.0.0,KEEP,K: note di release (corrente fino alla 4.0 definitiva),low
+docs/release/K_RELEASE_CANDIDATE_CLOSED.md,H HISTORICAL / CLOSED,yes,"docs/README.md, note 4.0.0",chiusura del compartimento K,KEEP,K: documento di chiusura,low
+tests/test_release_k.py,B TEST,yes,pytest (testpaths),test del compartimento K,KEEP,K: nuovo test,low
+tests/test_pacchetto_k.py,B TEST,yes,pytest (testpaths),test del compartimento K,KEEP,K: nuovo test,low
+tests/test_export_smoke_k.py,B TEST,yes,pytest (testpaths),test del compartimento K,KEEP,K: nuovo test,low
+tests/test_terminologia_export_k.py,B TEST,yes,pytest (testpaths),test del compartimento K,KEEP,K: nuovo test,low
