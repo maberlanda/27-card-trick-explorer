@@ -1679,35 +1679,102 @@ def test_explorer_sotto_resta_una_sola_riga_compatta(applicazione):
         applicazione.update()
 
 
+def _fondi(app):
+    """(fondo matrice, fondo box, fondo pannello) del pannello di T, in px."""
+    m, t = app._mat_cv_t, app._mat_txt_t
+    pannello = m.master.master
+    return (m.winfo_rooty() + m.winfo_height(), t.winfo_rooty() + t.winfo_height(),
+            pannello.winfo_rooty() + pannello.winfo_height())
+
+
 @pytest.mark.parametrize("geometria", TARGET)
-def test_explorer_matrice_tutta_visibile_senza_scorrere(applicazione, geometria):
-    area = _con_calcolo(applicazione, geometria)
+def test_explorer_matrici_27_a_grandezza_piena(applicazione, geometria):
+    """Le griglie 27×27 non si rimpiccioliscono per far entrare il layout."""
+    _con_calcolo(applicazione, geometria)
     try:
-        a = applicazione
-        visibili = ([a._mat_cv_t, a._mat_cv_inv, a._mat_lbl_t, a._mat_lbl_inv,
-                     a._mat_txt_t, a._mat_txt_inv]
-                    + a._mat_fcvs_t + a._mat_flbls_t
-                    + a._mat_fcvs_inv + a._mat_flbls_inv)
-        assert area.tela.yview()[0] == 0.0
-        assert [str(w) for w in visibili if not _nella_vista(area, w)] == []
-        assert area.barre_visibili()[1] is False
+        for m in (applicazione._mat_cv_t, applicazione._mat_cv_inv):
+            assert m.winfo_width() >= 328 and m.winfo_height() >= 328, (
+                m.winfo_width(), m.winfo_height())
     finally:
         applicazione._explorer_clear()
         applicazione.update()
 
 
 @pytest.mark.parametrize("geometria", TARGET)
+def test_explorer_il_pannello_finisce_col_contenuto(applicazione, geometria):
+    """Nessun vuoto grigio: sotto matrice e box solo un piccolo margine."""
+    _con_calcolo(applicazione, geometria)
+    try:
+        matrice, box, pannello = _fondi(applicazione)
+        assert abs(matrice - box) <= 4                  # colonne equilibrate
+        assert 0 <= pannello - max(matrice, box) <= 12, pannello - max(matrice, box)
+    finally:
+        applicazione._explorer_clear()
+        applicazione.update()
+
+
+@pytest.mark.parametrize("geometria", TARGET)
+def test_explorer_lo_scorrimento_segue_il_contenuto(applicazione, geometria):
+    """La regione di scorrimento finisce poco dopo i pannelli della Matrice."""
+    area = _con_calcolo(applicazione, geometria)
+    try:
+        matrice, box, _ = _fondi(applicazione)
+        # fondo del contenuto reale (non del pannello), in coordinate tela
+        fondo = max(matrice, box) - area.contenuto.winfo_rooty()
+        regione = [float(x) for x in str(area.tela.cget("scrollregion")).split()]
+        altezza_tela = area.tela.winfo_height()
+        assert regione[3] <= max(altezza_tela, fondo + 30), (regione, fondo)
+        if fondo + 30 <= altezza_tela:                  # tutto entra: niente barra
+            assert area.barre_visibili() == (False, False)
+        assert area.barre_visibili()[1] is False
+    finally:
+        applicazione._explorer_clear()
+        applicazione.update()
+
+
+def test_explorer_a_1920_la_matrice_non_scorre(applicazione):
+    area = _con_calcolo(applicazione, "1920x1080")
+    try:
+        a = applicazione
+        visibili = ([a._mat_cv_t, a._mat_cv_inv, a._mat_lbl_t, a._mat_lbl_inv,
+                     a._mat_txt_t, a._mat_txt_inv]
+                    + a._mat_fcvs_t + a._mat_flbls_t
+                    + a._mat_fcvs_inv + a._mat_flbls_inv)
+        assert [str(w) for w in visibili if not _nella_vista(area, w)] == []
+        assert area.barre_visibili() == (False, False)
+    finally:
+        applicazione._explorer_clear()
+        applicazione.update()
+
+
+def test_explorer_le_altre_sotto_schede_restano_come_prima(applicazione):
+    """L'altezza adattata vale solo per Matrice."""
+    _matrice_aperta(applicazione, "1366x768")
+    nb = applicazione._explorer_nb
+    assert int(str(nb.cget("height"))) > 0
+    for indice in range(len(nb.tabs())):
+        if nb.tabs()[indice] == str(applicazione._mat_scheda):
+            continue
+        nb.select(indice)
+        applicazione.update()
+        assert int(str(nb.cget("height"))) == 0
+        assert int(str(nb.master.grid_rowconfigure(2)["weight"])) == 1
+    nb.select(applicazione._mat_scheda)
+    applicazione.update()
+
+
+@pytest.mark.parametrize("geometria", TARGET)
 def test_explorer_box_testuali_capienti(applicazione, geometria):
-    """Tutto il testo sta nel box, senza scorrerlo, e il box e' ampio."""
+    """Tutto il testo sta nel box, senza scorrerlo; il box e' alto quanto
+    serve a pareggiare la griglia 27×27."""
     _con_calcolo(applicazione, geometria)
     try:
         for testo, matrice in ((applicazione._mat_txt_t, applicazione._mat_cv_t),
                                (applicazione._mat_txt_inv, applicazione._mat_cv_inv)):
             assert "[" in testo.get("1.0", "end")          # i 27 valori
             assert testo.yview() == (0.0, 1.0)
-            assert testo.winfo_height() >= 95, testo.winfo_height()
-            assert testo.winfo_width() >= 300, testo.winfo_width()
-            # il box arriva fino al fondo della griglia 27×27
+            assert testo.winfo_height() >= 180, testo.winfo_height()
+            assert testo.winfo_width() >= 240, testo.winfo_width()
             fondo_testo = testo.winfo_rooty() + testo.winfo_height()
             fondo_matrice = matrice.winfo_rooty() + matrice.winfo_height()
             assert abs(fondo_testo - fondo_matrice) <= 4
