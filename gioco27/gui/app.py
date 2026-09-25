@@ -1031,7 +1031,8 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
     def _on_simulator_T(self, perm_27):
         """Il simulatore ha calcolato una nuova sequenza di gioco."""
         self._notify_T_changed(perm_27)
-        self._sessione_nota("simulatore")
+        if hasattr(self, "_sessione_nota"):
+            self._sessione_nota("simulatore")
 
     # ── Tab Tavola 216 ──────────────────────────────────────────────────────
     def _build_tavola_tab(self, nb):

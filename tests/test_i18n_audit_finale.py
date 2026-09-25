@@ -37,7 +37,7 @@ def _lang(language):
 def test_cataloghi_simmetrici_e_placeholder_coerenti():
     it, en = i18n.CATALOGS["it"], i18n.CATALOGS["en"]
     assert set(it) == set(en)
-    assert len(it) == 2043  # +1 in E, +3 in F, +2 in G2, +22 in H1, +9 in H2 (nota dei filtri, alternative testuali ai Canvas, cornice degli errori su file), +24 in I2b (pannello ternario), +30 in I2c (Una carta, 27 posizioni), +9 in I2d (navigazione), +53 in I3, +46 in I4 + 102 (I5: riconoscimento) + 161 (I6: laboratorio) + 210 (I7: livelli, glossario, guida, aiuti; − chiavi obsolete) + 7 (I7: L11, A13) + 22 (J: CLI) + 54 (J: sessione)
+    assert len(it) == 2046  # +1 in E, +3 in F, +2 in G2, +22 in H1, +9 in H2 (nota dei filtri, alternative testuali ai Canvas, cornice degli errori su file), +24 in I2b (pannello ternario), +30 in I2c (Una carta, 27 posizioni), +9 in I2d (navigazione), +53 in I3, +46 in I4 + 102 (I5: riconoscimento) + 161 (I6: laboratorio) + 210 (I7: livelli, glossario, guida, aiuti; − chiavi obsolete) + 7 (I7: L11, A13) + 22 (J: CLI) + 54 (J: sessione) + 3 (J: guida)
     fields = lambda s: sorted(n for _, n, _, _ in Formatter().parse(s) if n)
     for key in it:
         assert fields(it[key]) == fields(en[key]), key

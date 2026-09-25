@@ -583,6 +583,7 @@ def _s29(ins, sep):
         (f"🔮  {_t('button.cayley')}",          "guide.s29.action.cayley"),
         (f"🔬  {_t('button.conjugacy')}",       "guide.s29.action.conjugacy"),
         (f"📋  {_t('button.protocol')}",        "guide.s29.action.protocol"),
+        (f"🗂  {_t('button.session')}",          "guide.s29.action.session"),
         (f"🖥️  {_t('button.presentation')}",    "guide.s29.action.presentation"),
         (f"✔  {_t('button.verify')}",           "guide.s29.action.verify"),
         (f"⚙️  {_t('button.settings')}",        "guide.s29.action.settings"),
@@ -601,6 +602,8 @@ def _s29(ins, sep):
     ins("h3", _t("guide.s29.presentation.title") + "\n")
     ins("body", _t("guide.s29.presentation.body"))
     ins("bullet", _t("guide.s29.presentation.keys"))
+    ins("h3", _t("guide.s29.session.title") + "\n")
+    ins("body", _t("guide.s29.session.body"))
 
     ins("h3", _t("guide.s29.mode.title") + "\n")
     ins("body", _t("guide.s29.mode.intro"))

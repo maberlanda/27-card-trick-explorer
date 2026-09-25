@@ -2088,6 +2088,10 @@ _ITALIAN = {
     "sequence.deck": "Disposizione v{k} (carta in ogni posizione):",
     "sequence.return": "Ritorno compresso: R = C{n}⁻¹, una sola Procedura {codes} (riga #{row}) al posto di {stages} stadi.",
     "sequence.origin_vs_path": "Il cumulativo recupera l'ORIGINE v0 ma non il cammino: le tappe intermedie si ritrovano solo con il replay indietro sulla successione conservata. v0 =",
+    # J: guida della finestra Sessione
+    "guide.s29.action.session": "apre la finestra dell'esperimento: salvataggio e apertura con verifica, cronologia con annulla/ripristina, successione di procedure (vedi sotto)",
+    "guide.s29.session.title": "  Pulsante 🗂 Sessione — esperimenti, cronologia e successioni",
+    "guide.s29.session.body": "Raccoglie in un esperimento lo stato scientifico delle viste (espressione dell'Explorer, trucco del Simulatore e modalità della Pratica, riga della Tavola, permutazione riconosciuta, proprietà del Laboratorio, successione di procedure), con titolo, nota e seed. «Salva» scrive un file JSON versionato in modo atomico; «Apri» ricalcola ogni risultato e carica il file solo se l'esito è VERIFIED: MISMATCH, INCOMPATIBLE_CONVENTION, UNSUPPORTED_SCHEMA e CORRUPT lasciano intatta la sessione corrente. Non c'è salvataggio automatico: prima di sostituire una sessione non salvata viene chiesta conferma.\n\nLa scheda Cronologia elenca gli eventi scientifici; Annulla (Ctrl+Z) e Ripristina (Ctrl+Y) riportano lo stato nelle viste. Cambiare livello, scheda o finestra non crea eventi, e un export già scritto non viene mai cancellato da Annulla. La scheda Successione costruisce P1…PN, mostra per ogni passo la riga della Tavola, il cumulativo C_k = T(k)∘…∘T(1) e la disposizione v_k, permette di ripercorrere le tappe e calcola il ritorno compresso R = C_N⁻¹ (cap. 10, § 10.1–10.2). Gli stessi calcoli sono disponibili da riga di comando:  python -m gioco27 validate | replay | sequence | export | compare …\n\n",
 }
 
 _ENGLISH = {
@@ -4166,6 +4170,10 @@ _ENGLISH = {
     "sequence.deck": "Arrangement v{k} (card in each position):",
     "sequence.return": "Compressed return: R = C{n}⁻¹, a single Procedure {codes} (row #{row}) instead of {stages} stages.",
     "sequence.origin_vs_path": "The cumulative board recovers the ORIGIN v0 but not the path: the intermediate stages come back only by replaying the stored succession backwards. v0 =",
+    # J: guida della finestra Sessione
+    "guide.s29.action.session": "opens the experiment window: saving and opening with verification, history with undo/redo, sequence of procedures (see below)",
+    "guide.s29.session.title": "  🗂 Session button — experiments, history and sequences",
+    "guide.s29.session.body": "Collects into an experiment the scientific state of the views (Explorer expression, Simulator trick and Practice mode, Table row, recognised permutation, Laboratory property, sequence of procedures), with title, note and seed. «Save» writes a versioned JSON file atomically; «Open» recomputes every result and loads the file only if the outcome is VERIFIED: MISMATCH, INCOMPATIBLE_CONVENTION, UNSUPPORTED_SCHEMA and CORRUPT leave the current session untouched. There is no autosave: you are asked to confirm before an unsaved session is replaced.\n\nThe History tab lists the scientific events; Undo (Ctrl+Z) and Redo (Ctrl+Y) bring the state back into the views. Changing level, tab or window creates no events, and an export already written is never deleted by Undo. The Succession tab builds P1…PN, shows for each step the Table row, the cumulative C_k = T(k)∘…∘T(1) and the arrangement v_k, lets you step through the stages and computes the compressed return R = C_N⁻¹ (chap. 10, § 10.1–10.2). The same computations are available from the command line:  python -m gioco27 validate | replay | sequence | export | compare …\n\n",
 }
 
 
