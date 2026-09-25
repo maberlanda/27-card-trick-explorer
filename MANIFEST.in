@@ -1,0 +1,16 @@
+# Contenuto della sdist (compartimento K): tutto cio' che serve per
+# ricostruire, verificare e impacchettare il programma dal solo archivio.
+include README.md LICENSE pyproject.toml
+include requirements.txt requirements-dev.txt
+include gioco27.py avvia.bat controlla_requisiti.py conftest.py gioco27.spec
+include gioco27/assets/LICENSE-DejaVu.txt
+recursive-include gioco27/assets *.ttf
+recursive-include tests *.py *.json
+recursive-include docs *.md *.csv
+
+# Mai nella distribuzione: fonti esterne (DP12), cache, artefatti di build.
+global-exclude *.pdf
+global-exclude *.py[cod] __pycache__ .pytest_cache
+prune build
+prune dist
+prune .github

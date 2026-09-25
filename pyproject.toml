@@ -49,6 +49,7 @@ test = [
     "pyflakes>=3.0",
     "pypdfium2>=4.0",   # rasterizza il PDF in tests/test_layout_dettaglio.py (N03)
     "pillow>=9.0",      # richiesto da pypdfium2 .to_pil() nello stesso test
+    "tomli>=1.1; python_version < '3.11'",  # tests/test_release_k.py legge pyproject (tomllib da 3.11)
 ]
 # Costruzione degli artefatti (sdist/wheel, eseguibile PyInstaller).
 build = [
@@ -67,7 +68,9 @@ gioco27 = "gioco27.__main__:main"
 gioco27-cli = "gioco27.cli:main_console"
 
 [tool.setuptools.dynamic]
-version = { attr = "gioco27.__version__" }
+# `gioco27.__init__` e non `gioco27`: nella radice c'e' anche il launcher gioco27.py, che
+# setuptools troverebbe per primo cercando il modulo `gioco27`.
+version = { attr = "gioco27.__init__.__version__" }
 
 [tool.setuptools.packages.find]
 include = ["gioco27*"]

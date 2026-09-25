@@ -6,6 +6,7 @@ pytest>=7.0
 pyflakes>=3.0       # tests/test_static.py
 pypdfium2>=4.0      # tests/test_layout_dettaglio.py rasterizza il PDF (N03)
 pillow>=9.0         # richiesto da pypdfium2 .to_pil() nello stesso test
+tomli>=1.1; python_version < "3.11"   # lettura di pyproject.toml nei test (tomllib da 3.11)
 
 # build (extra `build`)
 build>=1.0          # sdist e wheel

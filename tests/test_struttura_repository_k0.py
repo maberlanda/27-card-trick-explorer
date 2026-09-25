@@ -22,6 +22,7 @@ RADICE_AMMESSA = {
     "conftest.py", "controlla_requisiti.py", "docs", "gioco27", "gioco27.py",
     "pyproject.toml", "requirements-dev.txt", "requirements.txt", "tests",
     "gioco27.spec",        # K (N04): ricetta PyInstaller ufficiale, versionata
+    "MANIFEST.in",         # K: contenuto esplicito della sdist
     ".github",             # K: workflow di CI
 }
 PDF_UTENTE = ("Articolo.pdf", "LIBRO_MAIN.pdf")
