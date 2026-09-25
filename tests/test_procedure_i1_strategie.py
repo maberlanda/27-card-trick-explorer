@@ -230,7 +230,8 @@ def test_nessuna_vista_usa_ancora_il_servizio_delle_procedure():
                  if "procedura_sicura" in f.read_text(encoding="utf-8")
                  or "procedura_storica" in f.read_text(encoding="utf-8")]
     assert strategie == []
-    consumatori_i2 = {"pannello_ternario.py", "tavola_tab.py"}
+    # J: la finestra Sessione (successione L90) usa solo il modello ProceduraGioco.
+    consumatori_i2 = {"pannello_ternario.py", "tavola_tab.py", "sessione_tab.py"}
     usi = [f.name for f in gui.rglob("*.py")
            if "services.procedure" in f.read_text(encoding="utf-8")]
     assert set(usi) <= consumatori_i2, usi
