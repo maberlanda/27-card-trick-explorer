@@ -13,7 +13,6 @@ import itertools
 import random
 from fractions import Fraction
 
-import pytest
 
 from gioco27.core import gioco_reale as gr
 from gioco27.core.algebra import AlgebraEngine, CanonicalForm
