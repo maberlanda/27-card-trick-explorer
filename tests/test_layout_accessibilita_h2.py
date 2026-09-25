@@ -1754,8 +1754,9 @@ def test_explorer_le_altre_sotto_schede_restano_come_prima(applicazione):
     assert int(str(nb.cget("height"))) > 0
     for indice in range(len(nb.tabs())):
         if nb.tabs()[indice] in (str(applicazione._mat_scheda),
-                                 str(applicazione._riconoscimento)):
-            continue                                   # pagine compatte (I5 incluso)
+                                 str(applicazione._riconoscimento),
+                                 str(applicazione._laboratorio)):
+            continue                                   # pagine compatte (I5, I6)
         nb.select(indice)
         applicazione.update()
         assert int(str(nb.cget("height"))) == 0
@@ -1915,6 +1916,106 @@ def test_i5_la_vista_sta_in_1280_anche_in_inglese(lingua):
         vista.carica_esempio()
         radice.update()
         assert "Direct separability" in vista._esito_lbl.cget("text")
+        assert vista.winfo_reqwidth() <= 1200, vista.winfo_reqwidth()
+        assert vista.winfo_reqheight() <= 640, vista.winfo_reqheight()
+    finally:
+        radice.destroy()
+
+
+# ═══════════════════════ I6: Explorer → Laboratorio ═════════════════════════
+
+def _laboratorio(app, geometria, scheda=0):
+    _dimensiona(app, geometria)
+    app._seleziona_scheda("explorer")
+    vista = app._laboratorio
+    app._explorer_nb.select(vista)
+    vista._schede.select(scheda)
+    app.update()
+    area = app._aree_scorrevoli["explorer"]
+    area.tela.yview_moveto(0)
+    app.update()
+    return vista, area
+
+
+@pytest.mark.parametrize("geometria", TARGET)
+def test_i6_laboratorio_si_raggiunge(applicazione, geometria):
+    vista, area = _laboratorio(applicazione, geometria)
+    controlli = _discendenti(applicazione._schede["explorer"])
+    assert [_etichetta(w) for w in _perduti(controlli)] == []
+    for w in (vista._elenco, vista._verifica_btn, *vista._domini_rb.values()):
+        assert _nella_vista(area, w), (geometria, _etichetta(w))
+    # ESITO e CONTROESEMPIO: la parte alta del dettaglio e' nella vista
+    assert vista._dettaglio_txt.winfo_rooty() + 80 <= area.tela.winfo_rooty() + area.tela.winfo_height()
+    assert area.barre_visibili()[1] is False                 # nessuna barra orizzontale
+    assert _oltre_il_bordo(applicazione, [vista._verifica_btn, vista._elenco]) == []
+
+
+@pytest.mark.parametrize("geometria", TARGET)
+@pytest.mark.parametrize("scheda", range(5))
+def test_i6_ogni_sezione_sta_nella_vista(applicazione, geometria, scheda):
+    vista, area = _laboratorio(applicazione, geometria, scheda)
+    pagina = vista._schede.nametowidget(vista._schede.select())
+    for w in _discendenti(pagina):
+        if w.winfo_ismapped() and not isinstance(w, ttk.Scrollbar):
+            assert _nella_vista(area, w), (geometria, scheda, _etichetta(w))
+    assert area.barre_visibili()[1] is False
+
+
+@pytest.mark.parametrize("geometria", TARGET)
+def test_i6_lo_scorrimento_segue_il_contenuto(applicazione, geometria):
+    vista, area = _laboratorio(applicazione, geometria)
+    fondo = vista.winfo_rooty() + vista.winfo_height() - area.contenuto.winfo_rooty()
+    regione = [float(x) for x in str(area.tela.cget("scrollregion")).split()]
+    assert regione[3] <= max(area.tela.winfo_height(), fondo + 20), (regione, fondo)
+    if fondo + 20 <= area.tela.winfo_height():
+        assert area.barre_visibili() == (False, False)
+
+
+def test_i6_ordine_di_tab(applicazione):
+    vista, _ = _laboratorio(applicazione, "1920x1080")
+    attivi = [rb for rb in vista._domini_rb.values() if str(rb.cget("state")) != "disabled"]
+    attesi = [vista._elenco, *attivi, vista._verifica_btn, vista._dettaglio_txt]
+    vista._elenco.focus_set()
+    applicazione.update()
+    visti, w = [], vista._elenco
+    for _ in range(40):
+        if w in attesi and w not in visti:
+            visti.append(w)
+        w = w.tk_focusNext()
+        if w is None:
+            break
+    assert visti == attesi, [_etichetta(v) for v in visti]
+
+
+def test_i6_il_ridimensionamento_non_innesca_cicli(applicazione):
+    vista, area = _laboratorio(applicazione, "1366x768")
+    for geometria in ("1280x720", "1920x1080", "1366x768"):
+        _dimensiona(applicazione, geometria)
+        prima = area.barre_visibili()
+        applicazione.update()
+        assert area.barre_visibili() == prima, geometria
+    assert vista.winfo_ismapped()
+
+
+def test_i6_non_rompe_matrice_e_riconoscimento(applicazione):
+    _laboratorio(applicazione, "1280x720")
+    area = _matrice_aperta(applicazione, "1280x720")
+    fattori = applicazione._mat_fcvs_t + applicazione._mat_flbls_t
+    assert all(_nella_vista(area, w) for w in fattori if w.winfo_ismapped())
+    vista, area = _riconoscimento(applicazione, "1280x720")
+    assert _nella_vista(area, vista._analizza_btn)
+
+
+def test_i6_la_vista_sta_in_1280_anche_in_inglese(lingua):
+    lingua("en")
+    radice = _display_o_salta()
+    try:
+        radice.deiconify()
+        from gioco27.gui.laboratorio_tab import LaboratorioFrame
+        vista = LaboratorioFrame(radice)
+        vista.pack(fill="both", expand=True)
+        radice.update()
+        assert "Groups:" in vista.winfo_children()[0].cget("text")
         assert vista.winfo_reqwidth() <= 1200, vista.winfo_reqwidth()
         assert vista.winfo_reqheight() <= 640, vista.winfo_reqheight()
     finally:
