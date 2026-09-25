@@ -68,9 +68,10 @@ def test_d4_ordine_sottotab_come_costruiti_dalla_gui(guide):
                   for kw in n.keywords if kw.arg == "text"]
         assert len(labels) == 1
         names.append(_norm(labels[0]))
-    assert len(names) == 7
+    assert len(names) == 8                       # I5: + Riconoscimento
     assert names[5] == "📐 Matrice" and names[6] == "🎴 Mescolamento"
-    listed = guide.split("I sette sotto-tab", 1)[1].split("Pulsante 🔍", 1)[0]
+    assert names[7] == "🔎 Riconoscimento"
+    listed = guide.split("Gli otto sotto-tab", 1)[1].split("Pulsante 🔍", 1)[0]
     positions = [listed.index(name) for name in names]
     assert positions == sorted(positions)
     assert "Matrice (sesto sotto-tab dell'Explorer)" in guide

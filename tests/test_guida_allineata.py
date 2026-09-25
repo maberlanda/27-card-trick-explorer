@@ -210,12 +210,14 @@ def test_numero_di_sottotab_explorer(guida):
     """La Guida diceva «sei sotto-tab» quando erano sette."""
     src = (ROOT / "gioco27" / "gui" / "explorer_tab.py").read_text(encoding="utf-8")
     n = len(re.findall(r'nb\.add\(', src))
-    parole = {6: "sei", 7: "sette", 8: "otto", 5: "cinque"}
+    # articolo corretto: «I sette», ma «Gli otto» (I5 aggiunge Riconoscimento)
+    parole = {5: ("I", "cinque"), 6: ("I", "sei"), 7: ("I", "sette"), 8: ("Gli", "otto")}
     assert n in parole, f"numero inatteso di sotto-tab: {n}"
-    assert f"I {parole[n]} sotto-tab" in guida, \
-        f"l'Explorer ha {n} sotto-tab: la Guida deve dire «I {parole[n]} sotto-tab»"
-    assert f"i {parole[n]} sotto-tab" in guida, \
-        f"anche il flusso di lavoro deve citare {parole[n]} sotto-tab"
+    articolo, numero = parole[n]
+    assert f"{articolo} {numero} sotto-tab" in guida, \
+        f"l'Explorer ha {n} sotto-tab: la Guida deve dire «{articolo} {numero} sotto-tab»"
+    assert f"{articolo.lower()} {numero} sotto-tab" in guida, \
+        f"anche il flusso di lavoro deve citare {numero} sotto-tab"
 
 
 def _verifica_assenza_vecchio_numero_sottotab(guida):

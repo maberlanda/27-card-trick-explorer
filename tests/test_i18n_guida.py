@@ -70,7 +70,7 @@ def test_guida_completa_in_italiano():
                    "Relazione fondamentale di commutazione con MSC",
                    "Il programma richiede Python 3.9 o superiore",
                    "Domande frequenti (FAQ)",
-                   "I sette sotto-tab"):
+                   "Gli otto sotto-tab"):
         assert phrase in text
     # Nessuna chiave guide.* manca in italiano: il testo non è mai una chiave.
     assert not re.search(r"\bguide\.s\d\d\.", text)
@@ -87,7 +87,7 @@ def test_guida_completa_in_inglese():
                    "Fundamental commutation relation with MSC",
                    "The program requires Python 3.9 or later",
                    "Frequently asked questions (FAQ)",
-                   "The seven sub-tabs", "the seven sub-tabs"):
+                   "The eight sub-tabs", "the eight sub-tabs"):
         assert phrase in text
     assert not re.search(r"\bguide\.s\d\d\.", text)
     it, en = CATALOGS["it"], CATALOGS["en"]
