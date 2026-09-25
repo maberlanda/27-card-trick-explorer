@@ -1,0 +1,162 @@
+# CI di «Gioco delle 27 carte» (compartimento K).
+#
+# A. static-core   — analisi statica, baseline matematica, selftest (normale e -O),
+#                    test senza interfaccia grafica, sulla matrice Python supportata
+# B. gui-linux     — suite completa sotto xvfb, file per file, sulla stessa matrice
+# C. packaging     — sdist + wheel da checkout pulito, contenuto, installazione pulita
+# D. windows       — suite senza GUI obbligatoria, launcher avvia.bat, build PyInstaller
+#                    e avvio dell'eseguibile
+#
+# Nessun passo critico usa continue-on-error. La matrice segue requires-python
+# (>= 3.10) e docs/release/K_RELEASE_CANDIDATE_CLOSED.md § 6.
+
+name: ci
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  PYTHONDONTWRITEBYTECODE: "1"
+  PYTHONIOENCODING: "utf-8"
+
+jobs:
+  static-core:
+    name: static + core (Python ${{ matrix.python }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+          allow-prereleases: true
+      - name: Installazione (export + test)
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[export,test]"
+      - name: Diagnostica dipendenze
+        run: python controlla_requisiti.py --dev
+      - name: Analisi statica (pyflakes)
+        run: python -m pyflakes gioco27 tests gioco27.py controlla_requisiti.py conftest.py
+      - name: Baseline matematica
+        run: python -m pytest -q -p no:cacheprovider tests/test_baseline_matematica.py
+      - name: Selftest (normale e con -O)
+        run: |
+          python -m gioco27 --selftest
+          python -O -m gioco27 --selftest
+          python -m gioco27 selftest --json
+      - name: Test K di release (statici)
+        run: python -m pytest -q -p no:cacheprovider tests/test_release_k.py tests/test_terminologia_export_k.py tests/test_export_smoke_k.py
+
+  gui-linux:
+    name: suite completa, xvfb (Python ${{ matrix.python }})
+    runs-on: ubuntu-latest
+    needs: static-core
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+          allow-prereleases: true
+      - name: Pacchetti di sistema (xvfb, font)
+        run: sudo apt-get update && sudo apt-get install -y xvfb fonts-dejavu-core
+      - name: Installazione (export + test + build)
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[export,test]" build
+      - name: Suite completa, un file per processo
+        # Un processo per file: le applicazioni Tk costruite da molti file in
+        # un solo interprete possono esaurire risorse X; un fallimento resta
+        # un fallimento (il passo esce con 1).
+        run: |
+          esito=0
+          for f in tests/test_*.py; do
+            echo "::group::$f"
+            xvfb-run -a -s "-screen 0 1920x1080x24" python -m pytest -q -p no:cacheprovider -rfs "$f" || esito=1
+            echo "::endgroup::"
+          done
+          exit $esito
+
+  packaging:
+    name: sdist, wheel, installazione pulita
+    runs-on: ubuntu-latest
+    needs: static-core
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Strumenti
+        run: python -m pip install --upgrade pip build pytest "tomli; python_version<'3.11'"
+      - name: Build (sdist, poi wheel dalla sdist)
+        run: python -m build --outdir dist .
+      - name: Nessun PDF, cache o artefatto estraneo negli archivi
+        run: |
+          python - <<'PY'
+          import tarfile, zipfile, glob
+          nomi = zipfile.ZipFile(glob.glob("dist/*.whl")[0]).namelist()
+          nomi += tarfile.open(glob.glob("dist/*.tar.gz")[0]).getnames()
+          cattivi = [n for n in nomi if n.endswith((".pdf", ".pyc")) or "__pycache__" in n]
+          assert not cattivi, cattivi
+          print(len(nomi), "voci controllate")
+          PY
+      - name: Installazione pulita e smoke (tests/test_pacchetto_k.py)
+        run: python -m pytest -q -p no:cacheprovider -rfs tests/test_pacchetto_k.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  windows:
+    name: Windows (Python 3.12) + PyInstaller
+    runs-on: windows-latest
+    needs: static-core
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Installazione (export + test + build)
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Selftest e CLI
+        run: |
+          python -m gioco27 --selftest
+          python -O -m gioco27 --selftest
+          python -m gioco27 --version
+          gioco27-cli selftest --json
+      - name: Launcher avvia.bat (py -3, poi python)
+        shell: cmd
+        run: call avvia.bat --selftest
+      - name: Test senza GUI obbligatoria
+        run: python -m pytest -q -p no:cacheprovider -rfs tests/test_baseline_matematica.py tests/test_release_k.py tests/test_export_smoke_k.py tests/test_terminologia_export_k.py tests/test_esperimenti_j.py tests/test_cli_j.py tests/test_pacchetto_k.py
+      - name: Build PyInstaller (gioco27.spec)
+        run: pyinstaller --noconfirm gioco27.spec
+      - name: Avvio dell'eseguibile (codici di uscita)
+        shell: pwsh
+        run: |
+          # console=False: l'eseguibile non ha console, si controlla il codice di uscita
+          $p = Start-Process -FilePath dist\Gioco27\Gioco27.exe -ArgumentList "--selftest" -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw "selftest dell'eseguibile: $($p.ExitCode)" }
+          $p = Start-Process -FilePath dist\Gioco27\Gioco27.exe -ArgumentList "selftest" -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw "CLI selftest dell'eseguibile: $($p.ExitCode)" }
+          if (-not (Test-Path dist\Gioco27\_internal\gioco27\assets\LICENSE-DejaVu.txt)) { throw "licenza font assente" }
+          if (-not (Test-Path dist\Gioco27\_internal\LICENSE)) { throw "LICENSE assente" }
+          if (Get-ChildItem -Recurse dist\Gioco27 -Filter *.pdf) { throw "PDF nel bundle" }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Gioco27-windows
+          path: dist/Gioco27/
