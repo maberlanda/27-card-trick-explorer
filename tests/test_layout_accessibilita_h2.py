@@ -941,9 +941,16 @@ def test_il_testo_di_aiuto_ingrandito_non_perde_niente(applicazione, scala,
 def test_lo_scorrimento_si_accende_quando_il_testo_cresce(applicazione):
     """La strategia di overflow non e' decorativa: si vede accendersi.
 
-    Lo stadio 0 a scala 1.0 ci sta tutto e non mostra nulla da scorrere; a
-    scala 2.0 il suo contenuto supera la vista e l'area si apre. E' la stessa
-    area, la stessa scheda: cambia solo quanto e' alto il testo.
+    Lo stadio 0 a scala 1.0 ci sta tutto e non mostra nulla da scorrere; alla
+    scala massima degli aiuti (3.0) il suo contenuto supera la vista e l'area
+    si apre. E' la stessa area, la stessa scheda: cambia solo quanto e' alto
+    il testo. A ogni scala la barra verticale c'e' se e solo se il contenuto
+    supera la vista.
+
+    K: la versione precedente usava la scala 2.0, sufficiente con i font
+    Windows della Guida (Segoe UI, Consolas) ma non con i font di ripiego di
+    Linux/xvfb, dove a 2.0 lo stadio 0 ci sta ancora (656 px su 779): il
+    fallimento, registrato come «Tk 9», compariva identico con Tk 8.6.14.
     """
     _dimensiona(applicazione, "1920x1080")
     applicazione._seleziona_scheda("stadio0")
@@ -955,11 +962,19 @@ def test_lo_scorrimento_si_accende_quando_il_testo_cresce(applicazione):
         basso = area.contenuto.winfo_reqheight()
         assert area.barre_visibili() == (False, False)
 
-    with _con_scala_aiuti(applicazione, 2.0):
-        applicazione.update()
-        alto = area.contenuto.winfo_reqheight()
-        assert alto > basso, (basso, alto)
-        assert area.puo_scorrere(), "il contenuto e' cresciuto e non si scorre"
+    precedente = basso
+    for scala in (2.0, 3.0):
+        with _con_scala_aiuti(applicazione, scala):
+            applicazione.update()
+            alto = area.contenuto.winfo_reqheight()
+            vista = area.tela.winfo_height()
+            assert alto > precedente, (scala, precedente, alto)
+            eccede = alto > vista + area.TOLLERANZA
+            assert area.barre_visibili()[0] == eccede, (scala, alto, vista)
+            precedente = alto
+            if scala == 3.0:
+                assert eccede, "alla scala massima il contenuto deve superare la vista"
+                assert area.puo_scorrere(), "il contenuto e' cresciuto e non si scorre"
 
 
 # ─────────────────────────── tastiera, per davvero ──────────────────────────
