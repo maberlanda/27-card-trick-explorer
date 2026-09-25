@@ -1,2 +1,5 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# K: gli script batch di Windows vanno con CRLF (etichette e goto con LF sono inaffidabili).
+*.bat text eol=crlf

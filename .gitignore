@@ -31,6 +31,8 @@ MANIFEST
 #  before PyInstaller builds the exe, so as to inject date/other infos into it.
 *.manifest
 *.spec
+# K (N04): la spec ufficiale del progetto e' versionata.
+!/gioco27.spec
 
 # Installer logs
 pip-log.txt
