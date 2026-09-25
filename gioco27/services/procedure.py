@@ -7,7 +7,7 @@ una procedura e' calcolata da `core.permutations.compute_T_perm` sul preset
 numero di tavola, l'impilamento e il solutore storico vengono da
 `core.gioco_reale`; i validatori di indici e permutazioni da `core.dominio`.
 
-Decisioni applicate (V4_PRE_I1_PRODUCT_DECISIONS.md, approvate)
+Decisioni applicate (docs/decisions/V4_PRE_I1_PRODUCT_DECISIONS.md, approvate)
 ---------------------------------------------------------------
 
 DP3 — una procedura canonica e' ``(S1, S2, S3 ; e1, e2, e3)``: ``S_i`` e' la

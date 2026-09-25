@@ -5,7 +5,7 @@ Un piccolo service puro sopra le primitive fisiche del core
 I1/I2 (`services.procedure`, `services.tabellone`). Niente Tk, niente I/O,
 niente testo per l'utente: codici stabili (E1…E6) e dati immutabili.
 
-Catalogo (V4_MATHEMATICAL_DIDACTIC_COVERAGE_AUDIT.md § 14.3; D-I3-1/2)
+Catalogo (docs/audits/V4_MATHEMATICAL_DIDACTIC_COVERAGE_AUDIT.md § 14.3; D-I3-1/2)
 ------------------------------------------------------------------------
 
 E1  mescolamento usato come impilamento: solo CDS/DSC, si esegue l'inversa

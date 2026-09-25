@@ -13,7 +13,7 @@ viene da un'autorita' gia' esistente.
                           services.procedure.adattamento_fisico (DP3 = A)
     (R) e ritorno         services.procedure.servizio_procedure().classe_trasformazione
 
-Convenzioni che la GUI non deve ricostruire (V4_PRE_I2_VIEW_DECISIONS.md):
+Convenzioni che la GUI non deve ricostruire (docs/decisions/V4_PRE_I2_VIEW_DECISIONS.md):
 
 * **T** (`destinazioni`): ``T[carta] = posizione finale``; e' la lettura
   gerarchica del tabellone **diretto**.

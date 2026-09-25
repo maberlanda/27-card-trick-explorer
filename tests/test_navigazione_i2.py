@@ -1,6 +1,6 @@
 """Compartimento I2d — navigazione minima fra Tavola, Explorer, Cicli, Simulatore.
 
-Contratto D-I2-7 (V4_PRE_I2_VIEW_DECISIONS.md § 14):
+Contratto D-I2-7 (docs/decisions/V4_PRE_I2_VIEW_DECISIONS.md § 14):
 
 * Tavola ↔ Explorer, Tavola ↔ Cicli, Simulatore → Tavola; **nessun** Tavola →
   Simulatore;

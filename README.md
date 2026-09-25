@@ -73,6 +73,12 @@ destinazione precedente resta intatta e il temporaneo viene rimosso.
 Configurazione, cache e log sono in `~/.gioco27/`
 (`config.json`, `cache/`, `gioco27.log`).
 
+## Documentazione
+
+La Guida completa è integrata nel programma. La documentazione di progetto
+(audit, decisioni, chiusure dei compartimenti, note di versione) è in
+`docs/` — vedi `docs/README.md`.
+
 ## Licenza
 
 Copyright © 2026 Maurizio Berlanda.

@@ -1,6 +1,6 @@
 """Compartimento I2 — il pannello ternario della Tavola (viste).
 
-Specifica: V4_PRE_I2_VIEW_DECISIONS.md, decisioni D-I2-2, D-I2-3, D-I2-5,
+Specifica: docs/decisions/V4_PRE_I2_VIEW_DECISIONS.md, decisioni D-I2-2, D-I2-3, D-I2-5,
 D-I2-6, D-I2-8. I dati vengono dal presenter `services.tabellone`, gia'
 provato contro la fisica in `test_tabellone_ternario_i2.py`: qui si controlla
 che la vista li mostri tutti, nell'ordine giusto, con un'alternativa

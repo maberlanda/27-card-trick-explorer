@@ -1,6 +1,6 @@
 """Compartimento I2 — tabellone, livello ternario e flusso delle cifre.
 
-Specifica: V4_PRE_I2_VIEW_DECISIONS.md (decisioni D-I2-1…8 approvate).
+Specifica: docs/decisions/V4_PRE_I2_VIEW_DECISIONS.md (decisioni D-I2-1…8 approvate).
 
 Il file ha due parti.
 

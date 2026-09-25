@@ -5,7 +5,7 @@ dal presenter `services.tabellone`. La vista non calcola nulla: legge i dati
 strutturati (cronologia, righe della griglia, colonne-Assi, T e T⁻¹, flusso
 delle cifre) e li rende in etichette e testo, con le frasi del catalogo i18n.
 
-Contratti (V4_PRE_I2_VIEW_DECISIONS.md, D-I2-2/3/5/6/8):
+Contratti (docs/decisions/V4_PRE_I2_VIEW_DECISIONS.md, D-I2-2/3/5/6/8):
 
 * cronologia (fase 1 → 2 → 3) e griglia (fase 3 in alto) sono mostrate
   **insieme**, con le etichette «fase · peso · cifra» su ogni riga;

@@ -1,6 +1,6 @@
 """Compartimento I3 — errori fisici, conseguenze e recupero.
 
-Catalogo autorevole: V4_MATHEMATICAL_DIDACTIC_COVERAGE_AUDIT.md § 14.3
+Catalogo autorevole: docs/audits/V4_MATHEMATICAL_DIDACTIC_COVERAGE_AUDIT.md § 14.3
 (E1–E6). Decisioni D-I3-1…7 del prompt di I3.
 
 Prima parte — **caratterizzazione**: i fatti fisici provati con un oracolo

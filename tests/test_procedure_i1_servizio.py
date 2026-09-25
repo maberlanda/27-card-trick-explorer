@@ -1,6 +1,6 @@
 """Compartimento I1 — modello canonico di procedura e servizio delle relazioni.
 
-Contratto (decisioni approvate, V4_PRE_I1_PRODUCT_DECISIONS.md):
+Contratto (decisioni approvate, docs/decisions/V4_PRE_I1_PRODUCT_DECISIONS.md):
 
 * DP3 = A: una procedura e' (S1,S2,S3 ; e1,e2,e3) con il rovesciamento PRIMA
   della distribuzione dello stadio; identificatori # = k1+6k2+36k3 e

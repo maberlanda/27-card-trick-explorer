@@ -169,7 +169,7 @@ def _check_claims(text):
     assert "librerie pdf" in text
 
 
-@pytest.mark.parametrize("name", ["README.md", "NOTE_VERSIONE_3.1.1.md"])
+@pytest.mark.parametrize("name", ["README.md", "docs/release/NOTE_VERSIONE_3.1.1.md"])
 def test_d5_limiti_dichiarati_senza_garanzie_assolute(name):
     _check_claims((ROOT / name).read_text(encoding="utf-8"))
 
@@ -184,7 +184,7 @@ def test_d5_controlli_rifiutano_anche_la_coesistenza(obsolete):
 
 
 def test_d5_note_distinguono_cronologia_e_header_corrente():
-    text = _norm((ROOT / "NOTE_VERSIONE_3.1.1.md").read_text(encoding="utf-8"))
+    text = _norm((ROOT / "docs" / "release" / "NOTE_VERSIONE_3.1.1.md").read_text(encoding="utf-8"))
     assert "tappe storiche: conteggi di test" in text
     assert "non allo stato corrente della suite" in text
     assert "**3.1.1** (218 test)" in text

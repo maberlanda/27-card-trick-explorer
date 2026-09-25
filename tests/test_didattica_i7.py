@@ -420,7 +420,7 @@ def _sezioni(lingua="it"):
     return {sid: per_numero[numero_sezione(sid)] for sid in SEZIONI}
 
 
-#: riga dell'audit (V4_MATHEMATICAL_DIDACTIC_COVERAGE_AUDIT.md § 7, priorita'
+#: riga dell'audit (docs/audits/V4_MATHEMATICAL_DIDACTIC_COVERAGE_AUDIT.md § 7, priorita'
 #: V4-P0/P1) → (sezione della Guida, frase che la spiega). Dopo I7: D = sì.
 COPERTURA_AUDIT = {
     "L04": ("i2m", "P = 3·altezza + colonna"),
@@ -476,7 +476,7 @@ FUORI_I7 = {
 
 
 def test_matrice_audit_p0_p1_didattica():
-    csv = (ROOT / "V4_COVERAGE_MATRIX.csv").read_text(encoding="utf-8")
+    csv = (ROOT / "docs" / "audits" / "V4_COVERAGE_MATRIX.csv").read_text(encoding="utf-8")
     righe = {}
     for linea in csv.splitlines()[1:]:
         campi = linea.split(";") if linea.count(";") > linea.count(",") else linea.split(",")

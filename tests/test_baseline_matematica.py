@@ -1,7 +1,7 @@
 """Baseline matematica del repository: rete di sicurezza per i compartimenti successivi.
 
 Non introduce funzionalita' ne' API nuove: fissa le convenzioni e le cardinalita'
-gia' verificate e registrate in `GIT_BASELINE_AND_RECONCILIATION.md` (sezione 7),
+gia' verificate e registrate in `docs/decisions/GIT_BASELINE_AND_RECONCILIATION.md` (sezione 7),
 cosi' che siano riproducibili dal repository e non da uno script esterno.
 
 Convenzioni protette:

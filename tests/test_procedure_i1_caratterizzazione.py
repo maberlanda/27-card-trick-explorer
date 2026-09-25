@@ -12,7 +12,7 @@ rispettare, usando SOLO il core esistente e oracoli indipendenti scritti qui:
 
 Convenzione canonica approvata (DP3 = A): il rovesciamento dello stadio i
 avviene PRIMA della distribuzione, T_i = (S_i ⊗ I ⊗ I) ∘ MSC ∘ J^εi.
-Riferimenti: V4_PRE_I1_PRODUCT_DECISIONS.md §§ 3, 7.
+Riferimenti: docs/decisions/V4_PRE_I1_PRODUCT_DECISIONS.md §§ 3, 7.
 """
 from collections import Counter
 

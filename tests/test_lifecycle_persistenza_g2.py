@@ -265,7 +265,7 @@ def test_r07_il_dialogo_impostazioni_non_si_chiude_se_non_ha_salvato():
 
 # ═══════════════ lifecycle — i lavori asincroni reali ═══════════════════════
 #
-# L'inventario e' in G2_LIFECYCLE_PERSISTENCE_CLOSED.md. Qui si fissa cio' che
+# L'inventario e' in docs/history/G2_LIFECYCLE_PERSISTENCE_CLOSED.md. Qui si fissa cio' che
 # conta: per ogni famiglia di lavoro, come finisce e cosa la distingue dalle
 # altre. «Annullato», «obsoleto» e «fallito» non sono sinonimi.
 
