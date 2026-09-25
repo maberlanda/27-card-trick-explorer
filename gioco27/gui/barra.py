@@ -55,6 +55,7 @@ class BarraAdattiva(ttk.Frame):
     def __init__(self, parent, padding=(10, 8), **kw):
         super().__init__(parent, padding=padding, **kw)
         self._voci = []                  # [(widget, padx, a_destra)]
+        self._nascosti = set()           # I7: widget esclusi dal livello
         self._elastici = set()           # widget che possono restringersi
         self._disposizione = None        # l'ultima calcolata, per non rifarla
         self._orizzontale = self._padding_orizzontale(padding)
@@ -103,6 +104,27 @@ class BarraAdattiva(ttk.Frame):
         self._disposizione = None
         return vuoto
 
+    def mostra(self, widget, visibile=True):
+        """I7 (DP7): include o esclude una voce senza distruggerla.
+
+        Una voce nascosta non occupa spazio e non conta nel calcolo delle
+        righe; tornando visibile riprende il suo posto nell'ordine originale.
+        """
+        chiave = str(widget)
+        prima = chiave in self._nascosti
+        if visibile:
+            self._nascosti.discard(chiave)
+        else:
+            self._nascosti.add(chiave)
+        if prima != (chiave in self._nascosti):
+            self._disposizione = None
+            if not visibile:
+                widget.grid_forget()
+            self._su_configure()
+
+    def _visibili(self):
+        return [v for v in self._voci if str(v[0]) not in self._nascosti]
+
     # ── disposizione ─────────────────────────────────────────────────────────
 
     def _larghezza_utile(self):
@@ -112,7 +134,7 @@ class BarraAdattiva(ttk.Frame):
     def _righe(self, larghezza):
         """Spezza le voci in righe, nell'ordine in cui sono state aggiunte."""
         righe, riga, usata = [], [], 0
-        for voce in self._voci:
+        for voce in self._visibili():
             widget, padx, _ = voce
             naturale = (self.MINIMO_ELASTICO if str(widget) in self._elastici
                         else widget.winfo_reqwidth())
@@ -128,7 +150,7 @@ class BarraAdattiva(ttk.Frame):
 
     def _su_configure(self, _evento=None):
         larghezza = self._larghezza_utile()
-        if not larghezza or not self._voci:
+        if not larghezza or not self._visibili():
             return
         righe = self._righe(larghezza)
         # Nessun widget viene toccato se la disposizione non è cambiata: è

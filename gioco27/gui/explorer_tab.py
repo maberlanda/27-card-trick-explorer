@@ -18,6 +18,7 @@ from .decomposition import DecompositionDialog
 from .i18n import tr
 from .riconoscimento_tab import RiconoscimentoFrame
 from .laboratorio_tab import LaboratorioFrame
+from . import livelli as _livelli
 from .shuffle import ShuffleViewerFrame
 
 
@@ -103,6 +104,10 @@ class ExplorerTabMixin:
         self._build_explorer_tab_shuffle(enb)
         self._build_explorer_tab_riconoscimento(enb)
         self._build_explorer_tab_laboratorio(enb)
+        # I7 (DP7): chiavi stabili delle nove sotto-schede, per il livello
+        self._sottoschede_explorer = dict(zip(
+            _livelli.ORDINE_SOTTOSCHEDE_EXPLORER,
+            (enb.nametowidget(t) for t in enb.tabs())))
         return outer
 
     def _exp_adatta_altezza(self, _evento=None):

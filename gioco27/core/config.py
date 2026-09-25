@@ -24,11 +24,33 @@ _DEFAULTS: dict = {
     "window_geometry":  "1280x800",
     "decomp_mode":      "T_inv", # "T_inv" | "T"
     "sim_show_errors":  True,
-    "livello":          "principiante",   # "principiante" | "esperto"
+    "livello":          "base",           # uno di LIVELLI_DIDATTICI (DP7)
     "language":         "it",             # "it" | "en"
     "ui_intro_done":    False,             # migrazione una-tantum UI guidata
     "help_font_scale":  1.0,               # scala testo aiuti/note (1.0 = 100%)
 }
+
+#: DP7 (I7): i quattro livelli didattici, dal meno al piu' ampio. Il livello
+#: decide solo quali strumenti sono VISIBILI (gui/livelli.py), non la
+#: matematica.
+LIVELLI_DIDATTICI = ("base", "intermedio", "avanzato", "laboratorio")
+
+#: Migrazione esplicita dei valori salvati dalle versioni precedenti.
+#: «principiante» mostrava le schede essenziali → Base; «esperto» mostrava
+#: tutto → Laboratorio, cosi' chi aveva gia' tutto continua ad averlo.
+MIGRAZIONI = {
+    "livello": {"principiante": "base", "esperto": "laboratorio"},
+}
+
+
+def migra_valore(chiave, valore):
+    """Il valore aggiornato al formato corrente (invariato se non va migrato)."""
+    tabella = MIGRAZIONI.get(chiave, {})
+    try:
+        return tabella.get(valore, valore)
+    except TypeError:                 # valore non hashable: lo giudica il validatore
+        return valore
+
 
 #: Validatori per le chiavi il cui valore guida il comportamento del programma.
 #:
@@ -53,7 +75,7 @@ _VALIDATORS = {
                                  and bool(_GEOMETRY_RE.match(v)),
     "decomp_mode":     lambda v: v in ("T_inv", "T"),
     "sim_show_errors": lambda v: isinstance(v, bool),
-    "livello":         lambda v: v in ("principiante", "esperto"),
+    "livello":         lambda v: v in LIVELLI_DIDATTICI,
     "language":        lambda v: v in ("it", "en"),
     "ui_intro_done":   lambda v: isinstance(v, bool),
     "help_font_scale": _is_finite_scale,
@@ -108,7 +130,7 @@ class Config:
                 for k in _DEFAULTS:
                     if k not in loaded:
                         continue
-                    v = loaded[k]
+                    v = migra_valore(k, loaded[k])
                     check = _VALIDATORS.get(k)
                     if check is not None and not check(v):
                         _log.warning("config: valore non valido per %r (%r): "

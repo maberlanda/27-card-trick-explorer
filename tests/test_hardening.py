@@ -394,7 +394,7 @@ def test_config_scarta_i_valori_invalidi(tmp_path, monkeypatch, chiave,
 @pytest.mark.parametrize("chiave,valore_valido", [
     ("n_workers", 4),
     ("use_parallel", False),
-    ("livello", "esperto"),
+    ("livello", "avanzato"),
     ("help_font_scale", 1.25),
     ("window_geometry", "1600x900+10+10"),
     ("window_geometry", "1280x800"),
