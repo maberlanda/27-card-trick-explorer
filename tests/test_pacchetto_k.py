@@ -258,5 +258,6 @@ def test_export_da_installazione_completa(artefatti, tmp_path_factory):
     r = _esegui([py, "-B", "-c", codice], cwd=lavoro, env=_ambiente_isolato())
     assert r.returncode == 0, r.stdout + r.stderr
     righe = r.stdout.strip().splitlines()
-    assert righe[0] == "2 2 2 2" and righe[1] == "DejaVuSans" and righe[2] == "True", righe
+    # 'DV' = DejaVu registrato dal package installato (il ripiego sarebbe Helvetica)
+    assert righe[0] == "2 2 2 2" and righe[1] == "DV" and righe[2] == "True", righe
     assert (lavoro / "e.xlsx").is_file()
