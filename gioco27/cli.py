@@ -88,7 +88,7 @@ def _parser():
     sp.add_argument("--csv")
     comune(sp)
     sp = sub.add_parser("sequence", help=tr("cli.help.sequence"), description=tr("cli.help.sequence"))
-    sp.add_argument("--proc", nargs="*", default=[], help="#,m")
+    sp.add_argument("--proc", nargs="+", action="extend", default=[], help="#,m")
     sp.add_argument("--random", type=int)
     sp.add_argument("--seed", type=int)
     sp.add_argument("--out")

@@ -131,3 +131,14 @@ def test_nessun_tk_e_nessuna_gui(esperimento):
     assert p.stdout.strip().splitlines()[-1] == "NOTK 0"
     src = (ROOT / "gioco27" / "cli.py").read_text(encoding="utf-8")
     assert "tkinter" not in src and "from .gui" not in src
+
+
+def test_sequence_proc_ripetuto_si_accumula(tmp_path):
+    """`--proc` ripetuto accumula le Procedure invece di tenere solo l'ultima."""
+    out = tmp_path / "succ.json"
+    rc, js = _json("sequence", "--proc", "100,0", "--proc", "56,0", "17,5", "--out", out)
+    assert rc == 0
+    r = js["result"]["risultato"]
+    assert r["passi"] == [100, 56, 11] and r["numero_cumulativo"] == 117
+    rc, js = _json("validate", out)
+    assert rc == 0 and js["status"] == "VERIFIED"
