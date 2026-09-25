@@ -1816,3 +1816,106 @@ def test_explorer_ordine_di_tab_dei_comandi(applicazione):
     finally:
         a._explorer_clear()
         a.update()
+
+
+# ═════════════ I5 — Explorer → Riconoscimento (decodifica) ══════════════════
+
+def _riconoscimento(app, geometria, esempio="recognition.example.es71", modo=None):
+    _dimensiona(app, geometria)
+    app._seleziona_scheda("explorer")
+    vista = app._riconoscimento
+    app._explorer_nb.select(vista)
+    app.update()
+    i = [k for k, *_ in vista._esempi].index(esempio)
+    vista._esempio_cb.current(i)
+    vista.carica_esempio()
+    app.update()
+    area = app._aree_scorrevoli["explorer"]
+    area.tela.yview_moveto(0)
+    app.update()
+    return vista, area
+
+
+@pytest.mark.parametrize("geometria", TARGET)
+def test_i5_riconoscimento_si_raggiunge(applicazione, geometria):
+    vista, area = _riconoscimento(applicazione, geometria)
+    controlli = _discendenti(applicazione._schede["explorer"])
+    assert [_etichetta(w) for w in _perduti(controlli)] == []
+    for w in (vista._analizza_btn, vista._usa_T_btn, vista._esempio_cb,
+              vista._esempio_btn, vista._esito_lbl, *vista._modi_rb):
+        assert _nella_vista(area, w), (geometria, _etichetta(w))
+    # la barra delle sezioni interne e' visibile senza scorrere
+    assert vista._schede.winfo_rooty() + 30 <= area.tela.winfo_rooty() + area.tela.winfo_height()
+    assert area.barre_visibili()[1] is False
+
+
+@pytest.mark.parametrize("geometria", TARGET)
+def test_i5_lo_scorrimento_segue_il_contenuto(applicazione, geometria):
+    vista, area = _riconoscimento(applicazione, geometria)
+    fondo = vista.winfo_rooty() + vista.winfo_height() - area.contenuto.winfo_rooty()
+    regione = [float(x) for x in str(area.tela.cget("scrollregion")).split()]
+    assert regione[3] <= max(area.tela.winfo_height(), fondo + 20), (regione, fondo)
+    if fondo + 20 <= area.tela.winfo_height():
+        assert area.barre_visibili() == (False, False)
+
+
+def test_i5_ordine_di_tab(applicazione):
+    vista, _ = _riconoscimento(applicazione, "1920x1080",
+                               esempio="recognition.example.final248")
+    attesi = [*vista._modi_rb, vista._campo1, vista._campo2, vista._analizza_btn,
+              vista._usa_T_btn, vista._esempio_cb, vista._esempio_btn, vista._schede]
+    vista._modi_rb[0].focus_set()
+    applicazione.update()
+    visti, w = [], vista._modi_rb[0]
+    for _ in range(40):
+        if w in attesi and w not in visti:
+            visti.append(w)
+        w = w.tk_focusNext()
+        if w is None:
+            break
+    assert visti == attesi, [_etichetta(v) for v in visti]
+    # da un campo di testo il Tab esce (non inserisce un carattere)
+    vista._campo1.focus_set()
+    applicazione.update()
+    vista._campo1.event_generate("<Tab>")
+    applicazione.update()
+    assert applicazione.focus_get() is not vista._campo1
+    assert "\t" not in vista._campo1.get("1.0", "end")
+
+
+def test_i5_alternative_testuali_e_marcatori(applicazione):
+    vista, _ = _riconoscimento(applicazione, "1366x768",
+                               esempio="recognition.example.c1")
+    for testo in (vista._diretto_txt, vista._somme_txt, vista._estesa_txt,
+                  vista._guide_txt, vista._a1_txt, vista._vw_txt):
+        assert testo.cget("takefocus") and testo.cget("state") == "disabled"
+    assert "✘" in vista._esito_lbl.cget("text") and "✔" not in vista._esito_lbl.cget("text")
+    assert "✘ Livello 1" in vista._diretto_txt.get("1.0", "end")
+
+
+def test_i5_il_ridimensionamento_non_innesca_cicli(applicazione):
+    vista, area = _riconoscimento(applicazione, "1366x768")
+    for geometria in ("1280x720", "1920x1080", "1366x768"):
+        _dimensiona(applicazione, geometria)
+        prima = area.barre_visibili()
+        applicazione.update()
+        assert area.barre_visibili() == prima, geometria
+    assert vista.winfo_ismapped()
+
+
+def test_i5_la_vista_sta_in_1280_anche_in_inglese(lingua):
+    lingua("en")
+    radice = _display_o_salta()
+    try:
+        radice.deiconify()
+        from gioco27.gui.riconoscimento_tab import RiconoscimentoFrame
+        vista = RiconoscimentoFrame(radice)
+        vista.pack(fill="both", expand=True)
+        vista._esempio_cb.current(4)
+        vista.carica_esempio()
+        radice.update()
+        assert "Direct separability" in vista._esito_lbl.cget("text")
+        assert vista.winfo_reqwidth() <= 1200, vista.winfo_reqwidth()
+        assert vista.winfo_reqheight() <= 640, vista.winfo_reqheight()
+    finally:
+        radice.destroy()
