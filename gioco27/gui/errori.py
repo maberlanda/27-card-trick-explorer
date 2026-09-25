@@ -27,7 +27,8 @@ from ..core.dominio import PermutazioneNonValida
 from ..core.log import get_logger
 from .i18n import tr
 
-__all__ = ["per_utente", "per_file", "motivo_di", "diagnostica_import"]
+__all__ = ["per_utente", "per_file", "motivo_di", "diagnostica_import",
+           "dipendenza_mancante"]
 
 _log = get_logger(__name__)
 
@@ -90,6 +91,28 @@ def _per_codice(tabella, codice, neutro, dati):
 
 # ───────────────────────────── eccezioni ────────────────────────────────────
 
+#: Librerie facoltative (extra `export` di pyproject.toml): la loro assenza
+#: disattiva un export, non il programma (compartimento K).
+DIPENDENZE_FACOLTATIVE = ("reportlab", "openpyxl", "pypdf", "pikepdf")
+
+
+def dipendenza_mancante(exc):
+    """Il nome della libreria facoltativa mancante, o None.
+
+    Riconosce un `ImportError` sollevato perche' un export ha bisogno di
+    reportlab/openpyxl/pypdf/pikepdf e la libreria non e' installata.
+    """
+    if not isinstance(exc, ImportError):
+        return None
+    nome = (getattr(exc, "name", None) or "").split(".")[0]
+    return nome if nome in DIPENDENZE_FACOLTATIVE else None
+
+
+def _messaggio_dipendenza(libreria):
+    return (tr("errore.dipendenza.titolo"),
+            tr("errore.dipendenza.messaggio", libreria=libreria))
+
+
 def per_utente(exc):
     """`(titolo, messaggio)` localizzati per un'eccezione applicativa.
 
@@ -99,6 +122,10 @@ def per_utente(exc):
     dati = dict(getattr(exc, "dati", {}) or {})
     codice = getattr(exc, "codice", "")
     neutro = str(exc)
+
+    libreria = dipendenza_mancante(exc)
+    if libreria:
+        return _messaggio_dipendenza(libreria)
 
     if isinstance(exc, SchemaNonRiconosciuto):
         return (tr("analysis.csv_read_error_title"),
@@ -149,6 +176,10 @@ def per_file(exc, percorso, titolo=None):
     suo titolo localizzato — «Errore di esportazione» — di conservarlo.
     """
     import os
+
+    libreria = dipendenza_mancante(exc)
+    if libreria:
+        return _messaggio_dipendenza(libreria)
 
     dettaglio = str(exc)
     nome = os.path.basename(str(percorso)) if percorso else ""
