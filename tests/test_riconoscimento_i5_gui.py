@@ -254,8 +254,8 @@ def app():
 
 def test_sotto_scheda_dell_explorer_e_matrice_intatta(app):
     nb = app._explorer_nb
-    assert nb.tabs()[-1] == str(app._riconoscimento)
-    assert catalogo.tr("recognition.tab") in nb.tab(nb.tabs()[-1], "text")
+    assert nb.tabs()[7] == str(app._riconoscimento)       # I6 aggiunge il Laboratorio dopo
+    assert catalogo.tr("recognition.tab") in nb.tab(nb.tabs()[7], "text")
     assert nb.index(app._mat_scheda) == 5
 
 

@@ -210,8 +210,9 @@ def test_numero_di_sottotab_explorer(guida):
     """La Guida diceva «sei sotto-tab» quando erano sette."""
     src = (ROOT / "gioco27" / "gui" / "explorer_tab.py").read_text(encoding="utf-8")
     n = len(re.findall(r'nb\.add\(', src))
-    # articolo corretto: «I sette», ma «Gli otto» (I5 aggiunge Riconoscimento)
-    parole = {5: ("I", "cinque"), 6: ("I", "sei"), 7: ("I", "sette"), 8: ("Gli", "otto")}
+    # articolo corretto: «I sette», «Gli otto» (I5), «I nove» (I6 aggiunge Laboratorio)
+    parole = {5: ("I", "cinque"), 6: ("I", "sei"), 7: ("I", "sette"), 8: ("Gli", "otto"),
+              9: ("I", "nove")}
     assert n in parole, f"numero inatteso di sotto-tab: {n}"
     articolo, numero = parole[n]
     assert f"{articolo} {numero} sotto-tab" in guida, \

@@ -48,7 +48,7 @@ def test_nuove_chiavi_simmetriche_con_placeholder_coerenti():
 
     it, en = CATALOGS["it"], CATALOGS["en"]
     assert set(it) == set(en)
-    assert len(it) == 1589  # 1206 + 82 audit finale + 1 (E) + 3 (F) + 2 (G2) + 22 (H1) + 9 (H2: nota dei filtri, alternative testuali, cornice degli errori su file) + 24 (I2b: pannello ternario) + 30 (I2c) + 9 (I2d) + 53 (I3) + 46 (I4) + 102 (I5: riconoscimento)
+    assert len(it) == 1750  # 1206 + 82 audit finale + 1 (E) + 3 (F) + 2 (G2) + 22 (H1) + 9 (H2: nota dei filtri, alternative testuali, cornice degli errori su file) + 24 (I2b: pannello ternario) + 30 (I2c) + 9 (I2d) + 53 (I3) + 46 (I4) + 102 (I5: riconoscimento) + 161 (I6: laboratorio)
     new = {k for k in it if k.startswith(NEW_KEYS_PREFIXES)}
     assert len(new) == 32
     fields = lambda s: sorted(n for _, n, _, _ in Formatter().parse(s) if n)

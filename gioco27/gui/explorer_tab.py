@@ -17,6 +17,7 @@ from .common import configure_matrix_tags, insert_colored
 from .decomposition import DecompositionDialog
 from .i18n import tr
 from .riconoscimento_tab import RiconoscimentoFrame
+from .laboratorio_tab import LaboratorioFrame
 from .shuffle import ShuffleViewerFrame
 
 
@@ -101,22 +102,24 @@ class ExplorerTabMixin:
         self._build_explorer_tab_matrix(enb)
         self._build_explorer_tab_shuffle(enb)
         self._build_explorer_tab_riconoscimento(enb)
+        self._build_explorer_tab_laboratorio(enb)
         return outer
 
     def _exp_adatta_altezza(self, _evento=None):
-        """Matrice e Riconoscimento: il riquadro e' alto quanto il contenuto.
+        """Matrice, Riconoscimento e Laboratorio: riquadro alto quanto il contenuto.
 
         Un `ttk.Notebook` chiede l'altezza della sua sotto-scheda piu' alta
         (671 px) e la riga dell'Explorer lo allunga ancora (weight=1): sotto i
         pannelli della Matrice restava un grande vuoto grigio, e lo
         scorrimento H2 lo attraversava. Con una pagina «compatta» selezionata
-        (Matrice, e da I5 Riconoscimento) l'altezza del riquadro e' quella
+        (Matrice, da I5 Riconoscimento, da I6 Laboratorio) l'altezza del riquadro e' quella
         richiesta dalla pagina e la riga non si allunga; le altre sotto-schede
         tornano al comportamento di prima.
         """
         nb = getattr(self, "_explorer_nb", None)
         compatte = [p for p in (getattr(self, "_mat_scheda", None),
-                                getattr(self, "_riconoscimento", None)) if p is not None]
+                                getattr(self, "_riconoscimento", None),
+                                getattr(self, "_laboratorio", None)) if p is not None]
         if nb is None or not compatte:
             return
         try:
@@ -166,6 +169,13 @@ class ExplorerTabMixin:
         nb.add(self._riconoscimento,
                text=f"  \U0001f50e  {tr('recognition.tab')}  ")
         return self._riconoscimento
+
+    def _build_explorer_tab_laboratorio(self, nb):
+        """I6: «Laboratorio» — proprieta', domini e piccoli grafi (services.laboratorio)."""
+        self._laboratorio = LaboratorioFrame(nb)
+        nb.add(self._laboratorio,
+               text=f"  \U0001f9ea  {tr('lab.tab')}  ")
+        return self._laboratorio
 
     def _build_explorer_tab_shuffle(self, nb):
         """Tab '\U0001f3b4 Mescolamento' — simulazione visiva passo-per-passo."""
