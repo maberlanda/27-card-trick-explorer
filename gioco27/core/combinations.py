@@ -2,7 +2,6 @@
 Generazione e conteggio combinazioni filtrate; export PDF/CSV.
 """
 from dataclasses import dataclass
-from importlib.util import find_spec
 from itertools import product as iproduct
 from typing import Tuple
 
@@ -221,10 +220,6 @@ def cardinalita(filtri) -> int:
         totale *= f.cardinalita()
     return totale
 
-
-#: reportlab disponibile? `find_spec` non esegue l'import (nessun costo di
-#: avvio, nessun import "morto" che i linter segnalano come inutilizzato).
-_HAS_REPORTLAB = find_spec("reportlab") is not None
 
 def iter_combinations(filters):
     """Combinazioni filtrate, una lista di tre tuple per volta.

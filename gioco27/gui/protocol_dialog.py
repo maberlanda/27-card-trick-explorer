@@ -135,17 +135,6 @@ _GEN3_INFO = {
 }
 
 
-def _compose(a, b):
-    """(a∘b)[i] = a[b[i]]"""
-    return [a[b[i]] for i in range(len(a))]
-
-
-def _kron27(f3, f2, f1):
-    """Permutazione 27 di f3⊗f2⊗f1 (nomi GEN3)."""
-    a, b, c = PERM3[f3], PERM3[f2], PERM3[f1]
-    return [9 * a[i // 9] + 3 * b[(i // 3) % 3] + c[i % 3] for i in range(27)]
-
-
 def _protocol_perm(decomp):
     """Permutazione eseguita dal protocollo: A2 ∘ MSC ∘ A1 ∘ MSC ∘ A0 ∘ MSC."""
     return decomposition_perm(decomp)
