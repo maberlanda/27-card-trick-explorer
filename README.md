@@ -1,7 +1,10 @@
 # Gioco delle 27 carte
 
-Analisi combinatoria e algebrica del trucco delle 27 carte (gruppo GEN3³,
-mescolamento MSC, decomposizioni di Kronecker).
+Analisi combinatoria e algebrica del trucco delle 27 carte (gruppo H delle
+216 trasformazioni, gruppo esteso Γ di 648 elementi, mescolamento MSC,
+decomposizioni di Kronecker). La GUI ha quattro livelli didattici — Base,
+Intermedio, Avanzato, Laboratorio — e una Guida integrata organizzata come
+percorso (vedi «Inizia qui» nel programma).
 
 ## Articolo associato
 
@@ -22,7 +25,8 @@ https://github.com/maberlanda/27-card-tensor-structure
 
 Confronta la simulazione fisica carta-per-carta con il modello matriciale
 (1728 combinazioni), le ancore della tavola del libro (#100, #82), le
-statistiche del capitolo 100 e la ricostruzione dagli Assi. Disponibile
+statistiche della Tavola date dal libro (App. B.9, § 7.1.5–7.1.6) e la
+ricostruzione dagli Assi. Disponibile
 anche dalla GUI con il pulsante «✔ Verifica».
 
 Requisiti: Python ≥ 3.9, `numpy`. Facoltativi: `reportlab` (PDF),

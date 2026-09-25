@@ -301,7 +301,7 @@ def tavola_216():
 def statistiche_tavola(righe=None) -> dict:
     """Statistiche aggregate sulle 216 disposizioni semplici.
 
-    Riproduce i valori del capitolo 100 del libro:
+    Riproduce i valori del libro (App. B.9; A5–A6, § 7.1.5–7.1.6):
     periodi {1:1, 2:63, 3:26, 6:126}, 7 tipi ciclici, 64 auto-inverse,
     punti fissi {0? ...} ecc.
     """
@@ -388,7 +388,7 @@ def selftest(completo: bool = True) -> dict:
        matriciale) la simulazione carta-per-carta coincide con T_da_tabellone
        / compute_T_full.
     2. Ancore del libro: #100 → assi (13,8,18); #82 → assi (10,8,21).
-    3. Statistiche del capitolo 100.
+    3. Statistiche della Tavola (App. B.9; § 7.1.5–7.1.6).
     4. Ricostruzione dagli assi: bigezione perfetta sulle 216 righe.
     5. risolvi_trucco: tutte le 27×27 coppie (carta, bersaglio).
     """
