@@ -75,7 +75,7 @@ class VoceCatalogo:
     tipo: TipoErrore
     fasi: Tuple[int, ...]           # fasi in cui puo' accadere nella simulazione
     simulato: bool                  # applicato davvero al mazzo
-    resta_nella_tavola: bool        # T resta fra le 216 disposizioni (misurato)
+    resta_nella_tavola: bool        # T resta fra le 216 trasformazioni (misurato)
 
 
 CATALOGO = {

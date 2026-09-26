@@ -87,7 +87,7 @@ installa runtime + export, `requirements-dev.txt` aggiunge test e build.
     python -m gioco27 --selftest       # anche: gioco27-cli selftest --json
 
 Confronta la simulazione fisica carta per carta con il modello matriciale
-(1 728 combinazioni), le ancore della tavola del libro (#100, #82), le
+(1 728 Procedure), le ancore della tavola del libro (#100, #82), le
 statistiche della Tavola date dal libro (App. B.9, § 7.1.5–7.1.6), la
 ricostruzione dagli Assi e la soluzione del trucco per tutte le 729 coppie
 carta/posizione. Disponibile anche dalla GUI con il pulsante «✔ Verifica».
@@ -105,7 +105,7 @@ l'impronta SHA-256 come provenienza.
 
 ## Decisioni di prodotto della 4.0
 
-* **DP11** — La Tavola è di **216 trasformazioni**. Le 1 728 combinazioni
+* **DP11** — La Tavola è di **216 trasformazioni**. Le 1 728 Procedure
   (mescolamenti × rovesciamenti) sono Procedure, non trasformazioni distinte:
   nella 4.0 non esiste una «Tavola 1 728».
 * **DP12** — I PDF delle fonti restano esterni e non tracciati (vedi sopra).

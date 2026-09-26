@@ -30,7 +30,7 @@ class TavolaFrame(ttk.Frame):
         ("mesc", "Mescolamenti", 130),
         ("imp",  "Impilamenti",  130),
         ("assi", "Assi (A♠ A♣ A♥)", 120),
-        ("per",  "Periodo",      64),
+        ("per",  "Ordine",       64),
         ("fix",  "Punti fissi",  80),
         ("tipo", "Tipo ciclico", 150),
         ("par",  "Parità",       60),

@@ -83,7 +83,7 @@ class ExplorerTabMixin:
                   font="GiocoHelp", foreground="#333",
                   wraplength=380).pack(side="left", padx=(10, 0))
 
-        # una sola riga compatta: «Disposizione #… della Tavola» o il motivo.
+        # una sola riga compatta: «Riga #… della Tavola» o il motivo.
         # K: la riga si mostra solo quando ha un testo; vuota occupava ~19 px
         # di altezza utile sopra Matrice, Riconoscimento e Laboratorio.
         nav_row = ttk.Frame(inp_frame)

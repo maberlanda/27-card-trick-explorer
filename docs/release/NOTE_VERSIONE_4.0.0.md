@@ -77,7 +77,7 @@ interfaccia; K ha reso il pacchetto installabile e verificabile.
 
 ## Decisioni di prodotto
 
-* **DP11** — la Tavola è di **216 trasformazioni** (H). Le 1 728 combinazioni
+* **DP11** — la Tavola è di **216 trasformazioni** (H). Le 1 728 Procedure
   di mescolamenti e rovesciamenti sono **Procedure**, non 1 728 trasformazioni
   distinte: nella 4.0 non esiste una Tavola 1 728. Le procedure equivalenti di
   una riga si vedono come relazione (I1/I2), non come tavola.

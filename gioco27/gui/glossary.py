@@ -25,13 +25,18 @@ ONBOARD_STEPS = [
 
 #: Glossario matematico, in ordine didattico (dal gesto alla struttura).
 GLOSSARIO_MATEMATICO = (
-    "card", "position", "msc", "stage", "collection", "shuffle", "stacking",
-    "orientation", "board", "inverse_board", "forgetting_machine",
-    "procedure", "transformation", "permutation", "total_transform", "inverse",
-    "cycle", "order", "fixed_point", "return", "guide_cards", "recovery",
-    "real_game", "kronecker", "local_factor", "separability", "fiber",
-    "fiber_sum", "canonical_form", "conjugacy", "center", "cayley",
-    "group_h", "group_gamma", "s27", "coset",
+    "card", "position", "index", "arrangement", "chosen_card",
+    "target_position", "msc", "stage", "phase", "checkpoint", "collection",
+    "column_pile", "shuffle", "stacking", "orientation", "board",
+    "inverse_board", "forgetting_machine", "procedure", "transformation",
+    "permutation", "total_transform", "cumulative_transform",
+    "relative_transform", "twin_decks", "inverse", "cycle", "cycle_type",
+    "cycle_structure", "orbit", "order", "fixed_point", "return",
+    "history", "path_replay", "guide_cards", "recovery", "real_game",
+    "kronecker", "local_factor", "separability", "fiber", "fiber_sum",
+    "block_signature", "canonical_form", "recognition", "conjugacy", "center",
+    "cayley", "group_h", "group_gamma", "s27", "coset", "cut",
+    "translation", "rotation",
 )
 
 #: Nomi narrativi del libro (alias, non sostituti dei termini tecnici).

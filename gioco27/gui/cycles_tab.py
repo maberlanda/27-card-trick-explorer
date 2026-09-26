@@ -211,7 +211,7 @@ class CyclesFrame(ttk.Frame):
     # ─── I2d: verso la Tavola ─────────────────────────────────────────────────
 
     def _aggiorna_link_tavola(self):
-        """Abilitato solo se la T corrente e' una delle 216 disposizioni (R)."""
+        """Abilitato solo se la T corrente e' una delle 216 righe della Tavola."""
         from ..services import tabellone as _tb
         numero = None
         if self._perm is not None:

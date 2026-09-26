@@ -61,7 +61,7 @@ class EvalStep:
       index       — indice del passo (0 = primo termine valutato)
       description — descrizione dell'operazione eseguita
       perm        — permutazione parziale risultante
-      signature   — firma canonica parziale
+      signature   — vettore parziale della permutazione
     """
     index:       int
     description: str
@@ -83,7 +83,7 @@ class EvalStep:
             f"  perm  : {self.perm_str()}",
         ]
         if self.signature:
-            lines.append(f"  firma : {self.signature[:60]}{'…' if len(self.signature)>60 else ''}")
+            lines.append(f"  vettore : {self.signature[:60]}{'…' if len(self.signature)>60 else ''}")
         return "\n".join(lines)
 
 
@@ -132,7 +132,7 @@ class CanonicalForm:
       compose(other)  — legge di composizione canonica senza passare per la matrice
       to_perm()       — calcola la permutazione di tipo 27 corrispondente
       symbolic()      — rappresentazione testuale leggibile
-      signature()     — firma canonica della permutazione risultante
+      signature()     — vettore della permutazione risultante
 
     Legge di composizione  (A, k1) ∘ (B, k2):
       Il blocco B deve essere "trasportato" attraverso MSC^k1 prima di comporsi
@@ -1361,7 +1361,7 @@ class Evaluator:
           (permutazione_finale, lista_EvalStep)
 
         Ogni EvalStep contiene indice, descrizione, permutazione parziale,
-        firma canonica parziale.
+        vettore parziale della permutazione.
         """
         steps: List[EvalStep] = []
 

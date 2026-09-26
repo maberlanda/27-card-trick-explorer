@@ -299,7 +299,7 @@ class LaboratorioFrame(ttk.Frame):
             righe.append(f"{s.j:>3}  {s.prefissi_senza:>6} → {s.trasformazioni_senza:<5}"
                          f"{s.prefissi_con:>8} → {s.trasformazioni_con:<5}"
                          f"{'×' + ','.join(map(str, s.molteplicita)):>6}   "
-                         f"H∘R^{s.classi_laterali[0]}")
+                         f"H∘MSC^{s.classi_laterali[0]}")
         r3 = lab.stadi()[-1]
         righe += ["", tr("lab.stages.match", n=r3.configurazioni_uguali_a_procedure)]
         self._scrivi(self._coset_txt, righe)

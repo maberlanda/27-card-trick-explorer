@@ -702,7 +702,7 @@ def _i1(ins, sep):
     ins("body", _t("guide.i1.reversals"))
     ins("formula",
         "    uᵢ = ε₀ + … + εᵢ  (mod 2)          vᵢ = εᵢ₊₁ + … + εₘ₋₁  (mod 2)\n"
-        "    Qᵢ = R^vᵢ ∘ Sᵢ ∘ R^uᵢ             Sᵢ = R^vᵢ ∘ Qᵢ ∘ R^uᵢ\n\n")
+        "    Qᵢ = R_U^vᵢ ∘ Sᵢ ∘ R_U^uᵢ             Sᵢ = R_U^vᵢ ∘ Qᵢ ∘ R_U^uᵢ\n\n")
     ins("body", _t("guide.i1.reversals.example"))
     ins("note", _t("guide.i1.reversals.note"))
     sep()

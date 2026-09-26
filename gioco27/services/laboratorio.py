@@ -10,7 +10,7 @@ Notazione (DP2, decisa prima di I6)
 -----------------------------------
 
 * **H** = il gruppo delle 216 trasformazioni separabili (§ 6, § 11.7, App. B);
-* **Γ** = il gruppo esteso di 648 elementi, Γ = H ⊔ H∘R ⊔ H∘R² (Teor. 11.68);
+* **Γ** = il gruppo esteso di 648 elementi, Γ = H ⊔ H∘MSC ⊔ H∘MSC² (Teor. 11.68);
 * **S27** = il gruppo ambiente di tutte le permutazioni delle 27 posizioni.
 
 Nel codice legacy il gruppo di 216 si chiama ancora ``G``
@@ -820,7 +820,7 @@ def scheda_j() -> SchedaJ:
 
 @dataclass(frozen=True)
 class ClasseLaterale:
-    r: int                          # H ∘ R^r
+    r: int                          # H ∘ MSC^r
     cardinalita: int
     contiene_h: bool
 
@@ -1006,7 +1006,7 @@ def _grafo_h() -> Grafo:
 
 
 def _grafo_raccolte() -> Grafo:
-    """Le 216 Cronache: arco = cambiare una sola raccolta (Hamming su 6³)."""
+    """Le 216 trasformazioni: arco = cambiare una sola raccolta (Hamming su 6³)."""
     archi = set()
     for n in range(216):
         sig = _gr.mescolamenti_da_numero(n)
