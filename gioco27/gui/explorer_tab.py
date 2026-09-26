@@ -83,12 +83,16 @@ class ExplorerTabMixin:
                   font="GiocoHelp", foreground="#333",
                   wraplength=380).pack(side="left", padx=(10, 0))
 
-        # una sola riga compatta: «Disposizione #… della Tavola» o il motivo
+        # una sola riga compatta: «Disposizione #… della Tavola» o il motivo.
+        # K: la riga si mostra solo quando ha un testo; vuota occupava ~19 px
+        # di altezza utile sopra Matrice, Riconoscimento e Laboratorio.
         nav_row = ttk.Frame(inp_frame)
         nav_row.grid(row=2, column=0, sticky="w", pady=(1, 0))
         self._exp_tavola_motivo = ttk.Label(nav_row, text="", foreground="#555",
                                             font=("Segoe UI", 8))
         self._exp_tavola_motivo.pack(side="left")
+        self._exp_nav_row = nav_row
+        nav_row.grid_remove()
         self._exp_tavola_numero = None
 
         enb = ttk.Notebook(outer)
@@ -749,6 +753,12 @@ class ExplorerTabMixin:
             self._exp_tavola_btn.state(["!disabled"])
             self._exp_tavola_motivo.configure(text=tr("nav.in_table",
                                                       number=numero))
+        riga = getattr(self, "_exp_nav_row", None)
+        if riga is not None:
+            if self._exp_tavola_motivo.cget("text"):
+                riga.grid()
+            else:
+                riga.grid_remove()
 
     def _explorer_to_tavola(self):
         if self._exp_tavola_numero is not None:

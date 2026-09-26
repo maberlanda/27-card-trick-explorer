@@ -36,14 +36,15 @@ def _dominio(d):
 
 class LaboratorioFrame(ttk.Frame):
     def __init__(self, master, **kw):
-        super().__init__(master, padding=(8, 4), **kw)
+        super().__init__(master, padding=(8, 2, 8, 4), **kw)
         self.columnconfigure(0, weight=1)
-        ttk.Label(self, text=tr("lab.header"), font=("Segoe UI", 10, "bold"),
-                  foreground="#1F4E79").grid(row=0, column=0, sticky="w")
-        self._nota_legacy = ttk.Label(self, text=tr("lab.legacy_note"),
-                                      foreground="#555555", wraplength=1100,
-                                      justify="left")
-        self._nota_legacy.grid(row=1, column=0, sticky="w", pady=(0, 4))
+        # K: intestazione («Gruppi: …») e nota sui nomi in un solo paragrafo che
+        # va a capo su due righe. Erano due etichette separate (21 + 42 px,
+        # la nota a capo a 1100 px): con i font di Tk 8.6 su Linux la pagina non
+        # stava nella vista a 1280×720 (H2). Stesso testo, nessun contenuto tolto.
+        self._nota_legacy = self._paragrafo_intestazione(
+            tr("lab.header"), tr("lab.legacy_note"))
+        self._nota_legacy.grid(row=0, column=0, sticky="ew", pady=(0, 1))
         nb = ttk.Notebook(self)
         nb.grid(row=2, column=0, sticky="nsew")
         self._schede = nb
@@ -56,6 +57,17 @@ class LaboratorioFrame(ttk.Frame):
         self._su_proprieta()
 
     # ── utilita' ─────────────────────────────────────────────────────────────
+    def _paragrafo_intestazione(self, titolo, nota):
+        """Un'etichetta sola: titolo e nota di seguito, su due righe.
+
+        A capo fisso a 1160 px: sta nei 1202 px utili a 1280×720, e in italiano
+        e in inglese il paragrafo resta su due righe sia con i font di Tk 8.6
+        (DejaVu Sans) sia con quelli di Tk 9. Un a capo che seguisse la
+        larghezza dell'etichetta si bloccherebbe sulla finestra piu' larga vista.
+        """
+        return ttk.Label(self, text=f"{titolo}     {nota}", foreground="#1F4E79",
+                         justify="left", wraplength=1160, padding=0)
+
     def _testo(self, padre, altezza=11, larghezza=96):
         t = tk.Text(padre, height=altezza, width=larghezza, wrap="word", relief="flat",
                     font=("Consolas", 9), background="#FAFCFF", takefocus=True)
@@ -75,11 +87,14 @@ class LaboratorioFrame(ttk.Frame):
 
     # ═════════════════════════════ Proprieta' ═══════════════════════════════
     def _costruisci_proprieta(self, nb):
-        fr = ttk.Frame(nb, padding=(4, 4))
+        fr = ttk.Frame(nb, padding=(4, 2, 4, 4))
         fr.columnconfigure(2, weight=1)
         fr.rowconfigure(1, weight=1)
         ttk.Label(fr, text=tr("lab.catalog")).grid(row=0, column=0, sticky="w")
-        self._elenco = tk.Listbox(fr, height=11, width=34, exportselection=False,
+        # K: due righe in meno per ogni riquadro del Laboratorio (tutti gia'
+        # scorrevoli; la tavola 6×6 resta intera in 9 righe): la pagina deve
+        # stare nella vista a 1280×720 anche con i font di Tk 8.6 su Linux.
+        self._elenco = tk.Listbox(fr, height=9, width=34, exportselection=False,
                                   activestyle="dotbox", font=("Segoe UI", 9))
         for p in lab.CATALOGO:
             self._elenco.insert("end", tr(f"lab.name.{p.id}"))
@@ -107,7 +122,7 @@ class LaboratorioFrame(ttk.Frame):
         self._verifica_btn = ttk.Button(riga, text=f"▶  {tr('lab.verify')}",
                                         command=self.verifica)
         self._verifica_btn.pack(side="left", padx=(8, 0))
-        self._dettaglio_txt = self._testo(destra, 10, 90)
+        self._dettaglio_txt = self._testo(destra, 8, 90)
         self._dettaglio_txt.grid(row=1, column=0, sticky="nsew", pady=(4, 0))
         self._con_barra(destra, self._dettaglio_txt).grid(row=1, column=1, sticky="ns",
                                                            pady=(4, 0))
@@ -212,7 +227,7 @@ class LaboratorioFrame(ttk.Frame):
 
     # ═══════════════════════════════ Classi ══════════════════════════════════
     def _costruisci_classi(self, nb):
-        fr = ttk.Frame(nb, padding=(4, 4))
+        fr = ttk.Frame(nb, padding=(4, 2, 4, 4))
         fr.columnconfigure(0, weight=1)
         fr.rowconfigure(1, weight=1)
         riga = ttk.Frame(fr)
@@ -224,7 +239,7 @@ class LaboratorioFrame(ttk.Frame):
                                  variable=self._vista_classi, command=self.mostra_classi)
             rb.pack(side="left", padx=(0, 12))
             self._classi_rb.append(rb)
-        self._classi_txt = self._testo(fr, 11)
+        self._classi_txt = self._testo(fr, 9)
         self._classi_txt.grid(row=1, column=0, sticky="nsew", pady=(4, 0))
         self._con_barra(fr, self._classi_txt).grid(row=1, column=1, sticky="ns", pady=(4, 0))
         nb.add(fr, text=f" {tr('lab.tab.classes')} ")
@@ -269,10 +284,10 @@ class LaboratorioFrame(ttk.Frame):
 
     # ═══════════════════════ Classi laterali e stadi ══════════════════════════
     def _costruisci_coset(self, nb):
-        fr = ttk.Frame(nb, padding=(4, 4))
+        fr = ttk.Frame(nb, padding=(4, 2, 4, 4))
         fr.columnconfigure(0, weight=1)
         fr.rowconfigure(0, weight=1)
-        self._coset_txt = self._testo(fr, 12)
+        self._coset_txt = self._testo(fr, 10)
         self._coset_txt.grid(row=0, column=0, sticky="nsew")
         self._con_barra(fr, self._coset_txt).grid(row=0, column=1, sticky="ns")
         righe = [tr("lab.cosets.objects"), "", tr("lab.cosets.intro")]
@@ -292,7 +307,7 @@ class LaboratorioFrame(ttk.Frame):
 
     # ═════════════════════════ Tavola locale 6×6 ══════════════════════════════
     def _costruisci_locale(self, nb):
-        fr = ttk.Frame(nb, padding=(4, 4))
+        fr = ttk.Frame(nb, padding=(4, 2, 4, 4))
         fr.columnconfigure(0, weight=1)
         fr.rowconfigure(1, weight=1)
         riga = ttk.Frame(fr)
@@ -315,7 +330,7 @@ class LaboratorioFrame(ttk.Frame):
         self._locale_btn.pack(side="left", padx=(8, 0))
         for cb in (self._risultato_cb, self._da_cb, self._a_cb):
             cb.bind("<<ComboboxSelected>>", lambda e: self.mostra_locale())
-        self._locale_txt = self._testo(fr, 11)
+        self._locale_txt = self._testo(fr, 9)
         self._locale_txt.grid(row=1, column=0, sticky="nsew", pady=(4, 0))
         self._con_barra(fr, self._locale_txt).grid(row=1, column=1, sticky="ns", pady=(4, 0))
         nb.add(fr, text=f" {tr('lab.tab.local')} ")
@@ -341,7 +356,7 @@ class LaboratorioFrame(ttk.Frame):
 
     # ═══════════════════════════════ Grafi ═══════════════════════════════════
     def _costruisci_grafi(self, nb):
-        fr = ttk.Frame(nb, padding=(4, 4))
+        fr = ttk.Frame(nb, padding=(4, 2, 4, 4))
         fr.columnconfigure(0, weight=1)
         fr.rowconfigure(1, weight=1)
         riga = ttk.Frame(fr)
@@ -363,7 +378,7 @@ class LaboratorioFrame(ttk.Frame):
         self._cammino_btn = ttk.Button(riga, text=tr("lab.graph.path.run"),
                                        command=self.mostra_grafo)
         self._cammino_btn.pack(side="left", padx=(6, 0))
-        self._grafi_txt = self._testo(fr, 11)
+        self._grafi_txt = self._testo(fr, 9)
         self._grafi_txt.grid(row=1, column=0, sticky="nsew", pady=(4, 0))
         self._con_barra(fr, self._grafi_txt).grid(row=1, column=1, sticky="ns", pady=(4, 0))
         nb.add(fr, text=f" {tr('lab.tab.graphs')} ")

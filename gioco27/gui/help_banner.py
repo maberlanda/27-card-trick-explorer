@@ -33,7 +33,7 @@ class HelpBanner(tk.Frame):
         self._open = False
 
         row = tk.Frame(self, bg=self.BG)
-        row.pack(fill="x", padx=8, pady=6)
+        row.pack(fill="x", padx=8, pady=3)   # K: era 6, riga unica (H2 a 1280×720)
 
         tk.Label(row, text="ⓘ", bg=self.BG, fg=self.FG,
                  font="GiocoHelpBold").pack(side="left", padx=(0, 6))

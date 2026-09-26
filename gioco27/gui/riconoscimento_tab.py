@@ -225,9 +225,16 @@ class RiconoscimentoFrame(ttk.Frame):
         if k2 is None:
             self._lbl2.configure(text="")
             self._campo2.configure(state="disabled", background="#EEEEEE")
+            # K: in «Permutazione T» il secondo campo non serve: prima restava
+            # visibile e disattivato (42 px). Ora si ritira e riappare negli
+            # altri due modi, nella stessa posizione e nello stesso ordine di Tab.
+            self._lbl2.grid_remove()
+            self._campo2.grid_remove()
         else:
             self._lbl2.configure(text=tr(k2))
             self._campo2.configure(state="normal", background="white")
+            self._lbl2.grid()
+            self._campo2.grid()
 
     def _imposta(self, campo, testo):
         stato = campo.cget("state")
