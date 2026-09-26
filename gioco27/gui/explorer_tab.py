@@ -369,7 +369,7 @@ class ExplorerTabMixin:
         ttk.Separator(fr, orient="horizontal").pack(fill="x", pady=6)
         self._exp_lbl(fr, tr("explorer.kronecker_factors"), bold=True)
         self._exp_can_factors = []
-        for lab in ("P₁", "P₂", "P₃"):
+        for lab in ("P₂", "P₁", "P₀"):
             row = ttk.Frame(fr)
             row.pack(fill="x", pady=1)
             ttk.Label(row, text=f"  {lab} =",
@@ -567,15 +567,15 @@ class ExplorerTabMixin:
             except Exception:
                 factors = None
             if factors is not None:
-                f3, f2, f1 = factors
-                nomi_fattori = [f3, f2, f1]
+                f2, f1, f0 = factors
+                nomi_fattori = [f2, f1, f0]
                 cf_lbl.config(text=tr(
                     "explorer.matrix.canonical_from_matrix",
-                    form=f"{f3} ⊗ {f2} ⊗ {f1}"))
+                    form=f"{f2} ⊗ {f1} ⊗ {f0}"))
                 for fcv, flbl, fname, fperm in zip(
                         fcvs, flbls,
-                        [f"f₃={f3}", f"f₂={f2}", f"f₁={f1}"],
-                        [PERM3[f3], PERM3[f2], PERM3[f1]]):
+                        [f"f₂={f2}", f"f₁={f1}", f"f₀={f0}"],
+                        [PERM3[f2], PERM3[f1], PERM3[f0]]):
                     self._draw_perm_on_canvas(fcv, fperm, SMALL)
                     flbl.config(text=fname)
             else:

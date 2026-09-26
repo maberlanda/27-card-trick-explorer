@@ -122,10 +122,10 @@ class CanonicalForm:
     Ogni espressione priva di J che si compone con Kronecker e MSC può essere
     ridotta a una e una sola forma canonica:
 
-        K ∘ MSC^k       con K = P1 ⊗ P2 ⊗ P3,  k ∈ {0,1,2}
+        K ∘ MSC^k       con K = P2 ⊗ P1 ⊗ P0,  k ∈ {0,1,2}
 
     Struttura interna:
-      kron_factors — lista di tre permutazioni di tipo 3 (P1, P2, P3)
+      kron_factors — lista di tre permutazioni di tipo 3 (P2, P1, P0)
       msc_exp      — esponente residuo di MSC (0, 1 o 2)
 
     Metodi principali:
@@ -150,7 +150,7 @@ class CanonicalForm:
         kron_result = A ∘ rot_{2*k1 mod 3}(B)
     """
 
-    kron_factors: List[List[int]]  # [P1, P2, P3], ciascuno di lunghezza 3
+    kron_factors: List[List[int]]  # [P2, P1, P0], ciascuno di lunghezza 3
     msc_exp:      int              # 0, 1 o 2
 
     def __post_init__(self):
@@ -178,7 +178,7 @@ class CanonicalForm:
         # Ruota i fattori di K2
         rotated_k2 = AlgebraEngine.rotate_kron_factors(other.kron_factors, rot_steps)
 
-        # Componi fattore per fattore: (P1 ∘ Q1', P2 ∘ Q2', P3 ∘ Q3')
+        # Componi fattore per fattore: (P2 ∘ Q2', P1 ∘ Q1', P0 ∘ Q0')
         new_factors = [
             AlgebraEngine.compose(self.kron_factors[i], rotated_k2[i])
             for i in range(3)
@@ -527,14 +527,14 @@ class Rewriter:
     Applica le regole di semplificazione simbolica.
 
     Regole implementate:
-      R1: MSC ∘ (P1⊗P2⊗P3) = (P3⊗P1⊗P2) ∘ MSC   (trasporto: rotazione sinistra di 2 = destra di 1)
-      R2: MSC² ∘ (P1⊗P2⊗P3) = (P2⊗P3⊗P1) ∘ MSC²  (trasporto: rotazione sinistra di 1)
+      R1: MSC ∘ (P2⊗P1⊗P0) = (P0⊗P2⊗P1) ∘ MSC   (trasporto: rotazione sinistra di 2 = destra di 1)
+      R2: MSC² ∘ (P2⊗P1⊗P0) = (P1⊗P0⊗P2) ∘ MSC²  (trasporto: rotazione sinistra di 1)
       R3: MSC³ = I
       R4: I ∘ X = X ∘ I = X   (eliminazione identità)
 
     La regola di trasporto è verificata algebricamente:
-      MSC ∘ K(P1,P2,P3) = K(P3,P1,P2) ∘ MSC    [rotazione sinistra di 2]
-      K ∘ MSC           = MSC ∘ K(P2,P3,P1)    [rotazione sinistra di 1]
+      MSC ∘ K(P2,P1,P0) = K(P0,P2,P1) ∘ MSC    [rotazione sinistra di 2]
+      K ∘ MSC           = MSC ∘ K(P1,P0,P2)    [rotazione sinistra di 1]
 
     La forma normale prodotta è:
       (fattori Kronecker composti) ∘ MSC^k
@@ -628,7 +628,7 @@ class Rewriter:
                 if t.kind == 'atom' and t.name == 'MSC' and i + 1 < len(terms):
                     next_t = terms[i + 1]
                     if next_t.kind == 'kron':
-                        # Applica R1: MSC ∘ K(P1,P2,P3) → K(P3,P1,P2) ∘ MSC
+                        # Applica R1: MSC ∘ K(P2,P1,P0) → K(P0,P2,P1) ∘ MSC
                         # Rotazione sinistra di 2 (equivalente a destra di 1)
                         # Verificata algebricamente: MSC ∘ K == rot2(K) ∘ MSC
                         rotated_k = SymbolicExpr(
@@ -710,7 +710,7 @@ class Rewriter:
     def _compose_kron_sequence(self, expr: SymbolicExpr, notes=None) -> Tuple[SymbolicExpr, bool]:
         """
         Compone numericamente Kronecker consecutivi nella sequenza composizione.
-        Due Kronecker K1 ∘ K2 vengono uniti in K(P1∘P1', P2∘P2', P3∘P3').
+        Due Kronecker K1 ∘ K2 vengono uniti in K(P2∘P2', P1∘P1', P0∘P0').
 
         Se `notes` è una lista, vi aggiunge una riga esplicativa per ogni
         fusione, con il calcolo di ciascun fattore (es. «SCD_U ∘ DCS_U = DCS_U»).

@@ -696,7 +696,7 @@ def test_ninth_block_analysis_preserves_exposed_identifiers_and_formats():
         tr("analysis.detail.footer_hint"),
     ))
     for identifier in ("T_permutazione", "T_simbolica", "Stage",
-                       "P₃×P₂×P₁", "J₃×J₂×J₁", "P o MSC o J"):
+                       "P₂×P₁×P₀", "J₂×J₁×J₀", "P o MSC o J"):
         assert identifier in values
     for format_name in ("CSV", "Excel", "HTML"):
         assert format_name in " ".join((
@@ -985,12 +985,12 @@ def test_eleventh_block_math_dialog_controls_switch_language():
     assert tr("cayley.window_title").startswith("Tabella di Cayley")
     assert tr("cayley.info.prompt") == "Seleziona A e B, poi premi Calcola."
     assert tr("conjugacy.classes.title") == "Classi di coniugio"
-    assert tr("conjugacy.column.type") == "Tipo (f₃, f₂, f₁)"
+    assert tr("conjugacy.column.type") == "Tipo (f₂, f₁, f₀)"
     set_language("en")
     assert tr("cayley.window_title").startswith("Cayley table")
     assert tr("cayley.info.prompt") == "Select A and B, then press Calculate."
     assert tr("conjugacy.classes.title") == "Conjugacy classes"
-    assert tr("conjugacy.column.type") == "Type (f₃, f₂, f₁)"
+    assert tr("conjugacy.column.type") == "Type (f₂, f₁, f₀)"
 
 
 def test_eleventh_block_math_dialog_dynamic_results_preserve_notation():
@@ -1086,18 +1086,18 @@ def test_twelfth_block_long_texts_are_available_in_both_languages():
 
     italian = tr("cayley.help.intro")
     assert "A ∘ B significa" in italian
-    assert "f₃ x f₂ x f₁" in italian
+    assert "f₂ x f₁ x f₀" in italian
     assert "Due elementi x, y sono CONIUGATI" in tr(
         "conjugacy.help.intro", classes=tr("conjugacy.help.classes"))
     assert "Stadioᵢ = Pᵢ ∘ MSC ∘ Jᵢ" in tr("glossary.long.stage")
-    assert "P₃ ⊗ P₂ ⊗ P₁" in tr("filter.intro")
+    assert "P₂ ⊗ P₁ ⊗ P₀" in tr("filter.intro")
 
     set_language("en")
     assert "A ∘ B means" in tr("cayley.help.intro")
-    assert "(f₃,f₂,f₁)" in tr(
+    assert "(f₂,f₁,f₀)" in tr(
         "conjugacy.help.intro", classes=tr("conjugacy.help.classes"))
     assert "Stageᵢ = Pᵢ ∘ MSC ∘ Jᵢ" in tr("glossary.long.stage")
-    assert "P₃ ⊗ P₂ ⊗ P₁" in tr("filter.intro")
+    assert "P₂ ⊗ P₁ ⊗ P₀" in tr("filter.intro")
     assert "Kronecker products" in tr("help.tab.stadio.long")
 
 
