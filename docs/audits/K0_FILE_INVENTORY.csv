@@ -198,3 +198,7 @@ tests/test_terminologia_export_k.py,B TEST,yes,pytest (testpaths),test del compa
 docs/audits/A1_FINAL_MATHEMATICAL_AUDIT.md,G PROJECT AUDIT / DESIGN,yes,A1 final audit,Audit finale di correttezza matematica,KEEP,"A1: documento storico; non modificare durante A1-FIX",low
 docs/audits/A1_FINAL_MATHEMATICAL_AUDIT.csv,G PROJECT AUDIT / DESIGN,yes,A1 final audit,Inventario macchina-leggibile delle affermazioni matematiche,KEEP,"A1: deliverable storico; non modificare durante A1-FIX",low
 docs/audits/A1_MATHEMATICAL_FIX_VERIFICATION.md,G PROJECT AUDIT / DESIGN,yes,A1-FIX,Verifica delle cinque correzioni matematiche e delle tre tensioni di fonte,KEEP,"A1-FIX: evidenze e regressioni delle correzioni mirate",low
+docs/audits/A2_FINAL_TERMINOLOGY_AUDIT.md,G PROJECT AUDIT / DESIGN,yes,A2 final audit,Audit finale terminologico,KEEP,"A2: documento storico; non modificare durante A2-FIX",low
+docs/audits/A2_FINAL_TERMINOLOGY_AUDIT.csv,G PROJECT AUDIT / DESIGN,yes,A2 final audit,Inventario macchina-leggibile dei concetti terminologici,KEEP,"A2: deliverable storico; non modificare durante A2-FIX",low
+docs/audits/A2_TERMINOLOGY_FIX_VERIFICATION.md,G PROJECT AUDIT / DESIGN,yes,A2-FIX,Verifica delle correzioni terminologiche controllate,KEEP,"A2-FIX: evidenze e regressioni delle correzioni mirate",low
+tests/test_a2_terminology_fixes.py,B TEST,yes,pytest (testpaths),Regressioni del vocabolario controllato A2-FIX,KEEP,"A2-FIX: protegge i confini terminologici senza modificare la matematica",low
