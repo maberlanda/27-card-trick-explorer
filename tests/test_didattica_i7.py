@@ -200,8 +200,8 @@ def test_percorso_a_parti():
 COPERTURA = {
     "I1 procedura ed equivalenze": (["216 × 8 = 1 728", "stessa trasformazione", "64", "Variante sicura", "k2"],
                                     ["216 × 8 = 1 728", "same transformation", "64", "Safe variant", "k2"]),
-    "I2 tabellone e ritorno": (["Tabellone diretto", "Tabellone inverso", "#56 ↔ #62", "#100 → ritorno #93", "(R)"],
-                               ["Direct board", "Inverse board", "#56 ↔ #62", "#100 → return #93", "(R)"]),
+    "I2 tabellone e ritorno": (["Tabellone diretto", "Tabellone inverso", "#56 ↔ #62", "#100 → riga di ritorno #93"],
+                               ["Direct board", "Inverse board", "#56 ↔ #62", "#100 → return row #93"]),
     "I2 macchina che dimentica": (["P′  =  ⌊P / 3⌋  +  9·s", "19 = (2,0,1), indirizzo DSC", "= 23"],
                                   ["P′  =  ⌊P / 3⌋  +  9·s", "19 = (2,0,1), address DSC", "= 23"]),
     "I3 errori e recupero": (["Conseguenze reali", "E1", "E2", "E3", "E4", "E5", "E6", "Applica il recupero", "#172"],
@@ -210,8 +210,8 @@ COPERTURA = {
                       ["27  →  9  →  3  →  1", "B12", "position 13", "#100"]),
     "I5 riconoscimento": (["Teor. 6.4", "Avanti", "A1", "A8", "v → w", "C1", "C9", "C18", "36, 117, 198", "#100 / #91"],
                           ["Thm. 6.4", "Forward", "A1", "A8", "v → w", "C1", "C9", "C18", "36, 117, 198", "#100 / #91"]),
-    "I6 laboratorio": (["H — le 216", "Γ — i 648", "S27", "7 tipi ciclici", "#215", "H∘R²", "36/36", "controesempio"],
-                       ["H — the 216", "Γ — the 648", "S27", "7 cycle types", "#215", "H∘R²", "36/36", "counterexample"]),
+    "I6 laboratorio": (["H — le 216", "Γ — i 648", "S27", "7 tipi ciclici", "#215", "H∘MSC²", "36/36", "controesempio"],
+                       ["H — the 216", "Γ — the 648", "S27", "7 cycle types", "#215", "H∘MSC²", "36/36", "counterexample"]),
     "DP9 storia": (["Pacioli", "Verini", "Galasso", "Gergonne", "Gardner", "Elmsley", "21 carte", "problema inverso"],
                    ["Pacioli", "Verini", "Galasso", "Gergonne", "Gardner", "Elmsley", "21-card", "inverse problem"]),
 }
@@ -318,12 +318,20 @@ TERMINI = {
     "classe di coniugio": "conjugacy", "gruppo H": "group_h", "gruppo Γ": "group_gamma",
     "S27": "s27", "centro": "center", "classe laterale": "coset", "ritorno": "return",
     "guida": "guide_cards", "recupero": "recovery",
+    "indice": "index", "disposizione": "arrangement", "carta scelta": "chosen_card",
+    "posizione bersaglio": "target_position", "fase": "phase", "tappa": "checkpoint",
+    "colonna e mazzetto": "column_pile", "trasformazione cumulativa": "cumulative_transform",
+    "trasformazione relativa": "relative_transform", "mazzi gemelli": "twin_decks",
+    "tipo ciclico": "cycle_type", "struttura ciclica": "cycle_structure",
+    "orbita": "orbit", "storia": "history", "replay a ritroso": "path_replay",
+    "firma di blocco": "block_signature", "riconoscimento": "recognition",
+    "taglio": "cut", "traslazione": "translation", "rotazione": "rotation",
 }
 
 
 def test_glossario_copre_i_termini_richiesti():
     assert set(TERMINI.values()) <= set(GLOSSARIO_MATEMATICO)
-    assert len(GLOSSARIO) == len(set(GLOSSARIO)) == 43
+    assert len(GLOSSARIO) == len(set(GLOSSARIO)) == 63
 
 
 def test_glossario_simmetrico():
@@ -448,7 +456,7 @@ COPERTURA_AUDIT = {
     "L54": ("i3", "J∘T (riga #172)"),
     "L55": ("s29", "I quattro livelli"),
     "L57": ("i5", "A1 — «note due, la terza si calcola»"),
-    "L58": ("i2t", "(R) è l'unica procedura semplice"),
+    "L58": ("i2t", "La riga della Tavola è l'unica procedura semplice"),
     "L59": ("i5", "39 − q₀ − q₂"),
     "L63": ("i1", "216 × 8 = 1 728"),
     "L67": ("i4", "ogni risposta fissa una cifra"),
@@ -465,7 +473,7 @@ COPERTURA_AUDIT = {
     "A07a": ("i5", "C₀ = 108,  C₁ = 90,  C₂ = 36"),
     "A09": ("i6", "7 tipi ciclici"),
     "A12": ("i4", "27  →  9  →  3  →  1"),
-    "A13": ("i1", "Qᵢ = R^vᵢ ∘ Sᵢ ∘ R^uᵢ"),
+    "A13": ("i1", "Qᵢ = R_U^vᵢ ∘ Sᵢ ∘ R_U^uᵢ"),
 }
 
 #: righe P0/P1 fuori da I7: unica eccezione, rinvio approvato.

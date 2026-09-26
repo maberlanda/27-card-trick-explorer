@@ -22,7 +22,7 @@ GUIDE = ROOT / "gioco27" / "gui" / "guide.py"
 # I7: 33 sezioni storiche + 8 nuove (i1, i2m, i2t, i3, i4, i5, i6, storia),
 # raccolte in 13 parti; il numero di sezione e' la posizione nel percorso.
 N_SECTIONS = 41
-N_SEGMENTS = 731      # J: +5 (voce 🗂 Sessione nella barra, titolo e corpo della sezione)
+N_SEGMENTS = 751      # A2-FIX: +20 voci matematiche nel glossario della Guida
 N_GUIDE_KEYS = 458    # J: +3 (guide.s29.action.session, guide.s29.session.title/body)
 
 # Chiavi il cui valore è legittimamente identico nelle due lingue.
@@ -98,10 +98,10 @@ def test_guida_completa_in_inglese():
 
 
 @pytest.mark.parametrize("language, titles", [
-    ("it", ["Il Gioco Reale — le 1 728 sequenze canoniche",
+    ("it", ["Il Gioco Reale — le 1 728 Procedure",
             "Tab Explorer — analisi algebrica, decomposizioni e protocollo",
             "Finestra Tavola di Cayley", "Glossario dei termini"]),
-    ("en", ["The Real Game — the 1 728 canonical sequences",
+    ("en", ["The Real Game — the 1 728 Procedures",
             "Explorer tab — algebraic analysis, decompositions, and protocol",
             "Cayley Table window", "Glossary of terms"]),
 ])

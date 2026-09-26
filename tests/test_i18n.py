@@ -419,13 +419,13 @@ def test_seventh_block_explorer_dynamic_text_uses_named_placeholders():
     from gioco27.gui.i18n import set_language, tr
 
     italian = tr("explorer.status.result", period=6, signature="(1, 2, 3)")
-    assert italian == "Periodo: 6   Firma: (1, 2, 3)…"
+    assert italian == "Ordine: 6   Vettore: (1, 2, 3)…"
     assert tr("explorer.decomposition.progress", done=120, found=17) == \
         "120 / 216 -- trovate: 17"
 
     set_language("en")
     english = tr("explorer.status.result", period=6, signature="(1, 2, 3)")
-    assert english == "Period: 6   Signature: (1, 2, 3)…"
+    assert english == "Order: 6   Vector: (1, 2, 3)…"
     assert tr("explorer.decomposition.loading", loaded=600, total=1200,
               percent=50) == "Loading... 600 / 1200 (50%)"
 
@@ -517,7 +517,7 @@ def test_eighth_block_simulator_dynamic_statuses_preserve_codes():
     from gioco27.gui.i18n import set_language, tr
 
     assert tr("simulator.practice.step_target", phase=2, card=7) == \
-        "Fase 2/3 — Carta bersaglio: C07"
+        "Fase 2/3 — Carta scelta: C07"
     assert "SCD CDS DCS" in tr(
         "simulator.status.sequence", shuffles="SCD CDS DCS", number=42)
 
@@ -526,7 +526,7 @@ def test_eighth_block_simulator_dynamic_statuses_preserve_codes():
                 shuffles="SCD CDS DCS", number=42)
     position = tr("simulator.deck.card_position", card=7, position=13,
                   reading_column=2)
-    assert status == "Sequence: SCD CDS DCS (arrangement #42 in the table)"
+    assert status == "Sequence: SCD CDS DCS (Table row #42)"
     assert "C07" in position and "13" in position and "2" in position
 
 
@@ -632,9 +632,9 @@ def test_eighth_block_simulator_instruction_output_switches_language_without_ui(
     english = "".join(simulator._istr_txt.parts)
 
     assert "Istruzioni per il trucco" in italian
-    assert "Carta del pubblico" in italian
+    assert "Carta scelta" in italian and "Posizione bersaglio" in italian
     assert "Trick instructions" in english
-    assert "Spectator's card" in english
+    assert "Chosen card" in english and "Target position" in english
     for code in plan["mescolamenti"] + plan["impilamenti"]:
         assert code in italian and code in english
     assert plan["T"] == gioco_reale.risolvi_trucco(7, 19)["T"]
@@ -1105,7 +1105,7 @@ def test_twelfth_block_glossary_and_tab_help_resolve_keys():
     from gioco27.gui.glossary import GLOSSARY, TAB_HELP
     from gioco27.gui.i18n import set_language, tr
 
-    assert len(GLOSSARY) == 43            # I7: 36 termini matematici + 7 nomi del libro
+    assert len(GLOSSARY) == 63            # A2-FIX: 56 termini matematici + 7 nomi del libro
     for _, _, long_key in GLOSSARY:
         assert long_key.startswith("glossary.long.")
         assert tr(long_key)
@@ -1178,10 +1178,10 @@ def test_twelfth_block_catalog_additions_are_symmetric_and_counted():
     from gioco27.gui import i18n
 
     assert set(i18n.CATALOGS["it"]) == set(i18n.CATALOGS["en"])
-    assert len([k for k in i18n.CATALOGS["it"] if k.startswith("glossary.long.")]) == 43
+    assert len([k for k in i18n.CATALOGS["it"] if k.startswith("glossary.long.")]) == 63
     assert len([k for k in i18n.CATALOGS["it"] if k.startswith("help.tab.")]) == 16
     assert len([k for k in i18n.CATALOGS["it"] if k.startswith("filter.")]) == 26  # +7 audit finale, +1 H1 (filter.never_empty)
-    assert len(i18n.CATALOGS["it"]) == 2048  # 820 + 354 guide.* + 32 anomalie UI + 82 audit finale + 1 (E) + 3 (F) + 2 (G2) + 22 (H1) + 9 (H2: nota dei filtri, alternative testuali, cornice degli errori su file) + 24 (I2b: pannello ternario, scheda Tabellone) + 30 (I2c: Una carta, 27 posizioni) + 9 (I2d: navigazione) + 53 (I3: errori fisici, conseguenze reali, piano fissato) + 46 (I4: spettatore) + 102 (I5: riconoscimento) + 161 (I6: laboratorio) + 210 (I7: livelli, glossario, guida, aiuti; − chiavi obsolete) + 7 (I7: L11, A13) + 22 (J: CLI) + 54 (J: sessione) + 3 (J: guida) + 2 (K: dipendenza facoltativa)
+    assert len(i18n.CATALOGS["it"]) == 2108  # A2-FIX: +20 voci glossario × term/short/long
 
 
 def _use_config_file(monkeypatch, tmp_path):

@@ -37,7 +37,7 @@ def _lang(language):
 def test_cataloghi_simmetrici_e_placeholder_coerenti():
     it, en = i18n.CATALOGS["it"], i18n.CATALOGS["en"]
     assert set(it) == set(en)
-    assert len(it) == 2048  # +1 in E, +3 in F, +2 in G2, +22 in H1, +9 in H2 (nota dei filtri, alternative testuali ai Canvas, cornice degli errori su file), +24 in I2b (pannello ternario), +30 in I2c (Una carta, 27 posizioni), +9 in I2d (navigazione), +53 in I3, +46 in I4 + 102 (I5: riconoscimento) + 161 (I6: laboratorio) + 210 (I7: livelli, glossario, guida, aiuti; − chiavi obsolete) + 7 (I7: L11, A13) + 22 (J: CLI) + 54 (J: sessione) + 3 (J: guida) + 2 (K: dipendenza facoltativa)
+    assert len(it) == 2108  # A2-FIX: +20 voci glossario × term/short/long
     fields = lambda s: sorted(n for _, n, _, _ in Formatter().parse(s) if n)
     for key in it:
         assert fields(it[key]) == fields(en[key]), key
@@ -434,8 +434,8 @@ def test_explorer_forma_canonica_non_disponibile_e_tipo_composta():
 # ─────────────────────── Tavola 216, filtri, gruppi ────────────────────────
 
 @pytest.mark.parametrize("language, expected", [
-    ("it", "posizioni incompatibili: nessuna disposizione semplice produce questi Assi"),
-    ("en", "incompatible positions: no simple arrangement produces these Aces"),
+    ("it", "posizioni incompatibili: nessuna trasformazione della Tavola produce questi Assi"),
+    ("en", "incompatible positions: no Table transformation produces these Aces"),
 ])
 def test_ricostruzione_assi_messaggio(language, expected):
     from gioco27.core import gioco_reale as gr
@@ -485,7 +485,7 @@ def test_dettaglio_tavola(language):
     finally:
         root.destroy()
     if language == "it":
-        assert text.startswith("Disposizione semplice #100\n" + "=" * 60)
+        assert text.startswith("Trasformazione #100\n" + "=" * 60)
         assert "Mescolamenti (righe del tabellone, prima in basso): CDS CDS CSD" in text
         assert "Assi: A♠→13  A♣→8  A♥→18" in text
         assert "T (posizione finale della carta n):" in text
@@ -494,7 +494,7 @@ def test_dettaglio_tavola(language):
         for italian in ("Disposizione", "Mescolamenti", "Impilamenti", "Assi:", "Periodo",
                         "punti fissi", "auto-inversa", "Tabellone", "riga", "impila"):
             assert italian not in text, italian
-        assert text.startswith("Simple arrangement #100")
+        assert text.startswith("Transformation #100")
         assert "CDS CDS CSD" in text and "A♠→13  A♣→8  A♥→18" in text
         assert "   row 1:  CDS   (stack: DSC)" in text
 

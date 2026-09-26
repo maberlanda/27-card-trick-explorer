@@ -130,7 +130,7 @@ def test_d4_fogli_excel_grezzi_distinti(guide):
 def test_d4_paginazione_dettagliata_non_contraddittoria(guide):
     from gioco27.core.detail_pdf import COMBOS_PER_PAGE
     assert COMBOS_PER_PAGE == 2
-    section = guide.split("Export PDF dettagliato (carte, marcatori, periodo)", 1)[1]
+    section = guide.split("Export PDF dettagliato (carte, marcatori, ordine)", 1)[1]
     assert section.count("due combinazioni per pagina") == 2
     assert "una pagina ricca per combinazione" not in section
 
