@@ -111,6 +111,9 @@ def test_a1_math_03_inverse_formula_rotates_by_k_for_every_exponent():
         stated_formula = _compose(
             _kron(rotated), _power(MSC, (3 - k) % 3))
         assert stated_formula == expected_inverse
+        identity = tuple(range(27))
+        assert _compose(transformation, stated_formula) == identity
+        assert _compose(stated_formula, transformation) == identity
 
         if k:
             wrong_steps = (2 * k) % 3
