@@ -417,6 +417,11 @@ interprete); 3.9 + Tk 8.6.14 verde salvo i test del minimo 3.10.
    automaticamente.
 8. Le build standalone 3.12.3/3.12.10 con Tk 8.6 abortiscono sotto xvfb
    (ambiente): Tk 8.6 resta coperto da 3.9 + Tk 8.6.14.
+9. `ui_call` chiama Tk dal thread di lavoro: sicuro con Tcl «threaded»
+   (Tk 8.6), fragile con Python 3.12 + Tcl 9 (§ 26). Rinviata la coda sul
+   thread Tk (cambia un contratto fissato dai test C/H1).
+10. CI remota da rieseguire dopo il push di `cd629de`/`5f73d59` (a cura
+    dell'utente).
 
 ## 23. Commit
 
@@ -485,14 +490,76 @@ tutti a 1280×720 e 1366×768, tutti nell'Explorer):
    linguette dato da uno stile (`Explorer.TNotebook.Tab`) invece che dagli
    spazi. Contenuto a 1280×720: 1392 → 1234 px. 13 fallimenti su 18
    risolti; nessun cambiamento con Tk 9.
-2. **Visibile senza scorrere** — restano 5 controlli: a 1280×720 e 1366×768
-   l'elenco del Laboratorio e la barra delle sezioni del Riconoscimento
-   finiscono qualche decina di pixel sotto il bordo della vista (si
-   raggiungono scorrendo). Con Tk 9 il margine era di soli 3–5 px. Non è una
-   regressione di K: è un limite preesistente del layout H2 con font più
-   alti. Correggerlo richiede di compattare l'intestazione dell'Explorer, cioè
-   una modifica di interfaccia fuori dal perimetro di K: **rinviato, da
-   decidere** (non marcato come «noto», non disattivato).
+2. **Visibile senza scorrere** — 5 controlli (Laboratorio e Riconoscimento
+   a 1280×720 e 1366×768). **Corretto in `5f73d59`** (§ 26).
 
-Il resto della suite, sullo stesso interprete con Tk 8.6.12, è verde
-file per file. Nessuna nuova failure su Tk 9 dopo la correzione.
+## 26. Correzione finale H2 (altezza)
+
+Misure (Explorer, livello completo, Tk 8.6.12/DejaVu Sans contro Tk
+9.0.4/Nimbus Sans):
+
+| | 1280×720 Tk 8.6 | 1280×720 Tk 9 | 1366×768 Tk 8.6 | 1366×768 Tk 9 |
+|---|---|---|---|---|
+| altezza utile della vista scorrevole | 438 px | 456 px | 486 px | 504 px |
+| intestazione dell'Explorer (titolo + espressione + linguette) | 26 + 140 + 31 | 22 + 121 + 31 | idem | idem |
+| deficit Laboratorio (elenco e pagina 0) | **+72** | −5 | **+24** | −53 |
+| deficit Riconoscimento (barra delle sezioni) | **+25** | −42 | −23 | −90 |
+
+(+ = pixel sotto il bordo della vista.) La differenza Tk 8.6/Tk 9 è il font
+predefinito (DejaVu Sans, righe di 17–21 px, contro Nimbus Sans): con Tk 9 il
+Laboratorio aveva solo 5 px di margine.
+
+Modifica (solo interfaccia, nessun controllo tolto, nessun font ridotto,
+nessun test modificato):
+
+* **Explorer**: la riga «Disposizione #… della Tavola» si mostra solo quando
+  ha un testo (vuota occupava 19 px).
+* **Riconoscimento**: in «Permutazione T» il secondo campo, inutilizzato e
+  prima mostrato disattivato, si ritira (42 px); riappare negli altri modi.
+* **Laboratorio**: intestazione «Gruppi…» e nota sui nomi in un solo paragrafo
+  di due righe (erano due etichette, 21 + 42 px; a capo fisso a 1160 px, due
+  righe in italiano e in inglese con entrambi i Tk); due righe in meno in ogni
+  riquadro, tutti già scorrevoli (catalogo 11 → 9, dettaglio 10 → 8, classi
+  11 → 9, laterali 12 → 10, grafi 11 → 9, tavola 6×6 11 → 9: resta intera);
+  margini superiori più stretti.
+* **Banner d'aiuto** (tutte le schede): margine verticale 6 → 3 px sulla sua
+  riga unica.
+
+Risultato (deficit negativo = margine):
+
+| | 1280×720 Tk 8.6 | 1280×720 Tk 9 | 1366×768 Tk 8.6 | 1366×768 Tk 9 |
+|---|---|---|---|---|
+| Laboratorio | −11 | −62 | −59 | −110 |
+| Riconoscimento | −42 | −99 | −90 | −147 |
+
+Verifiche locali, con lo **stesso interprete dei runner** (CPython 3.12.14 di
+actions/python-versions per Ubuntu 22.04, Tk 8.6.12 di sistema, xvfb):
+
+* `test_layout_accessibilita_h2.py` **185/185** (8 esecuzioni consecutive,
+  nessun errore); i 5 controlli verdi alle due geometrie, 1920×1080 invariato;
+* Matrice, Riconoscimento e Laboratorio: test I2/I5/I6 GUI verdi; ordine di
+  Tab (I5, I6) verde; nessuna barra orizzontale alle tre geometrie; IT/EN
+  (test della vista a 1280 in inglese verde, stesse misure);
+* **suite completa file per file verde** (`test_pacchetto_k.py` saltato in
+  quell'ambiente solo perché manca il modulo `build`; verde nell'ambiente
+  principale);
+* con Tk 9.0.4 (ambiente principale): suite completa verde, H2 185/185.
+
+**Nota Tk 9 (ambiente).** Con l'interprete locale 3.12.14 + Tcl/Tk 9.0.4
+`test_layout_accessibilita_h2.py` cade a volte con *Segmentation fault* in
+`ui_call`, chiamata dal thread di caricamento del dialogo Coniugio mentre il
+thread principale lavora (1 volta su 10 già prima di questa correzione, più
+spesso dopo, per il diverso tempismo). Causa: Tcl 9 non definisce più
+`tcl_platform(threaded)`, e tkinter di Python 3.12 lo usa per decidere se
+serializzare le chiamate provenienti da altri thread; con Tk 8.6
+(`threaded 1`, come sui runner e nelle build python.org) la serializzazione
+avviene e il crash non si presenta (0/8). Una coda sul thread Tk eliminerebbe
+la dipendenza, ma cambia il contratto di `ui_call` fissato dai test C/H1:
+**rinviata**, registrata nei debiti.
+
+**CI remota**: il run #1 su `6e77210` resta quello descritto sopra (job GUI
+rosso). `cd629de` e `5f73d59` non sono stati pushati: **la CI remota non è
+ancora stata rieseguita** e non viene dichiarata verde.
+
+(Stato prima della correzione finale, § 26: il resto della suite, sullo
+stesso interprete con Tk 8.6.12, era già verde file per file.)
