@@ -210,7 +210,7 @@ COPERTURA = {
                       ["27  →  9  →  3  →  1", "B12", "position 13", "#100"]),
     "I5 riconoscimento": (["Teor. 6.4", "Avanti", "A1", "A8", "v → w", "C1", "C9", "C18", "36, 117, 198", "#100 / #91"],
                           ["Thm. 6.4", "Forward", "A1", "A8", "v → w", "C1", "C9", "C18", "36, 117, 198", "#100 / #91"]),
-    "I6 laboratorio": (["H — le 216", "Γ — i 648", "S27", "7 tipi ciclici", "#215", "H∘MSC²", "36/36", "controesempio"],
+    "I6 laboratorio": (["H — le 216", "Γ — i 648", "S₂₇", "7 tipi ciclici", "#215", "H∘MSC²", "36/36", "controesempio"],
                        ["H — the 216", "Γ — the 648", "S27", "7 cycle types", "#215", "H∘MSC²", "36/36", "counterexample"]),
     "DP9 storia": (["Pacioli", "Verini", "Galasso", "Gergonne", "Gardner", "Elmsley", "21 carte", "problema inverso"],
                    ["Pacioli", "Verini", "Galasso", "Gergonne", "Gardner", "Elmsley", "21-card", "inverse problem"]),

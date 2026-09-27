@@ -167,7 +167,8 @@ def test_dp2_nomi_dei_gruppi(lingua):
     for codice in ("it", "en"):
         lingua(codice)
         h = catalogo.tr("lab.header")
-        assert "H — 216" in h and "Γ — 648" in h and "S27" in h
+        gruppo_ambiente = "S₂₇" if codice == "it" else "S27"
+        assert "H — 216" in h and "Γ — 648" in h and gruppo_ambiente in h
         nota = catalogo.tr("lab.legacy_note")
         assert "H = 216" in nota and "Γ" in nota and "648" in nota
     it, en = catalogo.CATALOGS["it"], catalogo.CATALOGS["en"]

@@ -105,7 +105,8 @@ def test_d4_fogli_excel_di_analisi_reali(guide, tmp_path):
         assert names == ["Perm -> Simboliche", "Simbolica -> Perm"]
     finally:
         wb.close()
-    section = guide.split("Analisi molteplicità — Excel", 1)[1].split("Analisi molteplicità — HTML", 1)[0]
+    section = guide.split("Analisi della molteplicità — Excel", 1)[1].split(
+        "Analisi della molteplicità — HTML", 1)[0]
     assert re.findall("«(.*?)»", section) == names
     assert "una riga per formula" in section
     assert "due fogli: «Perm -> Simboliche» e «Simbolica -> Perm»" in guide
@@ -119,11 +120,10 @@ def test_d4_fogli_excel_grezzi_distinti(guide):
              and any(isinstance(t, ast.Attribute) and t.attr == "title" for t in n.targets)]
     names += [n.args[0].value for n in ast.walk(function) if isinstance(n, ast.Call)
               and isinstance(n.func, ast.Attribute) and n.func.attr == "create_sheet"]
-    # B01: al formato e' stato AGGIUNTO un terzo foglio di dettaglio (una
-    # sequenza per riga). I due fogli storici restano identici e al loro posto;
-    # la Guida descrive i tre fogli.
-    assert names == ["Dati grezzi", "Analisi molteplicità", "Simbolica -> Perm"]
-    assert ("Tre fogli: «Dati grezzi» (combinazioni), «Analisi molteplicità» "
+    # B01: al formato e' stato AGGIUNTO un terzo foglio di dettaglio. I nomi
+    # di schema restano stabili; A3 corregge soltanto l'etichetta italiana.
+    assert names == ["Dati grezzi", "Analisi della molteplicità", "Simbolica -> Perm"]
+    assert ("Tre fogli: «Dati grezzi» (combinazioni), «Analisi della molteplicità» "
             "(riepilogo) e «Simbolica -> Perm» (una riga per sequenza") in guide
 
 
@@ -150,8 +150,9 @@ def test_d4_calcoli_normalmente_sequenziali(guide, monkeypatch):
     monkeypatch.setattr(analysis, "ProcessPoolExecutor", lambda **kw: pytest.fail("pool inatteso"))
     assert analysis.compute_distribution_parallel(n_workers=2) == {}
     assert indices == list(range(216))
-    assert "decomposizioni Kronecker e distribuzione sono normalmente sequenziali" in guide
-    assert "thread di background" in guide
+    assert ("La ricerca delle decomposizioni di Kronecker e il calcolo della "
+            "distribuzione restano normalmente sequenziali") in guide
+    assert "thread separato" in guide
     assert "GIOCO27_FORZA_DISTRIB_PARALLELA" in guide
     assert "- Tab Distribuzione (statistica globale sul gruppo)" not in guide
     assert "- Ricerca delle decomposizioni Kronecker (Explorer)" not in guide

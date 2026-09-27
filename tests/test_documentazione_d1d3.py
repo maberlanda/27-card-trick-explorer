@@ -34,7 +34,7 @@ def _check_groups(text):
     assert "gruppo H ≅ S₃³ delle 216 trasformazioni" in text
     assert "Γ = ⟨S₃³, MSC⟩ = H ⊔ H∘MSC ⊔ H∘MSC² ha 648 elementi" in text
     assert "MSC non appartiene a H" in text
-    assert re.search(r"per ogni T ∈ H ≅ S₃³ esistono\s+46 656 decomposizioni", text)
+    assert re.search(r"Per ogni T ∈ H ≅ S₃³ esistono\s+46 656 decomposizioni", text)
     assert "per MSC si ottengono 0 decomposizioni a tre stadi" in text
     assert not re.search(r"per ogni T ∈ Γ", text)
     assert "Aᵢ ∈ GEN3⊗GEN3⊗GEN3" in text
@@ -91,7 +91,7 @@ def test_d3_formule_tecniche_base_zero(text):
     assert "Jᵢ = J2ᵢ ⊗ J1ᵢ ⊗ J0ᵢ" in text
     pairs = re.findall(r"\(P(\d)ᵢ\s*∘\s*J(\d)ᵢ\)", text)
     assert pairs == [("2", "0"), ("1", "2"), ("0", "1")] * 2
-    assert "l'etichetta di stadio diventa P2xP1xP0" in text
+    assert "l'etichetta dello stadio mostra P2×P1×P0" in text
     assert "dei tre Assi" in text  # riferimenti alle carte preservati
 
 

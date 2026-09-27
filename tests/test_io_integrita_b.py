@@ -23,7 +23,7 @@ from gioco27.gui import analysis_tab as at
 from gioco27.gui import export_group_dialog as egd
 
 RADICE = pathlib.Path(__file__).resolve().parents[1]
-FOGLI_GREZZI = ["Dati grezzi", "Analisi molteplicità", "Simbolica -> Perm"]
+FOGLI_GREZZI = ["Dati grezzi", "Analisi della molteplicità", "Simbolica -> Perm"]
 
 
 # ───────────────────────────── armamentario ─────────────────────────────────
@@ -102,7 +102,7 @@ def test_b01_centinaia_di_sequenze_sono_tutte_nel_file(tmp_path, monkeypatch,
     try:
         assert wb.sheetnames == FOGLI_GREZZI
         # il riepilogo supera il limite: diventa esplicito, non troncato di nascosto
-        riepilogo = wb["Analisi molteplicità"].cell(row=2, column=3).value
+        riepilogo = wb["Analisi della molteplicità"].cell(row=2, column=3).value
         assert len(riepilogo) <= EXCEL_MAX_CELL_CHARS
         assert str(len(sequenze)) in riepilogo
         assert "Simbolica -> Perm" in riepilogo
@@ -132,7 +132,7 @@ def test_b01_confini_del_limite_di_cella(lunghezza, tmp_path, monkeypatch,
     assert senza_dialoghi == []
     wb = _apri(path)
     try:
-        riepilogo = wb["Analisi molteplicità"].cell(row=2, column=3).value
+        riepilogo = wb["Analisi della molteplicità"].cell(row=2, column=3).value
         if lunghezza <= EXCEL_MAX_CELL_CHARS:
             assert riepilogo == "\n".join(sequenze)
         else:
@@ -146,8 +146,10 @@ def test_b01_confini_del_limite_di_cella(lunghezza, tmp_path, monkeypatch,
         wb.close()
 
 
-def test_b01_fogli_storici_invariati(tmp_path, monkeypatch, senza_dialoghi):
-    """I due fogli preesistenti conservano nome, intestazioni e ordine."""
+def test_b01_schema_stabile_ed_etichette_umane_corrette(
+    tmp_path, monkeypatch, senza_dialoghi,
+):
+    """Le colonne di schema restano stabili; le etichette umane sono italiane."""
     pytest.importorskip("openpyxl")
     path = tmp_path / "g.xlsx"
     righe = [{"Stage0": "s0", "Stage1": "s1", "Stage2": "s2", "A0": "a0",
@@ -162,8 +164,8 @@ def test_b01_fogli_storici_invariati(tmp_path, monkeypatch, senza_dialoghi):
         assert [c.value for c in wb["Dati grezzi"][1]] == [
             "#", "Stage0", "Stage1", "Stage2", "A0", "A1", "A2",
             "T_simbolica", "T_permutazione"]
-        assert [c.value for c in wb["Analisi molteplicità"][1]] == [
-            "Molteplicità", "T_permutazione", "Sequenze Stage distinte"]
+        assert [c.value for c in wb["Analisi della molteplicità"][1]] == [
+            "Molteplicità", "T_permutazione", "Sequenze di stadi distinte"]
         assert [c.value for c in wb["Simbolica -> Perm"][1]] == [
             "T_simbolica", "T_permutazione", "n_sim_distinte"]
     finally:

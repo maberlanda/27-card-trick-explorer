@@ -254,11 +254,11 @@ def test_export_conferma_salvataggio_e_stato(monkeypatch, language):
     save = next(d for d in dialogs if d[0] == "save")
     if language == "it":
         assert ask[1] == "Conferma"
-        assert ask[2] == ("Verranno scritte 200,000 righe CSV (circa 200,000 x 400 byte).\n"
+        assert ask[2] == ("Verranno scritte 200 000 righe CSV (circa 200 000 x 400 byte).\n"
                           "Potrebbe richiedere molto tempo e molto spazio su disco.\n\nProcedere?")
         assert save[1] == "Salva CSV"
-        assert status.values[-1] == "✓ CSV salvato: out.csv  (200,000 righe)"
-        assert status.values[0].startswith("Generazione CSV in corso... (0/200,000")
+        assert status.values[-1] == "✓ CSV salvato: out.csv  (200 000 righe)"
+        assert status.values[0].startswith("Generazione CSV in corso... (0/200 000")
     else:
         assert ask[1] == "Confirm"
         assert ask[2].startswith("200,000 CSV rows will be written")
@@ -285,9 +285,9 @@ def test_export_pdf_e_pdf_dettagliato(monkeypatch, language, title_pdf, title_de
 
 
 @pytest.mark.parametrize("language, busy, empty, too_large", [
-    ("it", ("Export in corso", "C'e' gia' un export in corso."),
+    ("it", ("Export in corso", "C'è già un export in corso."),
      ("Nessuna combinazione", "I filtri attuali non producono combinazioni."),
-     ("Export troppo grande", "L'export richiederebbe 5,159,780,352 elementi")),
+     ("Export troppo grande", "L'export richiederebbe 5 159 780 352 elementi")),
     ("en", ("Export in progress", "An export is already in progress."),
      ("No combinations", "The current filters produce no combinations."),
      ("Export too large", "The export would require 5,159,780,352 elements")),
@@ -303,7 +303,8 @@ def test_export_dialoghi_di_blocco(monkeypatch, language, busy, empty, too_large
     assert dialogs[0][1] == busy[0] and dialogs[0][2].startswith(busy[1])
     assert d2[0][1] == empty[0] and d2[0][2] == empty[1]
     assert d3[0][1] == too_large[0] and d3[0][2].startswith(too_large[1])
-    assert "20,000,000" in d3[0][2] and "*" in d3[0][2]
+    expected_limit = "20 000 000" if language == "it" else "20,000,000"
+    assert expected_limit in d3[0][2] and "*" in d3[0][2]
 
 
 @pytest.mark.parametrize("language, cancelled, failed, error_title", [
@@ -384,13 +385,13 @@ ERROR_CASES = [
      "Parsing error:\nUnrecognized character: '$'"),
     ("(SCD_U x SCD_U x SCD_U", "Errore di parsing:\nParentesi non chiusa",
      "Parsing error:\nUnclosed parenthesis"),
-    ("SCD_U x SCD_U", "Errore di parsing:\nIl prodotto di Kronecker richiede esattamente 3 fattori, trovati 2.",
+    ("SCD_U x SCD_U", "Errore di parsing:\nIl prodotto di Kronecker richiede esattamente 3 fattori. Numero di fattori trovato: 2.",
      "Parsing error:\nThe Kronecker product requires exactly 3 factors; found 2."),
     ("MSC o SCD_U", "Errore di parsing:\nComposizione tra oggetti di tipo diverso: tipo 27 ∘ tipo 3",
      "Parsing error:\nComposition between objects of different types: type 27 ∘ type 3"),
     ("MSC o", "Errore di parsing:\nEspressione incompleta: atteso un termine.",
      "Parsing error:\nIncomplete expression: a term was expected."),
-    ("SCD_U", "Errore di valutazione:\nIl risultato è di tipo 3.",
+    ("SCD_U", "Errore di valutazione:\nL'espressione restituisce una permutazione su 3 elementi.",
      "Evaluation error:\nThe result is of type 3."),
     ("MSC MSC", "Errore di parsing:\nToken inatteso dopo la fine dell'espressione: 'MSC'",
      "Parsing error:\nUnexpected token after the end of the expression: 'MSC'"),
@@ -595,7 +596,7 @@ def test_riepilogo_excel_troppo_lungo(tmp_path):
     from gioco27.core.algebra import scrivi_excel
 
     risultati = [{"perm_str": "[0]", "simboliche": ["X" * 20000, "Y" * 20000], "n_sim": 2}]
-    for language, expected in (("it", "Riepilogo oltre il limite"),
+    for language, expected in (("it", "Il riepilogo supera il limite"),
                                ("en", "Summary exceeds the 32767-character")):
         _lang(language)
         path = tmp_path / f"a_{language}.xlsx"

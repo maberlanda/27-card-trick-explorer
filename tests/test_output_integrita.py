@@ -124,7 +124,7 @@ def test_b13_excel_400_formule_disponibili_dopo_riapertura(tmp_path):
     wb = openpyxl.load_workbook(dest)
     try:
         summary = wb["Perm -> Simboliche"]["B2"].value
-        assert "32767" in summary and "400" in summary
+        assert "32 767" in summary and "400" in summary
         assert "Simbolica -> Perm" in summary
         assert len(summary) <= 32767 and summary != joined[:32767]
         rows = list(wb["Simbolica -> Perm"].iter_rows(min_row=2, values_only=True))
@@ -152,7 +152,7 @@ def test_b13_riepilogo_invariato_fino_alla_soglia(length, tmp_path):
         if length <= 32767:
             assert summary == joined
         else:
-            assert "oltre il limite" in summary and "Simbolica -> Perm" in summary
+            assert "supera il limite" in summary and "Simbolica -> Perm" in summary
         assert len(summary) <= 32767
         assert [row[0] for row in wb["Simbolica -> Perm"].iter_rows(
             min_row=2, values_only=True)] == sorted(formulas)

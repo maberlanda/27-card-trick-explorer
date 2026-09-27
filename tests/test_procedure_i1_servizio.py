@@ -129,7 +129,7 @@ def test_1728_procedure_ordinate_e_senza_duplicati(servizio):
     ident = [p.identificatore for p in tutte]
     assert len(set(ident)) == 1728
     assert len(set(tutte)) == 1728
-    # ordine pubblico dichiarato: (m, #) crescente
+    # ordine di enumerazione dichiarato: (m, #) crescente
     assert [(p.indice_rovesciamenti, p.numero_tavola) for p in tutte] == \
         [(m, n) for m in range(8) for n in range(216)]
 

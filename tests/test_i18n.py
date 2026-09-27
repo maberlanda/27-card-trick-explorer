@@ -501,7 +501,7 @@ def test_seventh_block_explorer_catalogs_have_matching_keys():
 def test_eighth_block_simulator_controls_are_localized():
     from gioco27.gui.i18n import set_language, tr
 
-    assert tr("simulator.title") == "Simulatore del Trucco delle 27 Carte"
+    assert tr("simulator.title") == "Simulatore del gioco delle 27 carte"
     assert tr("simulator.calculate_sequence") == "Calcola sequenza"
     assert tr("simulator.tab.instructions") == "Istruzioni per il mago"
     assert tr("simulator.practice.confirm_stacking") == "Conferma impilamento"
@@ -643,10 +643,10 @@ def test_eighth_block_simulator_instruction_output_switches_language_without_ui(
 def test_ninth_block_analysis_controls_and_columns_are_localized():
     from gioco27.gui.i18n import set_language, tr
 
-    assert tr("analysis.title") == "Analisi Molteplicità delle Permutazioni"
+    assert tr("analysis.title") == "Analisi della molteplicità delle permutazioni"
     assert tr("analysis.generate") == "Genera & Analizza"
     assert tr("analysis.column.multiplicity") == "Molt."
-    assert tr("analysis.open_explorer") == "Apri nel Explorer"
+    assert tr("analysis.open_explorer") == "Apri in Explorer"
 
     set_language("en")
     assert tr("analysis.title") == "Permutation Multiplicity Analysis"
@@ -658,9 +658,9 @@ def test_ninth_block_analysis_controls_and_columns_are_localized():
 def test_ninth_block_analysis_dynamic_statuses_use_named_placeholders():
     from gioco27.gui.i18n import set_language, tr
 
-    italian = tr("analysis.status.summary", combinations="1.728",
+    italian = tr("analysis.status.summary", combinations="1 728",
                  permutations=216, minimum=2, maximum=12)
-    assert "1.728 combinazioni" in italian
+    assert "1 728 combinazioni" in italian
     assert "216 permutazioni distinte" in italian
     set_language("en")
     english = tr("analysis.status.summary", combinations="1,728",
@@ -674,9 +674,9 @@ def test_ninth_block_analysis_dynamic_statuses_use_named_placeholders():
 def test_ninth_block_analysis_multiplicity_plural_is_explicit():
     from gioco27.gui.i18n import set_language, tr
 
-    assert "1 sequenza Stage distinta produce" in tr(
+    assert "1 sequenza di stadi distinta produce" in tr(
         "analysis.detail.multiplicity.one", count=1)
-    assert "3 sequenze Stage distinte producono" in tr(
+    assert "3 sequenze di stadi distinte producono" in tr(
         "analysis.detail.multiplicity.many", count=3)
     set_language("en")
     assert "1 distinct Stage sequence produces" in tr(
@@ -889,7 +889,7 @@ def test_tenth_block_protocol_preserves_codes_and_generated_content():
     english_html = generate_protocol_html(data)
     assert "<html lang='it'>" in italian_html
     assert "<html lang='en'>" in english_html
-    assert "Protocollo — Gioco delle 27 Carte" in italian_html
+    assert "Protocollo — Gioco delle 27 carte" in italian_html
     assert "Protocol — 27-Card Trick" in english_html
     for formula in ("MSC ∘ MSC ∘ MSC  =  I", "SCD_U", "T⁻¹"):
         assert formula in italian_html and formula in english_html
@@ -1289,7 +1289,7 @@ def test_thirteenth_block_protocol_export_follows_language_and_keeps_formulas():
             "label": "T", "period": 1, "decompositions": []}
     italian = generate_protocol_html(data)
     assert "<html lang='it'>" in italian
-    assert "Protocollo — Gioco delle 27 Carte" in italian
+    assert "Protocollo — Gioco delle 27 carte" in italian
     assert "MSC ∘ MSC ∘ MSC  =  I" in italian
     assert "SCD_U" in italian
 
