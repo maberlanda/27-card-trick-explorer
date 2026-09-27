@@ -557,7 +557,8 @@ def render_detail_pages(c, params_list, start_index=1, progress_cb=None,
         # Blocchi mazzo: DISP_INIZIO + i tre mescolamenti (titoli stile C)
         yB = yTop - 76
         x = ML
-        w = draw_deck(d["dispositions"][0], x, yB, "DISP_INIZIO")
+        w = draw_deck(d["dispositions"][0], x, yB,
+                      tr("export.document.pdf.initial_arrangement"))
         x += w + 20
         for n, p in enumerate(params):
             imp = _stage_impilamento(p)
@@ -583,7 +584,8 @@ def render_detail_pages(c, params_list, start_index=1, progress_cb=None,
         m_idx = _r_index(params)
         Tt(f"R[{m_idx:4d}]", xi + 18, Y_ROVESC, size=8, bold=True)
         for n, p in enumerate(params):
-            Tt(f"M{n} = {'TRUE' if _reversed_stage(p) else 'FALSE'}",
+            stato = tr("common.yes") if _reversed_stage(p) else tr("common.no")
+            Tt(f"M{n} = {stato.upper()}",
                xi + 18, Y_ROVESC - 16 - n * 13, size=8)
 
         # MOLTIPLICAZIONE — "M[k]xM[j]xM[i]" numerico + mescolamenti in

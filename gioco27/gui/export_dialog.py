@@ -264,7 +264,8 @@ class ExportDialog(tk.Toplevel):
             f"{lb}^-1:  {iv_s}", "",
             tr("export.document.txt.order", label=lb, order=ord_),
             tr("export.document.cycle_type", value="") + " " +
-                "  ".join(f"{cnt}×(len {l})" for l,cnt in sorted(ct.items())), "",
+                "  ".join(f"{cnt}×({tr('export.document.length')} {l})"
+                           for l,cnt in sorted(ct.items())), "",
             tr("export.document.cycle_notation") + ":",
             f"  {lb}     = {self._cyclenot(perm)}",
             f"  {lb}^-1 = {self._cyclenot(inv)}", "",

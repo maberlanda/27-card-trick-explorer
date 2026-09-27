@@ -41,7 +41,7 @@ from .explorer_tab import ExplorerTabMixin
 from .onboarding_tab import OnboardingTabMixin
 from .sessione_tab import SessioneMixin
 from . import tooltip as _tooltip
-from .i18n import set_language, tr
+from .i18n import format_integer, set_language, tr
 from .help_banner import HelpBanner
 from .glossary import TAB_HELP, testo_aiuto_scheda
 from . import livelli as _livelli
@@ -703,7 +703,7 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
         try:
             filters = self._get_filters()
             n = count_combinations_ex(filters)
-            self.count_var.set(f"{n:,}")
+            self.count_var.set(format_integer(n))
         except Exception:
             self.count_var.set("?")
 
@@ -717,8 +717,8 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
     def _count(self):
         filters = self._get_filters()
         n = count_combinations_ex(filters)
-        self.count_var.set(f"{n:,}")
-        self.status_var.set(tr("status.count_summary", count=f"{n:,}"))
+        self.count_var.set(format_integer(n))
+        self.status_var.set(tr("status.count_summary", count=format_integer(n)))
 
     def _reset(self):
         """«Reset tutto»: azzera i filtri E ogni form in ogni tab."""
@@ -798,13 +798,13 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
             exc = ExportTooLarge(n, limit)
             messagebox.showerror(
                 tr("export.too_large.title"),
-                tr("export.too_large.message", requested=f"{exc.requested:,}",
-                   limit=f"{exc.limit:,}"))
+                tr("export.too_large.message", requested=format_integer(exc.requested),
+                   limit=format_integer(exc.limit)))
             return
 
         if confirm_threshold is not None and n > confirm_threshold:
             if not messagebox.askyesno(tr("export.confirm.title"),
-                                       tr(confirm_msg, count=f"{n:,}")):
+                                       tr(confirm_msg, count=format_integer(n))):
                 return
 
         path = filedialog.asksaveasfilename(**dialog_kw)
@@ -821,7 +821,7 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
         self.progress["value"]   = 0
         _par = tr("status.generation_workers", count=_nw) if _nw > 1 else ""
         self.status_var.set(tr("status.generation_started", kind=kind,
-                               total=f"{n:,}", workers=_par))
+                               total=format_integer(n), workers=_par))
         self.update_idletasks()
 
         def job():
@@ -831,7 +831,8 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
                 # thread-safe): si usa self.after(0, ...) invece di toccare i
                 # widget direttamente dal thread di lavoro.
                 if i % step == 0 or i >= n:
-                    msg = f"{kind}: {unit} {i:,}/{n:,}{_eta.text(i, n)}"
+                    msg = (f"{kind}: {unit} {format_integer(i)}/"
+                           f"{format_integer(n)}{_eta.text(i, n)}")
                     self._ui(lambda v=i, m=msg: (
                         self.progress.__setitem__("value", v),
                         self.status_var.set(m)))
@@ -841,7 +842,7 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
                 _log.info("%s generato: %s (%s %s)", kind, path, tot, unit_plural)
                 self._ui(lambda t=tot: self.status_var.set(
                     tr("status.generation_saved", kind=kind,
-                       filename=os.path.basename(path), count=f"{t:,}",
+                       filename=os.path.basename(path), count=format_integer(t),
                        unit=unit_plural)))
             except ExportAnnullato as exc:
                 # Non e' un errore: nessun messaggio di guasto, solo la barra
@@ -851,7 +852,7 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
                     self.progress.__setitem__("value", 0),
                     self.status_var.set(
                         tr("status.generation_cancelled", kind=kind,
-                           count=f"{e.fatti:,}", unit=unit_plural))))
+                           count=format_integer(e.fatti), unit=unit_plural))))
             finally:
                 # Il flag va rilasciato anche se l'export solleva: altrimenti
                 # un errore bloccherebbe per sempre tutti gli export

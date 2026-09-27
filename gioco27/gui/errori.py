@@ -25,7 +25,7 @@ from ..core.combinations import FiltroNonValido
 from ..core.config import ConfigNonSalvata
 from ..core.dominio import PermutazioneNonValida
 from ..core.log import get_logger
-from .i18n import tr
+from .i18n import format_integer, tr
 
 __all__ = ["per_utente", "per_file", "motivo_di", "diagnostica_import",
            "dipendenza_mancante"]
@@ -134,7 +134,8 @@ def per_utente(exc):
     if isinstance(exc, AnalisiTroppoGrande):
         return (tr("analysis.too_large_title"),
                 _testo("analysis.too_large", neutro,
-                       count=f"{exc.richieste:,}", limit=f"{exc.limite:,}"))
+                       count=format_integer(exc.richieste),
+                       limit=format_integer(exc.limite)))
 
     if isinstance(exc, ConfigNonSalvata):
         return (tr("config.save_failed.title"),
@@ -220,16 +221,16 @@ def diagnostica_import(esito, massimo=MASSIMO_SCARTI_MOSTRATI):
     lette = int(getattr(esito, "lette", 0) or 0)
     if scartate:
         parti.append(tr("errore.import.riepilogo",
-                        lette=f"{lette:,}",
-                        accettate=f"{max(lette - len(scartate), 0):,}",
-                        scartate=f"{len(scartate):,}"))
+                        lette=format_integer(lette),
+                        accettate=format_integer(max(lette - len(scartate), 0)),
+                        scartate=format_integer(len(scartate))))
         dettagli = [tr("errore.import.riga", numero=s.numero, campo=s.campo,
                        motivo=motivo_di(s)) for s in scartate[:massimo]]
         resto = len(scartate) - massimo
         if resto == 1:
             dettagli.append(tr("errore.import.altre_una"))
         elif resto > 1:
-            dettagli.append(tr("errore.import.altre", count=f"{resto:,}"))
+            dettagli.append(tr("errore.import.altre", count=format_integer(resto)))
         parti.append("; ".join(dettagli))
 
     return "   —   ".join(parti)

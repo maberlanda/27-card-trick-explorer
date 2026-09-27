@@ -350,10 +350,11 @@ def _render_combinations(c, params_list, start_index=1, progress_cb=None,
         x_J27 = x_P27 + W27 + 8
         x_S27 = x_J27 + W27 + 8
 
-        txt("P_i  (27x27)", x_P27, y, size=5.5, bold=True, col=BLUE)
-        txt("J_i  (27x27)", x_J27, y, size=5.5, bold=True, col=BLUE)
-        txt("Stage_i  (27x27)", x_S27, y, size=5.5, bold=True, col=BLUE)
-        txt("P_i (3x3)  J_i (3x3)", x_p3, y, size=5.5, bold=True, col=BLUE)
+        txt("P_i  (27×27)", x_P27, y, size=5.5, bold=True, col=BLUE)
+        txt("J_i  (27×27)", x_J27, y, size=5.5, bold=True, col=BLUE)
+        txt(tr("export.document.pdf.stage", number="i", label="(27×27)"),
+            x_S27, y, size=5.5, bold=True, col=BLUE)
+        txt("P_i (3×3)  J_i (3×3)", x_p3, y, size=5.5, bold=True, col=BLUE)
         y -= 8
 
         c.setStrokeColor(colors.Color(0.7,0.7,0.7))
@@ -363,7 +364,7 @@ def _render_combinations(c, params_list, start_index=1, progress_cb=None,
         for i, ((p1,p2,p3,j1,j2,j3), (P27,J27,S27)) in enumerate(
                 zip(params, stages)):
 
-            sl = stage_label(i, p1,p2,p3, j1,j2,j3)
+            sl = stage_label(i, p1,p2,p3, j1,j2,j3).split(" = ", 1)[1]
             txt(tr("export.document.pdf.stage", number=i, label=sl), ML, y, size=5.8, bold=True, col=RED)
             y -= 8
 
@@ -404,7 +405,7 @@ def _render_combinations(c, params_list, start_index=1, progress_cb=None,
         y -= 2
 
         rl = R_label(params)
-        txt("R:", ML, y, size=6, bold=True, col=GREEN2)
+        txt("T:", ML, y, size=6, bold=True, col=GREEN2)
         txt(rl, ML+18, y, size=5, col=GREEN2)
         y -= 8
 
@@ -620,9 +621,10 @@ def _render_combinations_ex(c, params_list, start_index=1, progress_cb=None,
 
         txt(f"#{idx}", ML, y, size=7, bold=True,
             col=colors.Color(0.28, 0.28, 0.28))
-        txt("P_i  (27x27)",       x_P27, y, size=5.5, bold=True, col=BLUE)
-        txt("J_i  (27x27)",       x_J27, y, size=5.5, bold=True, col=BLUE)
-        txt("Stage_i  (27x27)",   x_S27, y, size=5.5, bold=True, col=BLUE)
+        txt("P_i  (27×27)",       x_P27, y, size=5.5, bold=True, col=BLUE)
+        txt("J_i  (27×27)",       x_J27, y, size=5.5, bold=True, col=BLUE)
+        txt(tr("export.document.pdf.stage", number="i", label="(27×27)"),
+            x_S27, y, size=5.5, bold=True, col=BLUE)
         y -= 12
 
         sep_top = y + 8
@@ -639,7 +641,7 @@ def _render_combinations_ex(c, params_list, start_index=1, progress_cb=None,
             lp = kron_label(p3, p2, p1)
             lj = kron_label(j3, j2, j1)
 
-            sl = stage_label(i, p1, p2, p3, j1, j2, j3)
+            sl = stage_label(i, p1, p2, p3, j1, j2, j3).split(" = ", 1)[1]
             txt(tr("export.document.pdf.stage", number=i, label=sl), x_sx, y_stage, size=5.6,
                 bold=True, col=RED)
 
@@ -681,7 +683,7 @@ def _render_combinations_ex(c, params_list, start_index=1, progress_cb=None,
         y -= 4
 
         rl = R_label(params)
-        txt("R:", ML, y, size=6, bold=True, col=GREEN2)
+        txt("T:", ML, y, size=6, bold=True, col=GREEN2)
         txt(rl, ML + 18, y, size=5, col=GREEN2)
         y -= 8
 

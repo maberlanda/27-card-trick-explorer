@@ -21,7 +21,7 @@ from .common import (configure_matrix_tags, insert_colored, EtaEstimator,
 from .errori import diagnostica_import, per_utente
 from .errori import per_file
 from .i18n import tr
-from .i18n import get_language
+from .i18n import format_integer, get_language
 
 
 #: Il servizio che esegue l'analisi. E' un attributo di modulo perche' la
@@ -329,11 +329,11 @@ class AnalysisTabMixin:
         if n > 50_000:
             ok = messagebox.askyesno(
                 tr("analysis.large_title"),
-                tr("analysis.large_confirmation", count=f"{n:,}"))
+                tr("analysis.large_confirmation", count=format_integer(n)))
             if not ok:
                 return
         self._analisi_status.set(
-            tr("analysis.status.generating", count=f"{n:,}"))
+            tr("analysis.status.generating", count=format_integer(n)))
         self.progress["maximum"] = n
         self.progress["value"]   = 0
         self.update_idletasks()
@@ -347,7 +347,7 @@ class AnalysisTabMixin:
                     self.progress.__setitem__("value", v),
                     self._analisi_status.set(tr(
                         "analysis.status.generation_progress",
-                        done=f"{v:,}", total=f"{totale:,}",
+                        done=format_integer(v), total=format_integer(totale),
                         eta=_eta.text(v, totale)))))
 
             risultato = SERVIZIO.da_filtri(
@@ -357,7 +357,7 @@ class AnalysisTabMixin:
                 return
             if risultato.grezzi_scartati:
                 risultato = risultato.con_nota(tr(
-                    "analysis.raw_not_kept", limit=f"{piano.limite_grezzi:,}"))
+                    "analysis.raw_not_kept", limit=format_integer(piano.limite_grezzi)))
             self._ui(lambda: self._analisi_pubblica(risultato, revisione))
 
         run_in_thread(self, job, error_title=tr("analysis.error_title"),
@@ -420,8 +420,8 @@ class AnalysisTabMixin:
             self._ui(lambda: self._analisi_pubblica(risultato, revisione))
             msg = tr(
                 "analysis.completed_summary",
-                permutations=f"{len(risultato.aggregati):,}",
-                sequences=f"{risultato.totale:,}",
+                permutations=format_integer(len(risultato.aggregati)),
+                sequences=format_integer(risultato.totale),
                 csv=os.path.basename(out_csv),
                 excel=os.path.basename(out_xlsx))
             self._ui(lambda m=msg: messagebox.showinfo(
@@ -445,8 +445,8 @@ class AnalysisTabMixin:
         min_m  = risultati[-1]["n_sim"] if risultati else 0
         self._analisi_aggiorna_export()
         self._analisi_status.set("✓  " + tr(
-            "analysis.status.summary", combinations=f"{n_tot:,}",
-            permutations=f"{n_dist:,}", minimum=min_m, maximum=max_m))
+            "analysis.status.summary", combinations=format_integer(n_tot),
+            permutations=format_integer(n_dist), minimum=min_m, maximum=max_m))
 
     def _analisi_show_detail(self, event=None):
         """Mostra nel pannello inferiore tutte le sequenze Stage della riga selezionata,
@@ -660,7 +660,7 @@ class AnalysisTabMixin:
                 f"<title>{tr('export.document.analysis.title')}</title>"
                 f"<style>{css}</style></head><body>"
                 f"<h2>{tr('export.document.analysis.heading')}</h2>"
-                f"<p>{tr('export.document.analysis.summary', combinations=n_tot, permutations=n_perm)}</p>"
+                f"<p>{tr('export.document.analysis.summary', combinations=format_integer(n_tot), permutations=format_integer(n_perm))}</p>"
                 f"<table><thead><tr>"
                 f"<th>{tr('export.document.analysis.multiplicity')}</th><th>T_permutazione [0..26]</th>"
                 f"<th>{tr('export.document.analysis.distinct_stages')}</th>"
@@ -759,8 +759,8 @@ class AnalysisTabMixin:
             ws1.freeze_panes = "A2"
 
             # ── Foglio 2: analisi molteplicità ────────────────────────────
-            ws2 = wb.create_sheet("Analisi molteplicità")
-            h2 = ["Molteplicità", "T_permutazione", "Sequenze Stage distinte"]
+            ws2 = wb.create_sheet("Analisi della molteplicità")
+            h2 = ["Molteplicità", "T_permutazione", "Sequenze di stadi distinte"]
             for ci, col in enumerate(h2, 1):
                 cell = ws2.cell(row=1, column=ci, value=col)
                 cell.fill = hdr_fill

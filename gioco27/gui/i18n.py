@@ -13,9 +13,9 @@ funzioni, stesso stato di lingua).
 from __future__ import annotations
 
 from .. import i18n as _i18n
-from ..i18n import CATALOGS, get_language, set_language, tr
+from ..i18n import CATALOGS, format_integer, get_language, set_language, tr
 
-__all__ = ["CATALOGS", "get_language", "set_language", "tr"]
+__all__ = ["CATALOGS", "format_integer", "get_language", "set_language", "tr"]
 
 
 def __getattr__(name: str):

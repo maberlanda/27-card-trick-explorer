@@ -415,7 +415,8 @@ def generate_protocol_html(T_data: dict, options: dict = None) -> str:
             ci += 1
             arrow = " → ".join(str(x) for x in cyc)
             cyc_html += (f"<p class='cyc'><span class='c' "
-                         f"style='background:{color}'>len {len(cyc)}</span>"
+                         f"style='background:{color}'>"
+                         f"{tr('export.document.length')} {len(cyc)}</span>"
                          f"({arrow} → {cyc[0]})</p>")
         if fixed:
             cyc_html += (f"<p class='cyc'><span class='c fix'>{tr('export.document.protocol.fixed_points')}</span>"

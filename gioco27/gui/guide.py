@@ -746,7 +746,7 @@ def _i5(ins, sep):
     ins("body", _t("guide.i5.direct"))
     ins("h3", _t("guide.i5.sums.title") + "\n")
     ins("body", _t("guide.i5.sums"))
-    ins("formula", "    ρ̂ᵢ(t)  =  (Σᵢ,ₜ − Cᵢ) / 3^(2+i)        C₀ = 108,  C₁ = 90,  C₂ = 36\n\n")
+    ins("formula", "    ρ̂ᵢ(t)  =  (Σᵢ,ₜ − Cᵢ) / 3²⁺ⁱ        C₀ = 108,  C₁ = 90,  C₂ = 36\n\n")
     ins("body", _t("guide.i5.directions"))
     ins("warn", _t("guide.i5.integer_not_enough"))
     ins("h3", _t("guide.i5.other.title") + "\n")

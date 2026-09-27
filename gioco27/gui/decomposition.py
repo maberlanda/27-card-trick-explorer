@@ -18,7 +18,7 @@ from ..services import Revisioni
 from .help_banner import HelpBanner
 from .errori import per_file
 from .i18n import tr
-from .i18n import get_language
+from .i18n import format_integer, get_language
 import queue
 import threading
 from collections import defaultdict
@@ -241,10 +241,12 @@ class DecompositionDialog(tk.Toplevel):
             n = len(cached)
             self._progress_bar["value"] = 216
             self._progress_lbl.configure(text=tr(
-                "explorer.decomposition.progress_cache", done=216, found=f"{n:,}"))
+                "explorer.decomposition.progress_cache", done=216,
+                found=format_integer(n)))
             lbl = "T⁻¹" if self._target_inv.get() else "T"
             self._status_var.set(tr(
-                "explorer.decomposition.found_cache", count=f"{n:,}", target=lbl))
+                "explorer.decomposition.found_cache",
+                count=format_integer(n), target=lbl))
             self._export_mb.configure(state="normal")
             self._redisplay()
             return
@@ -307,15 +309,18 @@ class DecompositionDialog(tk.Toplevel):
                 self._progress_bar["value"] = min(last_done, 216)
                 self._progress_lbl.configure(text=tr(
                     "explorer.decomposition.progress",
-                    done=f"{min(last_done,216):>3}", found=f"{last_found:,}"))
+                    done=f"{min(last_done,216):>3}",
+                    found=format_integer(last_found)))
             if done_flag:
                 n   = len(self._results)
                 lbl = "T⁻¹" if inverse else "T"
                 self._progress_bar["value"] = 216
                 self._progress_lbl.configure(text=tr(
-                    "explorer.decomposition.progress", done=216, found=f"{n:,}"))
+                    "explorer.decomposition.progress", done=216,
+                    found=format_integer(n)))
                 self._status_var.set(tr(
-                    "explorer.decomposition.found", count=f"{n:,}", target=lbl))
+                    "explorer.decomposition.found",
+                    count=format_integer(n), target=lbl))
                 self._export_mb.configure(state="normal")
                 self._redisplay()
                 return
@@ -422,13 +427,15 @@ class DecompositionDialog(tk.Toplevel):
             if loaded < total:
                 pct = int(100 * loaded / total)
                 self._load_lbl.configure(text=tr(
-                    "explorer.decomposition.loading", loaded=f"{loaded:,}",
-                    total=f"{total:,}", percent=pct))
+                    "explorer.decomposition.loading",
+                    loaded=format_integer(loaded), total=format_integer(total),
+                    percent=pct))
                 self._flat_job = self.after(
                     10, lambda: self._build_flat_async(results, loaded))
             else:
                 self._load_lbl.configure(text=tr(
-                    "explorer.decomposition.table_status", count=f"{total:,}"))
+                    "explorer.decomposition.table_status",
+                    count=format_integer(total)))
                 self._flat_job = None
         except tk.TclError:
             pass
@@ -497,7 +504,8 @@ class DecompositionDialog(tk.Toplevel):
         target = context["target"]
         lines = [
             f"{lbl} = [" + ", ".join(str(x) for x in target) + "]",
-            tr("export.document.decomposition.found", count=len(results)),
+            tr("export.document.decomposition.found",
+               count=format_integer(len(results))),
             "",
             "  {:>6}   {:<{w}}  {:<{w}}  A2".format("#", "A0", "A1", w=W),
             "-" * (14 + 3 * W + 6),
@@ -512,7 +520,7 @@ class DecompositionDialog(tk.Toplevel):
                 f.write("\n".join(lines))
             messagebox.showinfo(tr("explorer.decomposition.exported_title"),
                                 tr("explorer.decomposition.exported",
-                                   count=f"{len(results):,}", path=path),
+                                   count=format_integer(len(results)), path=path),
                                 parent=self)
         except OSError as exc:
             messagebox.showerror(*per_file(exc, path), parent=self)
@@ -544,7 +552,7 @@ class DecompositionDialog(tk.Toplevel):
                     w.writerow([i, _disp(a1), _disp(a2), _disp(a3)])
             messagebox.showinfo(tr("explorer.decomposition.exported_title"),
                                 tr("explorer.decomposition.exported",
-                                   count=f"{len(results):,}", path=path),
+                                   count=format_integer(len(results)), path=path),
                                 parent=self)
         except OSError as exc:
             messagebox.showerror(*per_file(exc, path), parent=self)
@@ -582,7 +590,7 @@ code{{font-family:'Courier New',monospace;font-size:0.9em}}</style></head>
 <body>
 <h2>{tr('export.document.decomposition.title', label=_h.escape(lbl))}</h2>
 <p><code>{_h.escape(target_str)}</code></p>
-<p>{tr('export.document.decomposition.found', count=len(results))}</p>
+<p>{tr('export.document.decomposition.found', count=format_integer(len(results)))}</p>
 <table><tr><th>#</th><th>A0</th><th>A1</th><th>A2</th></tr>
 {rows}</table>
 <p style='color:#888;font-size:0.85em'>{tr('export.document.generated_by')}</p>

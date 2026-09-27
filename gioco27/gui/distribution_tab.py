@@ -13,7 +13,7 @@ import threading, queue
 
 
 from .common import EtaEstimator
-from .i18n import tr
+from .i18n import format_integer, tr
 
 
 class DistributionFrame(ttk.Frame):
@@ -192,9 +192,9 @@ class DistributionFrame(ttk.Frame):
             return tr("distribution.summary_empty")
         picco = max(histo, key=lambda k: histo[k])
         return tr("distribution.summary",
-                  total=f"{r.get('total_T', 0):,}",
+                  total=format_integer(r.get('total_T', 0)),
                   minimum=min(histo), maximum=max(histo),
-                  peak=picco, peak_count=f"{histo[picco]:,}")
+                  peak=picco, peak_count=format_integer(histo[picco]))
 
     def _draw_histogram(self, r):
         histo   = r["histogram"]   # {k_decomp: n_T}
@@ -224,7 +224,8 @@ class DistributionFrame(ttk.Frame):
         for frac in [0.25, 0.5, 0.75, 1.0]:
             yy = h - bm - frac * (h - tm - bm)
             canvas.create_line(lm, yy, w - rm, yy, fill="#eee", width=1, dash=(4, 4))
-            canvas.create_text(lm - 5, yy, text=f"{int(frac*max_v):,}",
+            canvas.create_text(lm - 5, yy,
+                               text=format_integer(int(frac * max_v)),
                                 anchor="e", font=("Segoe UI", 8), fill="#666")
 
         # Barre
@@ -239,7 +240,7 @@ class DistributionFrame(ttk.Frame):
             # Etichetta sopra barra
             if bar_w >= 16:
                 canvas.create_text((x0+x1)/2, y0 - 3,
-                                    text=f"{v:,}", anchor="s",
+                                    text=format_integer(v), anchor="s",
                                     font=("Segoe UI", 7), fill="#333")
             # Etichetta X
             canvas.create_text((x0+x1)/2, h - bm + 4,
@@ -254,7 +255,8 @@ class DistributionFrame(ttk.Frame):
                             text=tr("distribution.axis_reachable_t"), angle=90,
                             font=("Segoe UI", 9), fill="#444")
         canvas.create_text(lm + (w - lm - rm)/2, 10,
-                            text=tr("distribution.chart_title", total=total_T),
+                            text=tr("distribution.chart_title",
+                                    total=format_integer(total_T)),
                             font=("Segoe UI", 10, "bold"), fill="#1a3a5c")
 
         canvas.configure(scrollregion=canvas.bbox("all"))
