@@ -34,7 +34,7 @@ Gli issue ripetuti da uno stesso modello sono consolidati in una sola famiglia. 
 Sono stati assunti come vincolanti A1, A1-FIX, A2 e A2-FIX. Non sono state reinterpretate:
 
 - la direzione della matrice inversa;
-- l'ordine pubblico P₂ ⊗ P₁ ⊗ P₀;
+- l'ordine dei fattori P₂ ⊗ P₁ ⊗ P₀;
 - la formula di rotazione di T⁻¹;
 - la posizione di J_i prima della distribuzione nello stesso stadio;
 - la separabilità della trasformazione relativa per mazzi gemelli in H;

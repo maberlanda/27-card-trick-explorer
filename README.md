@@ -15,7 +15,7 @@ integrata** organizzata come percorso (scheda «Inizia qui»).
 * **H** — le 216 trasformazioni separabili (la Tavola 216; il libro la chiama
   Gaia, H ≅ S₃³).
 * **Γ** — il gruppo esteso di 648 elementi, Γ = H ⊔ H∘MSC ⊔ H∘MSC².
-* **S27** — il gruppo ambiente di tutte le permutazioni delle 27 posizioni.
+* **S₂₇** — il gruppo ambiente di tutte le permutazioni delle 27 posizioni.
 * **1 728** sono le *Procedure* di gioco (6³ mescolamenti × 2³ rovesciamenti),
   non 1 728 trasformazioni distinte: più procedure realizzano la stessa riga
   della Tavola (DP11, § sotto).
@@ -32,7 +32,7 @@ integrata** organizzata come percorso (scheda «Inizia qui»).
   procedure equivalenti.
 * **Explorer** — espressioni simboliche, forma canonica, decomposizioni,
   riconoscimento di una permutazione, laboratorio di proprietà con dominio
-  dichiarato (H, Γ, S27).
+  dichiarato (H, Γ, S₂₇).
 * **Esperimenti (🗂 Sessione)** — lo stato scientifico di tutte le viste in un
   file JSON versionato; all'apertura ogni risultato viene **ricalcolato** e il
   file è accettato solo se coincide (VERIFIED); cronologia con
@@ -123,7 +123,7 @@ per Windows va prodotta su Windows.
 
 ## Limiti degli export
 
-Con i filtri su «*» le combinazioni sono 1728³ = 5.159.780.352: gli export
+Con i filtri su «*» le combinazioni sono 1 728³ = 5 159 780 352: gli export
 rifiutano subito i lavori oltre 20 milioni di elementi (200.000 per il PDF
 dettagliato), spiegando come restringere i filtri. CSV e PDF standard/esteso
 generano le combinazioni a flusso; il parallelismo limita i blocchi in volo.

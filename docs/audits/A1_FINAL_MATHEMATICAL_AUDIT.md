@@ -51,7 +51,7 @@ Le verifiche usano le convenzioni approvate e ne controllano la coerenza sulle s
 | composizione | `(a∘b)[i]=a[b[i]]`, prima `b`, poi `a` |
 | matrice | `M(T)[T(i),i]=1`; `M(a∘b)=M(a)M(b)` |
 | MSC | `MSC(n)=9(n mod 3)+floor(n/3)` |
-| fattori | ordine pubblico alto→basso `P₂⊗P₁⊗P₀` |
+| fattori | ordine dei fattori alto→basso `P₂⊗P₁⊗P₀` |
 | rovesciamento | DP3=A: `Jᵢ` prima della distribuzione dello stadio `i` |
 | gruppi | `H` 216, `Γ` 648, `S27` ambiente |
 

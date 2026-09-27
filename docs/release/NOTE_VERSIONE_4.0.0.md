@@ -22,7 +22,8 @@ interfaccia; K ha reso il pacchetto installabile e verificabile.
 
 * **A — baseline**: suite e analisi statica verdi, stato Git riconciliato.
 * **B — integrità I/O**: pubblicazione atomica dei file, temporanei univoci,
-  cache che distingue validità e completezza, fallback dei font utilizzabile.
+  cache che distingue validità e completezza, sistema di ripiego per i
+  caratteri pronto all'uso.
 * **C — stato e concorrenza**: risposte tardive che non ripopolano lo stato,
   pratica su una sessione congelata, ogni lavoro con uno stato conclusivo.
 * **D — dominio**: selftest indipendente da `assert`, contratti di
@@ -51,7 +52,7 @@ interfaccia; K ha reso il pacchetto installabile e verificabile.
 * **Riconoscimento (I5)** — da una permutazione alla riga della Tavola, alla
   classe estesa, al criterio delle somme.
 * **Laboratorio matematico (I6)** — proprietà verificate su un dominio
-  dichiarato (S₃, H, Γ, S27, Procedure), controesempi, classi, piccoli grafi.
+  dichiarato (S₃, H, Γ, S₂₇, Procedure), controesempi, classi, piccoli grafi.
 * **Percorso didattico (I7)** — quattro livelli (Base, Intermedio, Avanzato,
   Laboratorio), Guida riorganizzata come percorso, glossario, aiuti di scheda.
 * **Esperimenti (J)** — finestra 🗂 Sessione: esperimento JSON versionato
