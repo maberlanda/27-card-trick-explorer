@@ -30,8 +30,16 @@ import csv
 # sono i punti in cui i test infilano una sentinella o un guasto, e legare il
 # nome all'import lo congelerebbe alla prima importazione.
 from . import combinations, permutations
+from ..i18n import tr
 
-__all__ = ["write_csv", "write_csv_parallel"]
+__all__ = ["localized_csv_header", "write_csv", "write_csv_parallel"]
+
+
+def localized_csv_header():
+    """Localize only the reader-facing note in the stable raw CSV header."""
+    header = list(permutations.CSV_HEADER)
+    header[-1] = tr("export.csv.header.t_permutation")
+    return header
 
 
 def write_csv(path, filters, progress_cb=None, annullato=None):
@@ -58,7 +66,7 @@ def write_csv(path, filters, progress_cb=None, annullato=None):
                       newline="", encoding="utf-8") as f:
         w = csv.writer(f, delimiter=";", quotechar='"',
                        quoting=csv.QUOTE_ALL, lineterminator="\n")
-        w.writerow(permutations.localized_csv_header())
+        w.writerow(localized_csv_header())
         for params in combinations.iter_combinations_ex(filters):
             count += 1
             w.writerow(permutations.make_csv_row(count, params))
@@ -126,7 +134,7 @@ def write_csv_parallel(path, filters, n_workers=None, progress_cb=None,
                       newline="", encoding="utf-8") as f:
         w = csv.writer(f, delimiter=";", quotechar='"',
                        quoting=csv.QUOTE_ALL, lineterminator="\n")
-        w.writerow(permutations.localized_csv_header())
+        w.writerow(localized_csv_header())
 
         state = {"written": 0, "fallback": False}
 

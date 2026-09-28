@@ -141,16 +141,19 @@ def test_le_etichette_non_usano_scostamenti_fissi():
 
     sorgente = (pathlib.Path(__file__).resolve().parent.parent
                 / "gioco27" / "core" / "detail_pdf.py").read_text(encoding="utf-8")
-    atteso = {"ROVESCIAMENTO": "ALTEZZA_ROVESCIAMENTO",
-              "MOLTIPLICAZIONE": "ALTEZZA_MOLTIPLICAZIONE"}
+    atteso = {"export.document.pdf.reversal": "ALTEZZA_ROVESCIAMENTO",
+              "export.document.pdf.multiplication": "ALTEZZA_MOLTIPLICAZIONE"}
     trovate = {}
     for nodo in ast.walk(ast.parse(sorgente)):
         if not (isinstance(nodo, ast.Call)
                 and getattr(nodo.func, "id", None) == "vtext"):
             continue
-        if not (nodo.args and isinstance(nodo.args[0], ast.Constant)):
+        if not (nodo.args and isinstance(nodo.args[0], ast.Call)
+                and getattr(nodo.args[0].func, "id", None) == "tr"
+                and nodo.args[0].args
+                and isinstance(nodo.args[0].args[0], ast.Constant)):
             continue
-        etichetta = nodo.args[0].value
+        etichetta = nodo.args[0].args[0].value
         if etichetta not in atteso:
             continue
         nomi = {n.id for n in ast.walk(nodo.args[2]) if isinstance(n, ast.Name)}

@@ -199,7 +199,7 @@ def test_percorso_a_parti():
 #: Funzionalita' I1–I6 → frasi che la Guida deve contenere (IT, EN).
 COPERTURA = {
     "I1 procedura ed equivalenze": (["216 × 8 = 1 728", "stessa trasformazione", "64", "Variante sicura", "k2"],
-                                    ["216 × 8 = 1 728", "same transformation", "64", "Safe variant", "k2"]),
+                                    ["216 × 8 = 1,728", "same transformation", "64", "Safe variant", "k2"]),
     "I2 tabellone e ritorno": (["Tabellone diretto", "Tabellone inverso", "#56 ↔ #62", "#100 → riga di ritorno #93"],
                                ["Direct board", "Inverse board", "#56 ↔ #62", "#100 → return row #93"]),
     "I2 macchina che dimentica": (["P′  =  ⌊P / 3⌋  +  9·s", "19 = (2,0,1), indirizzo DSC", "= 23"],
@@ -211,7 +211,7 @@ COPERTURA = {
     "I5 riconoscimento": (["Teor. 6.4", "Avanti", "A1", "A8", "v → w", "C1", "C9", "C18", "36, 117, 198", "#100 / #91"],
                           ["Thm. 6.4", "Forward", "A1", "A8", "v → w", "C1", "C9", "C18", "36, 117, 198", "#100 / #91"]),
     "I6 laboratorio": (["H — le 216", "Γ — i 648", "S₂₇", "7 tipi ciclici", "#215", "H∘MSC²", "36/36", "controesempio"],
-                       ["H — the 216", "Γ — the 648", "S27", "7 cycle types", "#215", "H∘MSC²", "36/36", "counterexample"]),
+                       ["H — the 216", "Γ — the 648", "S₂₇", "seven cycle types", "#215", "H∘MSC²", "36/36", "counterexample"]),
     "DP9 storia": (["Pacioli", "Verini", "Galasso", "Gergonne", "Gardner", "Elmsley", "21 carte", "problema inverso"],
                    ["Pacioli", "Verini", "Galasso", "Gergonne", "Gardner", "Elmsley", "21-card", "inverse problem"]),
 }

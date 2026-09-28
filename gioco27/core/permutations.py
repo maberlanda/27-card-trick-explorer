@@ -11,7 +11,6 @@ l'ultimo ciclo dal grafo delle importazioni. I nomi storici `write_csv` e
 """
 import numpy as np
 
-from ..i18n import tr
 from .constants import (PERM3, PERM3_J, PERM3_COLORS, _MSC_PERM)
 from .log import get_logger
 
@@ -396,16 +395,6 @@ CSV_HEADER = [
     "T_permutazione  [lista 0..26]",
 ]
 
-
-def localized_csv_header():
-    """Return the raw-export header with only its reader-facing note localized.
-
-    The field names, order, and formula tokens remain the stable CSV contract.
-    ``CSV_HEADER`` itself stays unchanged for import compatibility.
-    """
-    header = list(CSV_HEADER)
-    header[-1] = tr("export.csv.header.t_permutation")
-    return header
 
 def make_csv_row(combo_idx, params):
     """

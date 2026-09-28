@@ -101,7 +101,8 @@ def test_source_terms_sono_preservati():
 def test_csv_localizza_solo_le_descrizioni_e_preserva_lo_schema(tmp_path):
     from gioco27.core.analisi import SchemaNonRiconosciuto, riconosci_schema
     from gioco27.core.export_analisi import scrivi_output
-    from gioco27.core.permutations import CSV_HEADER, localized_csv_header
+    from gioco27.core.export_combinazioni import localized_csv_header
+    from gioco27.core.permutations import CSV_HEADER
 
     stable_names = [value.split("  [", 1)[0] for value in CSV_HEADER]
     i18n.set_language("en")

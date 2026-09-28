@@ -231,8 +231,9 @@ def test_didascalie_non_promettono_i_mescolamenti():
     src = (pathlib.Path(__file__).resolve().parent.parent
            / "gioco27" / "core" / "detail_pdf.py").read_text(encoding="utf-8")
     blocco = src.split("def griglia(", 1)[1].split("# Matrice 27x27", 1)[0]
-    assert '("TABELLONE", "DI T")' in blocco
-    assert '"DI T\\u207b\\u00b9"' in blocco
+    assert 'tr("export.document.pdf.board")' in blocco
+    assert 'tr("export.document.pdf.of_t")' in blocco
+    assert 'tr("export.document.pdf.of_t_inverse")' in blocco
     for parola in ('"MESCOLAMENTI"', '"(IMPILAMENTI)"'):
         assert parola not in blocco, \
             f"didascalia {parola}: vera solo senza rovesciamenti"
