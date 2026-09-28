@@ -189,6 +189,9 @@ MANIFEST.in,D BUILD / CONFIGURATION,yes,setuptools (sdist),contenuto esplicito d
 gioco27/assets/LICENSE-DejaVu.txt,C RUNTIME RESOURCE,yes,pyproject license-files e package-data; gioco27.spec; tests/test_release_k.py,licenza dei font DejaVu,KEEP,"K: copia letterale della licenza incorporata nei font (nameID 13), verificata dai test",low
 tests/fixtures/esperimento_j1_programma_3.1.3.json,J TEST DATA / FIXTURE,yes,"tests/test_release_k.py, tests/test_pacchetto_k.py",esperimento J salvato dal programma 3.1.3,KEEP,K: compatibilita' degli esperimenti 3.1.3 con la 4.0.0,low
 tests/benchmark_k.py,I SCRIPT / TOOL,yes,"docs/release (note 4.0.0, chiusura K)",benchmark deterministici della 4.0 (non raccolto da pytest),KEEP,"K: baseline di prestazione, nessuna soglia",low
+docs/audits/A4_FINAL_ENGLISH_LANGUAGE_AUDIT.md,G PROJECT AUDIT / DESIGN,yes,A4 final audit,Audit finale dell'inglese e dell'equivalenza IT/EN,KEEP,"A4: documento storico; non modificare durante A4-FIX",low
+docs/audits/A4_FINAL_ENGLISH_LANGUAGE_AUDIT.csv,G PROJECT AUDIT / DESIGN,yes,A4 final audit,Inventario macchina-leggibile dei rilievi inglesi,KEEP,"A4: deliverable storico; rilievi e conteggi invariati durante A4-FIX",low
+docs/audits/A4_ENGLISH_LANGUAGE_FIX_VERIFICATION.md,G PROJECT AUDIT / DESIGN,yes,A4-FIX,Verifica delle 23 famiglie inglesi e dei contratti stabili,KEEP,"A4-FIX: evidenze su lingua naturale, equivalenza IT/EN ed export",low
 docs/release/NOTE_VERSIONE_4.0.0.md,H HISTORICAL / CLOSED,yes,"README, docs/README.md",note della release candidate 4.0.0,KEEP,K: note di release (corrente fino alla 4.0 definitiva),low
 docs/release/K_RELEASE_CANDIDATE_CLOSED.md,H HISTORICAL / CLOSED,yes,"docs/README.md, note 4.0.0",chiusura del compartimento K,KEEP,K: documento di chiusura,low
 tests/test_release_k.py,B TEST,yes,pytest (testpaths),test del compartimento K,KEEP,K: nuovo test,low
