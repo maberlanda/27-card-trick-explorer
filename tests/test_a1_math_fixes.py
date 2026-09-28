@@ -90,7 +90,8 @@ def test_a1_math_02_public_kronecker_order_matches_ternary_oracle():
             assert "P₂" in value and "P₁" in value and "P₀" in value
             assert value.index("P₂") < value.index("P₁") < value.index("P₀")
             assert "P₃" not in value
-        assert "f₂ x f₁ x f₀" in tr("cayley.help.intro")
+        product = "f₂ x f₁ x f₀" if language == "it" else "f₂ ⊗ f₁ ⊗ f₀"
+        assert product in tr("cayley.help.intro")
         assert "(f₂,f₁,f₀)" in tr(
             "conjugacy.help.intro", classes="classi")
 
@@ -166,7 +167,7 @@ def test_a1_math_05_a8_separability_requires_twin_decks_from_h():
     assert "T_A,T_B ∈ H" in italian and "non c'è questa garanzia" in italian
     set_language("en")
     english = tr("guide.i5.other", digits="0,1,2")
-    assert "T_A,T_B ∈ H" in english and "no such guarantee" in english
+    assert "T_A, T_B ∈ H" in english and "No such guarantee holds" in english
 
 
 def test_a1_source_tensions_are_explicit_and_match_the_oracles():

@@ -37,7 +37,7 @@ def _lang(language):
 def test_cataloghi_simmetrici_e_placeholder_coerenti():
     it, en = i18n.CATALOGS["it"], i18n.CATALOGS["en"]
     assert set(it) == set(en)
-    assert len(it) == 2108  # A2-FIX: +20 voci glossario × term/short/long
+    assert len(it) == 2118  # A4-FIX: +10 etichette localizzate per export/CLI
     fields = lambda s: sorted(n for _, n, _, _ in Formatter().parse(s) if n)
     for key in it:
         assert fields(it[key]) == fields(en[key]), key
@@ -78,12 +78,12 @@ def test_verify_rapporto_inglese(skipped):
     text = format_selftest_report(_report(skipped))
     for italian in ORIGINAL_KEYS + ("saltato", "assente", "TUTTO OK"):
         assert italian not in text, italian
-    for english in ("Physics vs algebra (216)", "Physics vs matrices (1728)",
+    for english in ("Physics vs algebra (216)", "Physics vs. matrices (1,728)",
                     "Book anchors", "Chapter 100 statistics",
                     "Reconstruction from Aces", "Trick (729 pairs)", "Outcome",
                     "ALL OK", "ok (#100, #82)", "ok (216/216)", "ok (729/729)"):
         assert english in text, english
-    assert ("skipped (numpy not installed)" in text) == skipped
+    assert ("skipped (NumPy not installed)" in text) == skipped
     assert ("ok (1728)" in text) == (not skipped)
     assert len(text.splitlines()) == 7
 
@@ -179,7 +179,7 @@ def test_verify_tooltip_localizzato():
     assert i18n.tr("tooltip.verify").startswith("Verifica di integrità")
     _lang("en")
     assert i18n.tr("tooltip.verify").startswith("Integrity check")
-    assert "1728" in i18n.tr("tooltip.verify")
+    assert "1,728" in i18n.tr("tooltip.verify")
 
 
 # ────────────────────────── export massivi (app) ───────────────────────────
@@ -261,7 +261,7 @@ def test_export_conferma_salvataggio_e_stato(monkeypatch, language):
         assert status.values[0].startswith("Generazione CSV in corso... (0/200 000")
     else:
         assert ask[1] == "Confirm"
-        assert ask[2].startswith("200,000 CSV rows will be written")
+        assert ask[2].startswith("CSV rows to write: 200,000")
         assert save[1] == "Save CSV"
         assert status.values[-1] == "✓ CSV saved: out.csv  (200,000 rows)"
         assert status.values[0].startswith("Generating CSV... (0/200,000")
@@ -392,7 +392,8 @@ ERROR_CASES = [
     ("MSC o", "Errore di parsing:\nEspressione incompleta: atteso un termine.",
      "Parsing error:\nIncomplete expression: a term was expected."),
     ("SCD_U", "Errore di valutazione:\nL'espressione restituisce una permutazione su 3 elementi.",
-     "Evaluation error:\nThe result is of type 3."),
+     "Evaluation error:\nThe expression produces a permutation of 3 elements. "
+     "A transformation of the 27 positions requires a Kronecker product with three factors."),
     ("MSC MSC", "Errore di parsing:\nToken inatteso dopo la fine dell'espressione: 'MSC'",
      "Parsing error:\nUnexpected token after the end of the expression: 'MSC'"),
 ]

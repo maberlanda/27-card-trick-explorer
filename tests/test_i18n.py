@@ -202,7 +202,7 @@ def test_third_block_glossary_short_labels_preserve_symbols():
         assert tr(f"glossary.short.{key}")
     set_language("en")
     assert tr("glossary.term.msc") == "MSC"
-    assert tr("glossary.term.collection") == "P (collection)"
+    assert tr("glossary.term.collection") == "P (pickup permutation)"
     assert "MSC" in tr("glossary.short.stage")
     assert "T⁻¹" in tr("glossary.short.total_transform")
 
@@ -443,7 +443,7 @@ def test_seventh_block_explorer_preserves_mathematical_identifiers():
     ]
     joined = " ".join(values)
     for identifier in ("P1", "MSC", "J1", "K ∘ MSCᵏ", "T⁻¹",
-                       "A0", "A1", "A2", "GEN3"):
+                       "A₀", "A₁", "A₂", "GEN3"):
         assert identifier in joined
     assert decomposition._expr_triple(("SCD_U", "CDS_U", "DCS_U")) == \
         "(SCD_U x CDS_U x DCS_U)"
@@ -507,7 +507,7 @@ def test_eighth_block_simulator_controls_are_localized():
     assert tr("simulator.practice.confirm_stacking") == "Conferma impilamento"
 
     set_language("en")
-    assert tr("simulator.title") == "27-Card Trick Simulator"
+    assert tr("simulator.title") == "27-card trick Simulator"
     assert tr("simulator.calculate_sequence") == "Calculate sequence"
     assert tr("simulator.tab.instructions") == "Instructions for the magician"
     assert tr("simulator.practice.confirm_stacking") == "Confirm stacking"
@@ -649,7 +649,7 @@ def test_ninth_block_analysis_controls_and_columns_are_localized():
     assert tr("analysis.open_explorer") == "Apri in Explorer"
 
     set_language("en")
-    assert tr("analysis.title") == "Permutation Multiplicity Analysis"
+    assert tr("analysis.title") == "Permutation multiplicity analysis"
     assert tr("analysis.generate") == "Generate & Analyze"
     assert tr("analysis.column.multiplicity") == "Mult."
     assert tr("analysis.open_explorer") == "Open in Explorer"
@@ -696,7 +696,7 @@ def test_ninth_block_analysis_preserves_exposed_identifiers_and_formats():
         tr("analysis.detail.footer_hint"),
     ))
     for identifier in ("T_permutazione", "T_simbolica", "Stage",
-                       "P₂×P₁×P₀", "J₂×J₁×J₀", "P o MSC o J"):
+                       "P₂×P₁×P₀", "J₂×J₁×J₀", "P ∘ MSC ∘ J"):
         assert identifier in values
     for format_name in ("CSV", "Excel", "HTML"):
         assert format_name in " ".join((
@@ -828,7 +828,7 @@ def test_tenth_block_protocol_main_controls_and_sections_are_localized():
     assert italian_sections[-1] == "8 · Perché funziona (matematica)"
 
     set_language("en")
-    assert tr("protocol.dialog.title") == "Export Trick Protocol"
+    assert tr("protocol.dialog.title") == "Export trick protocol"
     assert tr("protocol.heading") == "Export HTML Protocol"
     assert tr("protocol.open_browser") == "Open in browser"
     english_sections = [tr(label_key) for _, label_key in ProtocolDialog._SECTIONS]
@@ -890,7 +890,7 @@ def test_tenth_block_protocol_preserves_codes_and_generated_content():
     assert "<html lang='it'>" in italian_html
     assert "<html lang='en'>" in english_html
     assert "Protocollo — Gioco delle 27 carte" in italian_html
-    assert "Protocol — 27-Card Trick" in english_html
+    assert "Protocol — 27-card trick" in english_html
     for formula in ("MSC ∘ MSC ∘ MSC  =  I", "SCD_U", "T⁻¹"):
         assert formula in italian_html and formula in english_html
     for identifier in ("GEN3", "T", "T⁻¹", "27×27"):
@@ -1181,7 +1181,7 @@ def test_twelfth_block_catalog_additions_are_symmetric_and_counted():
     assert len([k for k in i18n.CATALOGS["it"] if k.startswith("glossary.long.")]) == 63
     assert len([k for k in i18n.CATALOGS["it"] if k.startswith("help.tab.")]) == 16
     assert len([k for k in i18n.CATALOGS["it"] if k.startswith("filter.")]) == 26  # +7 audit finale, +1 H1 (filter.never_empty)
-    assert len(i18n.CATALOGS["it"]) == 2108  # A2-FIX: +20 voci glossario × term/short/long
+    assert len(i18n.CATALOGS["it"]) == 2118  # A4-FIX: +10 etichette localizzate e descrizione CLI
 
 
 def _use_config_file(monkeypatch, tmp_path):
@@ -1296,7 +1296,7 @@ def test_thirteenth_block_protocol_export_follows_language_and_keeps_formulas():
     set_language("en")
     english = generate_protocol_html(data)
     assert "<html lang='en'>" in english
-    assert "Protocol — 27-Card Trick" in english
+    assert "Protocol — 27-card trick" in english
     assert "MSC ∘ MSC ∘ MSC  =  I" in english
     assert "SCD_U" in english
     assert len(italian) > 1000 and len(english) > 1000

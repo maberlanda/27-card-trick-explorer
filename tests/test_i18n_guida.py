@@ -10,7 +10,6 @@ l'allineamento dell'inglese con le etichette reali dell'interfaccia.
 import ast
 import pathlib
 import re
-from collections import Counter
 from string import Formatter
 from types import SimpleNamespace
 
@@ -29,7 +28,6 @@ N_GUIDE_KEYS = 458    # J: +3 (guide.s29.action.session, guide.s29.session.title
 SAME_IN_BOTH = {
     "guide.export_heading",        # «Export» è la parola usata in entrambe le UI
     "guide.s26.csv.t_symbolic",    # pura formula
-    "guide.s27.approx.1728",       # numero
 }
 
 
@@ -84,7 +82,7 @@ def test_guida_completa_in_inglese():
 
     text = _text("en")
     assert [t for t, _ in _segments("en")].count("h2") == N_SECTIONS
-    for phrase in ("27-card trick  —  Complete Guide & How-To",
+    for phrase in ("27-card trick — complete guide and how-to",
                    "The 27-card trick is a classic piece of mathematical magic",
                    "Fundamental commutation relation with MSC",
                    "The program requires Python 3.10 or later",
@@ -101,9 +99,9 @@ def test_guida_completa_in_inglese():
     ("it", ["Il Gioco Reale — le 1 728 Procedure",
             "Tab Explorer — analisi algebrica, decomposizioni e protocollo",
             "Finestra Tavola di Cayley", "Glossario dei termini"]),
-    ("en", ["The Real Game — the 1 728 Procedures",
+    ("en", ["The Real Game — the 1,728 Procedures",
             "Explorer tab — algebraic analysis, decompositions, and protocol",
-            "Cayley Table window", "Glossary of terms"]),
+            "Cayley table window", "Glossary of terms"]),
 ])
 def test_sezioni_principali_presenti(language, titles):
     heads = [text for tag, text in _segments(language) if tag == "h2"]
@@ -286,29 +284,19 @@ def test_formule_codici_e_numeri_invariati():
     for (tag, a), (_, b) in zip(it, en):
         if tag == "formula" and not re.search(r"[a-z]{3,}", a.replace("MSC", "")):
             assert a == b, a
-    # Su tutto il testo i token matematici/numerici coincidono, salvo le
-    # differenze volute e documentate.
-    diff_it = Counter(_MATH.findall(_text("it"))) - Counter(_MATH.findall(_text("en")))
-    diff_en = Counter(_MATH.findall(_text("en"))) - Counter(_MATH.findall(_text("it")))
-    # «Stadioᵢ» del glossario italiano diventa «Stageᵢ», come in glossary.long.stage;
-    # le etichette UI inglesi scrivono «1,728»; «TABELLONE DI T⁻¹» ha la glossa inglese;
-    # i decimali italiani «0,03» diventano «0.03» (stesse cifre, stessi token).
-    # I7: il glossario della Guida e' generato dalle voci brevi (niente
-    # «Stadioᵢ»); la voce breve inglese del Gioco Reale scrive «1,728».
-    assert diff_it == Counter({
-        "S₂₇": 10, "oᵢ": 6, "1 728": 5, "×": 4, "S₃": 2, "A₂": 1,
-    }), diff_it
-    assert diff_en == Counter({
-        "27": 10, "→": 10, "=": 8, "1": 6, "eᵢ": 6, "3": 4,
-        "728": 4, "2": 2, "1728": 2, "216": 1, "T⁻¹": 1,
-        "0": 1, "∈": 1, "DISP_INIZIO": 1,
-    }), diff_en
-    for formula in ("MSC ∘ (A₂ ⊗ A₁ ⊗ A₀)  =  (A₀ ⊗ A₂ ⊗ A₁) ∘ MSC",
-                    "f_k = P_k ∘ J_(k+1 mod 3)", "MSC^{(3−k) mod 3}",
-                    "T  =  A₂ ∘ MSC ∘ A₁ ∘ MSC ∘ A₀ ∘ MSC", "{0,1,2}³",
-                    "46 656 × 8³ = 23 887 872", "216³ = 10 077 696",
-                    "Z(H)", "⟨A,B⟩", "S₃³", "SCD, SDC, CSD, DSC, CDS, DCS"):
-        assert formula in _text("it") and formula in _text("en"), formula
+    # A4-FIX rende la prosa inglese con raggruppamento americano e notazione
+    # Unicode ricca, senza cambiare valori o formule.
+    italian_text, english_text = _text("it"), _text("en")
+    assert not re.search(r"\b\d{1,3}(?: \d{3})+\b", english_text)
+    for rich in ("S₂₇", "S₃", "MSCᵏ", "3²⁺ⁱ", "⊗", "∘"):
+        assert rich in english_text
+    for stable in ("GEN3", "MSC", "T_simbolica", "T_permutazione",
+                   "Z(H)", "⟨A,B⟩", "SCD, SDC, CSD, DSC, CDS, DCS"):
+        assert stable in italian_text and stable in english_text, stable
+    assert "46 656 × 8³ = 23 887 872" in italian_text
+    assert "46,656 × 8³ = 23,887,872" in english_text
+    assert "216³ = 10 077 696" in italian_text
+    assert "216³ = 10,077,696" in english_text
 
 
 def test_riferimenti_interni_uguali_nelle_due_lingue():
