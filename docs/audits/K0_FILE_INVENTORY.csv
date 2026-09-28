@@ -1,6 +1,7 @@
 path,category,tracked,referenced,purpose,action,reason,risk
 .gitattributes,D BUILD / CONFIGURATION,yes,named in 4 file(s),Auto detect text files and perform LF normalization,KEEP,normalizzazione dei fine riga (text=auto),low
 .gitignore,D BUILD / CONFIGURATION,yes,named in 12 file(s),Byte-compiled / optimized / DLL files,KEEP,"modello GitHub Python, invariato; '*.spec' esclude gioco27.spec (N04 -> K)",low
+CONTRIBUTORS.md,E USER DOCUMENTATION CURRENT,yes,README.md,Contributori e assistenza al progetto,KEEP,RC2: attribuzioni fattuali del progetto,low
 LICENSE,E USER DOCUMENTATION CURRENT,yes,named in 4 file(s),GNU General Public License v3,KEEP,"GPL v3, coerente col README; incoerente con pyproject license=Proprietary -> K (packaging)",low
 README.md,E USER DOCUMENTATION CURRENT,yes,named in 9 file(s),Gioco delle 27 carte,KEEP,documentazione utente corrente; K0 aggiunge la sezione Documentazione,low
 avvia.bat,I SCRIPT / TOOL,yes,named in 6 file(s),@echo off,KEEP,"launcher Windows (README, Guida s28); resta in radice accanto a gioco27.py",low

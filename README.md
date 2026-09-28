@@ -158,7 +158,8 @@ Configurazione, cache e log sono in `~/.gioco27/`
 La Guida completa è integrata nel programma. La documentazione di progetto
 (audit, decisioni, chiusure dei compartimenti, note di versione) è in
 `docs/` — vedi `docs/README.md`; le note della 4.0.0 sono in
-`docs/release/NOTE_VERSIONE_4.0.0.md`.
+`docs/release/NOTE_VERSIONE_4.0.0.md`. Autore e assistenza al progetto sono
+indicati in `CONTRIBUTORS.md`.
 
 ## Licenza
 

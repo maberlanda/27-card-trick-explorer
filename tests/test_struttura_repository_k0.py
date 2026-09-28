@@ -18,7 +18,7 @@ ROOT = Path(__file__).resolve().parents[1]
 #: cio' che ha senso al primo livello (K0). Un file nuovo in radice va
 #: aggiunto qui con una ragione, o messo nella sua cartella.
 RADICE_AMMESSA = {
-    ".gitattributes", ".gitignore", "LICENSE", "README.md", "avvia.bat",
+    ".gitattributes", ".gitignore", "CONTRIBUTORS.md", "LICENSE", "README.md", "avvia.bat",
     "conftest.py", "controlla_requisiti.py", "docs", "gioco27", "gioco27.py",
     "pyproject.toml", "requirements-dev.txt", "requirements.txt", "tests",
     "gioco27.spec",        # K (N04): ricetta PyInstaller ufficiale, versionata
@@ -50,7 +50,7 @@ def test_radice_ordinata(tracciati):
 
 def test_documentazione_classificata(tracciati):
     assert not [p for p in tracciati if "/" not in p and p.endswith((".md", ".csv"))
-                and p != "README.md"]
+                and p not in {"CONTRIBUTORS.md", "README.md"}]
     chiusure = [p for p in tracciati if p.endswith("_CLOSED.md")]
     # K: la chiusura della release candidate sta con le note di versione.
     ammesse_fuori = {"docs/release/K_RELEASE_CANDIDATE_CLOSED.md"}
