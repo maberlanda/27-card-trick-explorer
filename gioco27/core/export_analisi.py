@@ -21,9 +21,9 @@ __all__ = ["EXCEL_MAX_CELL_CHARS", "scrivi_output", "scrivi_excel"]
 def scrivi_output(risultati, output_path):
     from .parallel import atomic_write
     header = [
-        "T_permutazione  [lista 0..26]",
-        "T_simboliche_distinte  [separate da , ]",
-        "n_sim_distinte  [molteplicita della permutazione]",
+        tr("export.analysis.csv.header.t_permutation"),
+        tr("export.analysis.csv.header.symbolic"),
+        tr("export.analysis.csv.header.multiplicity"),
     ]
     with atomic_write(output_path, "w", newline="", encoding="utf-8") as f:
         w = csv.writer(f, delimiter=";", quotechar='"',

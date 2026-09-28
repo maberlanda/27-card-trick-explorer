@@ -58,7 +58,7 @@ def write_csv(path, filters, progress_cb=None, annullato=None):
                       newline="", encoding="utf-8") as f:
         w = csv.writer(f, delimiter=";", quotechar='"',
                        quoting=csv.QUOTE_ALL, lineterminator="\n")
-        w.writerow(permutations.CSV_HEADER)
+        w.writerow(permutations.localized_csv_header())
         for params in combinations.iter_combinations_ex(filters):
             count += 1
             w.writerow(permutations.make_csv_row(count, params))
@@ -126,7 +126,7 @@ def write_csv_parallel(path, filters, n_workers=None, progress_cb=None,
                       newline="", encoding="utf-8") as f:
         w = csv.writer(f, delimiter=";", quotechar='"',
                        quoting=csv.QUOTE_ALL, lineterminator="\n")
-        w.writerow(permutations.CSV_HEADER)
+        w.writerow(permutations.localized_csv_header())
 
         state = {"written": 0, "fallback": False}
 

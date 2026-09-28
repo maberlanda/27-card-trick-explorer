@@ -23,7 +23,7 @@ posizione nel percorso: banner e riferimenti incrociati usano l'identificatore
 le parti non rompe nessun collegamento.
 """
 
-from .i18n import tr
+from .i18n import format_integer, tr
 from .glossary import GLOSSARIO_MATEMATICO, GLOSSARIO_NARRATIVO
 from .livelli import LIVELLI
 
@@ -499,18 +499,20 @@ def _s27(ins, sep):
     _h2(ins, "s27")
     ins("body", _t("guide.s27.intro"))
     for scenario_key, n, approx_key, advice_key in [
-        ("guide.s27.scenario.no_filter",   "5 159 780 352",
+        ("guide.s27.scenario.no_filter",   5_159_780_352,
          "guide.s27.approx.5_billion",     "guide.s27.advice.refused"),
-        ("guide.s27.scenario.uniform_j",   "   80 621 568",
+        ("guide.s27.scenario.uniform_j",   80_621_568,
          "guide.s27.approx.80_million",    "guide.s27.advice.refused"),
-        ("guide.s27.scenario.fixed_level", "23 887 872",
+        ("guide.s27.scenario.fixed_level", 23_887_872,
          "guide.s27.approx.24_million",    "guide.s27.advice.refused"),
-        ("guide.s27.scenario.real_game",   "        1 728",
+        ("guide.s27.scenario.real_game",   1_728,
          "guide.s27.approx.1728",          "guide.s27.advice.normal"),
-        ("guide.s27.scenario.single_stage", "1 – 1 728",
+        ("guide.s27.scenario.single_stage", (1, 1_728),
          "guide.s27.approx.variable",      "guide.s27.advice.exploration"),
     ]:
-        ins("bullet", f"  •  {_t(scenario_key):40}  →  {n:>18} ({_t(approx_key)})\n")
+        shown = (f"{format_integer(n[0])} – {format_integer(n[1])}"
+                 if isinstance(n, tuple) else format_integer(n))
+        ins("bullet", f"  •  {_t(scenario_key):40}  →  {shown:>18} ({_t(approx_key)})\n")
         ins("bullet2", f"     {_t(advice_key)}\n")
     ins("body", "\n")
     ins("h3", _t("guide.s27.limits.title") + "\n")

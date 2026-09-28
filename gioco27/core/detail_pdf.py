@@ -474,8 +474,6 @@ def render_detail_pages(c, params_list, start_index=1, progress_cb=None,
         return corpo
 
     def vtext(s, x, y, size=9):
-        s = tr({"ROVESCIAMENTO": "export.document.pdf.reversal",
-                "MOLTIPLICAZIONE": "export.document.pdf.multiplication"}.get(s, s))
         c.saveState()
         c.translate(x, y)
         c.rotate(90)
@@ -563,8 +561,9 @@ def render_detail_pages(c, params_list, start_index=1, progress_cb=None,
         for n, p in enumerate(params):
             imp = _stage_impilamento(p)
             w = draw_deck(d["dispositions"][n + 1], x, yB,
-                          f"Mescolamento {n} =",
-                          f"(impilamento: {imp})" if imp else None,
+                          f"{tr('export.document.pdf.shuffle')} {n} =",
+                          (f"({tr('export.document.pdf.stacking')}: {imp})"
+                           if imp else None),
                           etichetta=_stage_label(p))
             x += w + 20
 
@@ -580,7 +579,8 @@ def render_detail_pages(c, params_list, start_index=1, progress_cb=None,
         # del blocco, così l'etichetta resta allineata anche se il blocco si
         # sposta. Prima erano due scostamenti fissi, e le etichette finivano
         # sotto il testo che dovevano etichettare.
-        vtext("ROVESCIAMENTO", xi, Y_ROVESC - ALTEZZA_ROVESCIAMENTO / 2)
+        vtext(tr("export.document.pdf.reversal"),
+              xi, Y_ROVESC - ALTEZZA_ROVESCIAMENTO / 2)
         m_idx = _r_index(params)
         Tt(f"R[{m_idx:4d}]", xi + 18, Y_ROVESC, size=8, bold=True)
         for n, p in enumerate(params):
@@ -590,7 +590,8 @@ def render_detail_pages(c, params_list, start_index=1, progress_cb=None,
 
         # MOLTIPLICAZIONE — "M[k]xM[j]xM[i]" numerico + mescolamenti in
         # grassetto + impilamenti in piccolo, come l'HTML del C v3.
-        vtext("MOLTIPLICAZIONE", xi, Y_MOLT - ALTEZZA_MOLTIPLICAZIONE / 2)
+        vtext(tr("export.document.pdf.multiplication"),
+              xi, Y_MOLT - ALTEZZA_MOLTIPLICAZIONE / 2)
         xm2 = xi + 18
         ci = _c_indices(params)
         mesc = [_stage_label(p) for p in params]
@@ -732,13 +733,16 @@ def render_detail_pages(c, params_list, start_index=1, progress_cb=None,
         # 1) tabellone dei mescolamenti: i settori ternari così come sono
         #    (minuscoli, come le <td> dell'HTML del programma C)
         righe_mesc = [[d["markers"][a][3][r] for a in range(3)] for r in range(3)]
-        griglia(yg, righe_mesc, ("TABELLONE", "DI T"))
+        griglia(yg, righe_mesc,
+                (tr("export.document.pdf.board"),
+                 tr("export.document.pdf.of_t")))
 
         # 2) tabellone di T⁻¹: stesse righe con ogni sigla sostituita dalla
         #    propria inversa (CDS↔DSC), in MAIUSCOLO, da leggere per righe
         righe_imp = [list(sig) for sig in righe_impilamenti(d["markers"])]
         griglia(yg2, righe_imp,
-                ("TABELLONE", "DI T\u207b\u00b9"), col_titolo=RED,
+                (tr("export.document.pdf.board"),
+                 tr("export.document.pdf.of_t_inverse")), col_titolo=RED,
                 intestazioni=False, etichette_riga=("M_2", "M_1", "M_0"))
 
         # Matrice 27x27 con intestazione stile C e info sotto

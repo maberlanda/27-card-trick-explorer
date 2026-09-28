@@ -100,7 +100,8 @@ def _parser():
     sp.add_argument("file")
     sp.add_argument("--csv", required=True)
     sp.add_argument("--what", required=True,
-                    choices=("successione", "replay", "cronologia", "proprieta", "mapping"))
+                    choices=("successione", "replay", "cronologia", "proprieta", "mapping"),
+                    help=tr("cli.help.what"))
     comune(sp)
     sp = sub.add_parser("compare", help=tr("cli.help.compare"), description=tr("cli.help.compare"))
     sp.add_argument("a")
