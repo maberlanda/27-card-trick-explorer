@@ -121,8 +121,8 @@ def test_classi_fusione_centro_j(vista):
 
 def test_coset_stadi_locale(vista):
     t = _testo(vista._coset_txt)
-    assert "1728" in t and "648" in t and "216" in t and "H ∘ R^0" in t
-    assert t.count("H∘R^") == 3
+    assert "1728" in t and "648" in t and "216" in t and "H∘MSC^0" in t
+    assert t.count("H∘MSC^") == 3
     vista._risultato_cb.set("SCD")
     vista._da_cb.set("SDC")
     vista._a_cb.set("CDS")

@@ -72,7 +72,7 @@ def test_esempio_7_1_diretto_e_somme(vista):
     assert d.count("✔ Livello") == 3 and "CDS" in d and "DCS" in d
     s = _testo(vista._somme_txt)
     assert "Σ = (117, 126, 108)" in s and "Σ = (144, 117, 90)" in s
-    assert "Σ = (117, 36, 198)" in s and "C0 = 108, C1 = 90, C2 = 36" in s
+    assert "Σ = (117, 36, 198)" in s and "C₀ = 108, C₁ = 90, C₂ = 36" in s
 
 
 def test_c1_diagnostica_per_livello(vista):
@@ -131,7 +131,7 @@ def test_due_guide_esempio_10_2_1(vista):
     vista.guide_da_posizioni()
     g = _testo(vista._guide_txt)
     for atteso in ("τ2 = (0, 1, 2) = SCD", "τ1 = (0, 2, 1) = SDC",
-                   "τ0 = (1, 2, 0) = CDS", "riga #10", "DSC SDC SCD", "= 15"):
+                   "τ0 = (1, 2, 0) = CDS", "riga di ritorno #10", "DSC SDC SCD", "= 15"):
         assert atteso in g
     vista._q2_var.set(1)
     vista.guide_da_posizioni()

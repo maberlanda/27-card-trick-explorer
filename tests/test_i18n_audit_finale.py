@@ -537,11 +537,12 @@ def test_nota_distribuzione(language):
         text = frame._tbl_txt.get("1.0", "end")
     finally:
         root.destroy()
-    assert "A2∘MSC∘A1∘MSC∘A0∘MSC" in text and "46656" in text
     if language == "it":
+        assert "A2∘MSC∘A1∘MSC∘A0∘MSC" in text and "46656" in text
         assert "Nota: k-decomp = numero di decomposizioni" in text
     else:
-        assert "Note: k-decomp = number of decompositions" in text
+        assert "A₂∘MSC∘A₁∘MSC∘A₀∘MSC" in text and "46656" in text
+        assert "Note: decompositions = number of factorizations" in text
         assert "Nota" not in text and "raggiungibili" not in text
 
 

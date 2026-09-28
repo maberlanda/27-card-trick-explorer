@@ -1006,7 +1006,7 @@ def test_un_percorso_di_tastiera_arriva_a_un_risultato(applicazione):
     pulsante.event_generate("<space>")
     applicazione.update()
 
-    assert applicazione.count_var.get() == "1,728"
+    assert applicazione.count_var.get() == catalogo.format_integer(1728)
     assert applicazione.status_var.get() == catalogo.tr("status.real_game_preset")
 
 

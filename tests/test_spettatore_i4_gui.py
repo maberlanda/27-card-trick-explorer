@@ -93,7 +93,7 @@ def test_sessione_completa_carta_19_bersaglio_13(vista):
     testo = _info(vista)
     assert "1 + 3·0 + 9·2 = 19" in testo
     assert "DSC" in testo and "C19" in testo
-    assert "13 = " in testo                          # controllo della destinazione
+    assert "posizione bersaglio 13" in testo         # controllo della destinazione
     e = sp.esito(vista._sessione)
     assert e.posizione_iniziale == 19 and e.posizione_finale == 13
     assert "▶[1]" in vista._conteggio_lbl.cget("text")
@@ -256,11 +256,11 @@ def test_in_inglese_davvero(lingua):
     try:
         assert v._risposta_btn[0].cget("text") == "S — Left"
         titoli = {w.cget("text").strip() for w in _labelframe(v)}
-        assert titoli == {"PHYSICAL STATE — the deck",
-                          "STATE OF INFORMATION — what the performer knows"}
+        assert titoli == {"Physical state — the deck",
+                          "Information state — what the performer knows"}
         v.avvia()
         _gioca(v, "C13")
-        assert "RECONSTRUCTION" in _info(v)
+        assert "Reconstruction" in _info(v)
         assert "1 + 3·1 + 9·1 = 13" in _info(v)
     finally:
         radice.destroy()
