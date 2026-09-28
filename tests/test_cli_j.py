@@ -40,6 +40,13 @@ def test_help_nelle_due_lingue():
     assert rc == 0 and "recomputation" in out
 
 
+def test_versione_senza_stdout_per_eseguibile_gui(monkeypatch):
+    from gioco27 import cli
+
+    monkeypatch.setattr(sys, "stdout", None)
+    assert cli.main(["--version"]) == 0
+
+
 def test_validate_e_replay(esperimento):
     rc, out = _json("validate", esperimento)
     assert rc == 0 and out["status"] == "VERIFIED" and out["result"]["diagnosi"] == []

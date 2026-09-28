@@ -305,6 +305,13 @@ def _cmd_selftest(a, out):
 
 def main(argv=None, flusso=None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
+    # Un eseguibile PyInstaller ``console=False`` non ha ``sys.stdout``.
+    # L'azione ``version`` di argparse prova comunque a scriverci e solleva
+    # AttributeError prima del SystemExit: gestiamo qui l'opzione radice.
+    if argv == ["--version"]:
+        if flusso is not None or sys.stdout is not None:
+            print(f"gioco27 {__version__}", file=flusso or sys.stdout)
+        return 0
     flusso = flusso or sys.stdout
     for i, x in enumerate(argv):                    # la lingua prima dell'help
         if x == "--lang" and i + 1 < len(argv) and argv[i + 1] in ("it", "en"):
