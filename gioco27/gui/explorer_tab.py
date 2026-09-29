@@ -111,8 +111,10 @@ class ExplorerTabMixin:
         # K: nove linguette in una riga. Gli spazi attorno alle etichette
         # facevano da margine: con DejaVu Sans (il font di ripiego di Tk 8.6
         # su Linux) la riga superava i 1242 px utili a 1280×720 e compariva la
-        # barra orizzontale (H2). Il margine lo da' ora lo stile, piu' stretto.
-        ttk.Style(enb).configure("Explorer.TNotebook.Tab", padding=(6, 2))
+        # barra orizzontale (H2). Il margine lo da' ora lo stile: 2 px per
+        # lato lasciano le nove linguette leggibili e mantengono la vista
+        # entro i 1280 px anche con le metriche dei runner Linux.
+        ttk.Style(enb).configure("Explorer.TNotebook.Tab", padding=(2, 2))
         enb.configure(style="Explorer.TNotebook")
         for scheda in enb.tabs():
             enb.tab(scheda, text=" ".join(enb.tab(scheda, "text").split()))
