@@ -214,4 +214,43 @@ comportamento scientifico.
 La verifica locale non dichiara RC2 completamente certificata fino
 all'esecuzione della CI remota sul commit corrente.
 
-**CI REMOTA SUL COMMIT CORRENTE: PENDING**
+**Stato al termine della fase locale: CI REMOTA PENDING.**
+
+## 13. Pubblicazione RC2
+
+La CI remota conclusiva sul commit
+`4aa4c90affb6d83e412541256d41ed905fb6a478` è terminata con esito
+**SUCCESS** nel workflow `ci`, esecuzione `36526585493`. Il commit è quindi
+quello certificato per RC2.
+
+La verifica remota ha coperto:
+
+- analisi statica, baseline matematica, selftest e test K su Python
+  3.10, 3.11, 3.12, 3.13 e 3.14;
+- suite completa GUI, un file per processo, su Linux/Xvfb e sulle stesse
+  cinque versioni di Python;
+- sdist, wheel e installazione pulita su Linux con Python 3.12;
+- Windows con Python 3.12, launcher, test non GUI, PyInstaller, selftest e
+  avvio del bundle.
+
+La CI ha richiesto due correzioni circoscritte:
+
+- il test Windows delle dipendenze facoltative ora fissa esplicitamente il
+  protocollo UTF-8 fra processo figlio e processo padre (`abcf361`);
+- l'Explorer rientra nei 1 242 px utili del runner a 1280×720 mediante margini
+  e linguette piu' compatti (`e6589f9`, diagnostica `977a0d2`, correzione
+  misurata `4aa4c90`). I pannelli Matrice sono stati ripristinati nelle loro
+  dimensioni originali.
+
+Non sono state modificate matematica, terminologia consolidata, schemi,
+identificatori tecnici o comportamento scientifico.
+
+Il tag annotato `v4.0.0-rc2` ha oggetto
+`b6b6ed384477d134a9462d7d00a401fc9ab99097` e risolve al commit certificato
+`4aa4c90affb6d83e412541256d41ed905fb6a478`. Il tag storico
+`v4.0.0-rc1` resta invariato e risolve a
+`6e77210f31e467f0915e3cca0af4c9ef39328e44`.
+
+Questa sezione è registrata in un commit documentale successivo alla
+pubblicazione: il tag RC2 non viene spostato e identifica il commit della
+release candidate effettivamente verificato dalla CI.
