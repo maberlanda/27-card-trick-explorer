@@ -28,7 +28,9 @@ class ExplorerTabMixin:
 
     def _build_explorer_tab(self, parent):
         # blocco superiore compatto: lo spazio verticale serve alle sotto-schede
-        outer = ttk.Frame(parent, padding=(10, 2, 10, 6))
+        # I runner Linux lasciano 1242 px utili a 1280×720: 4 px per lato
+        # conservano il margine e tengono la riga dei comandi nella vista.
+        outer = ttk.Frame(parent, padding=(4, 2, 4, 6))
         outer.rowconfigure(2, weight=1)
         outer.columnconfigure(0, weight=1)
 
@@ -403,11 +405,11 @@ class ExplorerTabMixin:
         anche a 1280×720, senza scorrere.
         """
         # CELL 12: griglia 27×27 di 328 px, la dimensione originale. I fattori
-        # stanno accanto alla sua parte alta; la loro griglia piu' compatta e
-        # le etichette a capo tengono affiancati i due pannelli a 1280 px senza
-        # rimpicciolire la matrice principale.
+        # stanno accanto alla sua parte alta; lo spazio verticale non si
+        # recupera rimpicciolendola, ma togliendo il vuoto sotto (vedi
+        # `_exp_adatta_altezza`).
         CELL  = 12
-        SMALL = 17
+        SMALL = 20
 
         outer = ttk.Frame(nb, padding=(8, 2, 8, 4))
         nb.add(outer, text=f"  \U0001f4d0  {tr('explorer.tab.matrix')}  ")
@@ -436,21 +438,21 @@ class ExplorerTabMixin:
             # corpo alto quanto la griglia: il pannello puo' allungarsi, il
             # contenuto no (il box di testo si ferma al fondo della griglia)
             corpo = ttk.Frame(panel)
-            corpo.grid(row=1, column=0, sticky="new", padx=(4, 4), pady=(0, 6))
+            corpo.grid(row=1, column=0, sticky="new", padx=(6, 8), pady=(0, 6))
             corpo.columnconfigure(1, weight=1)
             corpo.rowconfigure(2, weight=1)
 
             cv = tk.Canvas(corpo, width=cv_size, height=cv_size,
                            bg="white", highlightthickness=1,
                            highlightbackground="#AAAAAA")
-            cv.grid(row=0, column=0, rowspan=3, sticky="n", padx=(0, 6))
+            cv.grid(row=0, column=0, rowspan=3, sticky="n", padx=(0, 8))
             self._draw_empty_grid(cv, 27, CELL)
 
             cf_lbl = ttk.Label(corpo,
                                text=tr("explorer.matrix.canonical_empty"),
                                font=("Consolas", 9),
                                foreground="#555",
-                               wraplength=176, justify="left")
+                               wraplength=220, justify="left")
             cf_lbl.grid(row=0, column=1, sticky="nw")
 
             factors_row = ttk.Frame(corpo)
@@ -458,15 +460,14 @@ class ExplorerTabMixin:
             fcvs, flbls = [], []
             for i in range(3):
                 col_fr = ttk.Frame(factors_row)
-                col_fr.pack(side="left", padx=(0, 2))
+                col_fr.pack(side="left", padx=(0, 8))
                 fcv = tk.Canvas(col_fr, width=SMALL*3+2, height=SMALL*3+2,
                                 bg="white", highlightthickness=1,
                                 highlightbackground="#888")
                 fcv.pack()
                 self._draw_empty_grid(fcv, 3, SMALL)
                 flbl = ttk.Label(col_fr, text=f"P{i+1} = —",
-                                 font=("Consolas", 9), foreground="#1F4E79",
-                                 wraplength=54, justify="center")
+                                 font=("Consolas", 9), foreground="#1F4E79")
                 flbl.pack(pady=(2, 0))
                 fcvs.append(fcv)
                 flbls.append(flbl)
