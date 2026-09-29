@@ -1633,7 +1633,10 @@ def test_explorer_la_matrice_27_resta_raggiungibile(applicazione, geometria):
             assert visto, (geometria, str(widget))
             area.tela.yview_moveto(0)
             applicazione.update()
-    assert area.barre_visibili()[1] is False
+    assert area.barre_visibili()[1] is False, (
+        geometria, area.contenuto.winfo_reqwidth(), area.tela.winfo_width(),
+        applicazione._mat_scheda.winfo_reqwidth(),
+        applicazione._explorer_nb.winfo_reqwidth())
 
 
 @pytest.mark.parametrize("geometria", TARGET)
