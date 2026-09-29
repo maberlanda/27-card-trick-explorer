@@ -7,6 +7,7 @@ programma deve importarsi per intero e dire quale libreria manca, invece di
 un errore ambiguo.
 """
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -146,8 +147,9 @@ def test_export_senza_libreria_dice_quale_manca(tmp_path, libreria, chiamata):
         "        print(per_file(e, OUT)[1].replace(chr(10), ' '))\n"
         "else:\n"
         "    print('NESSUN ERRORE')\n")
+    env = dict(os.environ, PYTHONIOENCODING="utf-8")
     r = subprocess.run([sys.executable, "-B", "-c", codice], cwd=ROOT,
-                       capture_output=True, text=True, timeout=300)
+                       capture_output=True, encoding="utf-8", env=env, timeout=300)
     assert r.returncode == 0, r.stderr
     righe = r.stdout.strip().splitlines()
     assert len(righe) == 4, r.stdout
