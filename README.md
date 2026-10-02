@@ -1,4 +1,4 @@
-# Gioco delle 27 carte — 4.0.0 (release candidate)
+# Gioco delle 27 carte — 4.0.0
 
 Programma didattico e di ricerca sul trucco delle 27 carte: simula il gioco
 fisico carta per carta, ne descrive la matematica (base 3, prodotti di
@@ -6,7 +6,7 @@ Kronecker, il mescolamento MSC) e permette di verificarla, esplorarla e
 riprodurla. Interfaccia grafica in italiano e inglese, con una **Guida
 integrata** organizzata come percorso (scheda «Inizia qui»).
 
-> **Stato:** release candidate 4.0.0 (RC2). Gli audit finali A1–A5
+> **Stato:** release stabile 4.0.0. Gli audit finali A1–A5
 > (matematico, terminologico, linguistico, verifica incrociata) sono conclusi;
 > dopo la RC2 la Fase P ha riallineato nomenclatura e riferimenti al libro.
 > Vedi `docs/release/NOTE_VERSIONE_4.0.0.md`.
@@ -163,7 +163,7 @@ Configurazione, cache e log sono in `~/.gioco27/`
 
 ## Limiti noti
 
-* La 4.0.0 è ancora una **release candidate** (RC2), con gli audit A1–A5
+* La 4.0.0 è la **release stabile**, con gli audit A1–A5
   conclusi e il riallineamento al libro della Fase P applicato.
 * Alcuni identificatori interni conservano il nome storico G per il gruppo di
   216 (l'alias `appartiene_a_G`) o il nome tecnico `classe_estesa` per Γ

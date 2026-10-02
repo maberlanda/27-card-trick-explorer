@@ -1,14 +1,15 @@
-# Gioco delle 27 carte — note della versione 4.0.0 (release candidate)
+# Gioco delle 27 carte — note della versione 4.0.0
 
-> **4.0.0 RC** — release candidate (RC2 pubblicata). Gli audit finali
-> A1–A5 (matematico, terminologico, linguistico italiano e inglese, verifica
-> incrociata) sono conclusi, con le correzioni verificate in `docs/audits/`.
-> Dopo la RC2 la Fase P ha riallineato nomenclatura e riferimenti al libro
-> (sezione «Fase P»). Questa non è ancora la 4.0 definitiva.
+> **4.0.0 — release stabile.** Gli audit finali A1–A5 (matematico,
+> terminologico, linguistico italiano e inglese, verifica incrociata) sono
+> conclusi, con le correzioni verificate in `docs/audits/`. Dopo la RC2 la
+> Fase P ha riallineato nomenclatura e riferimenti al libro (sezione
+> «Fase P»); anche la Fase P è conclusa.
 >
 > Punto di partenza: **3.1.3** (`NOTE_VERSIONE_3.1.3.md`). Il dettaglio di ogni
 > passo è nei documenti di chiusura in `docs/history/`; il resoconto tecnico
-> della release candidate è `K_RELEASE_CANDIDATE_CLOSED.md`.
+> della fase di preparazione della release candidate è
+> `K_RELEASE_CANDIDATE_CLOSED.md`.
 
 ## Sintesi
 
