@@ -6,19 +6,29 @@ Kronecker, il mescolamento MSC) e permette di verificarla, esplorarla e
 riprodurla. Interfaccia grafica in italiano e inglese, con una **Guida
 integrata** organizzata come percorso (scheda «Inizia qui»).
 
-> **Stato:** release candidate 4.0.0, tecnicamente pronta per l'audit finale
-> matematico, terminologico e linguistico, che non è ancora stato eseguito.
+> **Stato:** release candidate 4.0.0 (RC2). Gli audit finali A1–A5
+> (matematico, terminologico, linguistico, verifica incrociata) sono conclusi;
+> dopo la RC2 la Fase P ha riallineato nomenclatura e riferimenti al libro.
 > Vedi `docs/release/NOTE_VERSIONE_4.0.0.md`.
 
 ## Nomenclatura
 
 * **H** — le 216 trasformazioni separabili (la Tavola 216; il libro la chiama
   Gaia, H ≅ S₃³).
-* **Γ** — il gruppo esteso di 648 elementi, Γ = H ⊔ H∘MSC ⊔ H∘MSC².
+* **Γ** — il gruppo esteso di 648 elementi, Γ = ⟨H, MSC⟩ = H ⊔ H∘MSC ⊔ H∘MSC²:
+  le trasformazioni complete e intermedie.
 * **S₂₇** — il gruppo ambiente di tutte le permutazioni delle 27 posizioni.
 * **1 728** sono le *Procedure* di gioco (6³ mescolamenti × 2³ rovesciamenti),
   non 1 728 trasformazioni distinte: più procedure realizzano la stessa riga
   della Tavola (DP11, § sotto).
+* Nel codice: `kronecker.appartiene_a_H` (216) e `kronecker.appartiene_a_Gamma`
+  (648); `appartiene_a_G` resta come alias legacy di `appartiene_a_H`. Fino
+  alla RC2 `appartiene_a_H` indicava Γ.
+* Fasi e stadi: l'interfaccia numera le fasi 1–3, il modello matematico gli
+  stadi h = 0, 1, 2 (fase k ↔ h = k − 1). Le posizioni sono 0–26; solo la
+  verifica del protocollo numera le carte 1–27.
+* I numeri dei risultati del libro citati dal programma stanno in un solo
+  punto, `gioco27/riferimenti.py`.
 
 ## Funzionalità principali
 
@@ -103,6 +113,14 @@ sdist, wheel o eseguibile, e il programma non ne ha bisogno per funzionare. Se
 sono presenti nella cartella del programma, un esperimento può registrarne
 l'impronta SHA-256 come provenienza.
 
+Il programma distingue due fonti. «App. D» è l'articolo come incorporato nel
+libro (numerazione corrente, identica alla versione attuale dell'articolo).
+«Articolo», dove è citato con numeri diversi (per esempio l'osservazione sulla
+sola compatibilità delle somme), indica la versione originale del 10 settembre
+2026 (sorgente `8a2e41a` del repository dell'articolo; non pubblicata
+formalmente, nessun DOI). Numeri ed equivalenze stanno in
+`gioco27/riferimenti.py`.
+
 ## Decisioni di prodotto della 4.0
 
 * **DP11** — La Tavola è di **216 trasformazioni**. Le 1 728 Procedure
@@ -145,13 +163,21 @@ Configurazione, cache e log sono in `~/.gioco27/`
 
 ## Limiti noti
 
-* La 4.0.0 è una **release candidate**: l'audit finale matematico,
-  terminologico e linguistico non è ancora stato eseguito.
-* Alcuni identificatori interni del codice conservano il nome storico G per il
-  gruppo di 216 (per esempio `appartiene_a_G`); i testi per l'utente e gli
-  export usano H e Γ.
+* La 4.0.0 è ancora una **release candidate** (RC2), con gli audit A1–A5
+  conclusi e il riallineamento al libro della Fase P applicato.
+* Alcuni identificatori interni conservano il nome storico G per il gruppo di
+  216 (l'alias `appartiene_a_G`) o il nome tecnico `classe_estesa` per Γ
+  (anche come chiave JSON degli esperimenti, per compatibilità); i testi per
+  l'utente e gli export usano H e Γ.
 * L'eseguibile Windows è costruito dalla CI; la build locale verificata è
   quella Linux.
+
+## Sviluppi futuri
+
+Le visualizzazioni strutturali a grafo (orbite, cicli, grafo di Cayley di H,
+classi laterali di H in Γ, fibre, transizioni fra trasformazioni complete e
+intermedie) sono pianificate per una release successiva alla 4.0.0: vedi
+`docs/release/ROADMAP_4.x.md`. Non fanno parte della 4.0.0.
 
 ## Documentazione
 

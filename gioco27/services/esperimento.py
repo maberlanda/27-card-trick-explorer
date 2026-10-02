@@ -248,6 +248,9 @@ def _calcola_riconoscimento(inp, seed):
     p = rc.permutazione(inp["T"])
     sep = rc.separabile(p)
     ce = rc.classe_estesa(p)
+    # "classe_estesa" e' la chiave tecnica dello schema 1 (file gia' salvati e
+    # impronte): indica l'esponente k con T ∈ H∘MSC^k, cioe' l'appartenenza a Γ,
+    # oppure None fuori da Γ. Nei testi per l'utente si chiama Γ.
     return {"separabile": sep.separabile, "numero_tavola": sep.numero_tavola,
             "classe_estesa": ce.k if ce.appartiene else None,
             "criterio_somme": rc.criterio_somme(p).vero}

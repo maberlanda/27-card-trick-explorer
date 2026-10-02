@@ -23,7 +23,18 @@ _BASE = {
 _scale = 1.0
 # Riferimenti persistenti ai Font: senza, l'oggetto Font verrebbe raccolto dal
 # garbage collector e il suo __del__ cancellerebbe il font con nome in Tcl.
+# Un oggetto Font appartiene all'interprete Tcl della root in cui e' nato: se
+# quella root viene distrutta e nello stesso processo nasce una nuova App, il
+# vecchio oggetto non e' piu' utilizzabile («application has been destroyed»)
+# e va ricreato nell'interprete corrente (vedi `_interprete` e `apply_scale`).
 _fonts: dict = {}
+
+
+def _interprete(root):
+    """L'interprete Tcl a cui devono appartenere i font (None se non c'e' root)."""
+    if root is None:
+        root = getattr(tk, "_default_root", None)
+    return getattr(root, "tk", None)
 
 
 def apply_scale(scale, root=None):
@@ -33,11 +44,20 @@ def apply_scale(scale, root=None):
         _scale = max(0.7, min(3.0, float(scale)))
     except (TypeError, ValueError):
         _scale = 1.0
+    interprete = _interprete(root)
     for name, (fam, size, weight, slant, under) in _BASE.items():
         f = _fonts.get(name)
+        if (f is not None and interprete is not None
+                and getattr(f, "_tk", None) is not interprete):
+            # Font di un altro interprete (di solito una root gia' distrutta):
+            # non si riconfigura e non si cancella, si ricrea in quello attuale.
+            # delete_font = False: se quella root fosse ancora viva, i suoi
+            # widget conservano il proprio font con nome.
+            f.delete_font = False
+            f = None
         if f is None:
             try:
-                f = tkfont.nametofont(name)
+                f = tkfont.Font(root=root, name=name, exists=True)
             except tk.TclError:
                 f = tkfont.Font(name=name, root=root)
             _fonts[name] = f   # mantieni vivo il riferimento

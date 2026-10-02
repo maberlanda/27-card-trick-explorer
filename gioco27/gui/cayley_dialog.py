@@ -1,5 +1,5 @@
 """
-CayleyDialog: calcolatore interattivo di prodotti in G = GEN3^3
+CayleyDialog: calcolatore interattivo di prodotti in H = GEN3^3 (216 elementi)
 e export della tabella di Cayley completa (216x216) in CSV.
 """
 import pathlib

@@ -1,10 +1,13 @@
 """
-Analisi algebrica del gruppo G = GEN3 x GEN3 x GEN3  (|G| = 216).
+Analisi algebrica del gruppo H = GEN3 x GEN3 x GEN3  (|H| = 216).
+
+Nomenclatura del libro: H ≅ S3^3 (nel codice storico e nel capitolo 6 del
+libro lo stesso gruppo si chiama G); il gruppo esteso di 648 elementi e' Γ.
 
 Funzioni principali:
   get_group_data()        -> GroupData (singleton lazy)
   GroupData.classes       -> lista di classi di coniugio
-  GroupData.center        -> indici degli elementi del centro Z(G)
+  GroupData.center        -> indici degli elementi del centro Z(H)
   GroupData.cayley        -> tabella di Cayley (216x216 np.int32)
   GroupData.orders        -> ordine di ogni elemento (array 216)
   export_cayley_csv(path) -> scrive la tabella su CSV
@@ -25,7 +28,7 @@ from .parallel import atomic_write
 
 @dataclass
 class GroupData:
-    """Dati precalcolati del gruppo G = GEN3^3."""
+    """Dati precalcolati del gruppo H = GEN3^3 (216 elementi)."""
 
     kron_arr:  np.ndarray          # (216, 27) int32
     kron_names: List[tuple]        # [(f3,f2,f1), ...]  lunghezza 216
@@ -170,7 +173,7 @@ class GroupData:
         names = ["{} x {} x {}".format(*t) for t in self.kron_names]
         cay   = self.cayley
         n     = len(names)
-        # G2: pubblicazione atomica. La tavola di Cayley e' 648x648: la
+        # G2: pubblicazione atomica. La tavola di Cayley di H e' 216x216: la
         # scrittura dura abbastanza perche' un'interruzione a meta' sia
         # plausibile, e lasciava un CSV troncato al posto del precedente.
         with atomic_write(path, "w", newline="", encoding="utf-8") as f:

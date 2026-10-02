@@ -295,14 +295,35 @@ def test_m05_i_file_recenti_restano(protocollo, tmp_path):
     assert len(list(tmp_path.rglob("*.html"))) == 2
 
 
+def _subito_dopo(cartella):
+    """L'istante dell'ultima scrittura nella cartella, come «adesso».
+
+    Con `ore=0` un file e' candidato se la sua mtime non supera l'istante di
+    riferimento. Leggere l'orologio di sistema subito dopo la scrittura non
+    basta: su Windows (Python < 3.13) `time.time()` e la mtime del file possono
+    cadere nello stesso tick ed essere arrotondati in modo diverso, e il file
+    appena scritto risulta «nel futuro» di una frazione di millisecondo. Come
+    riferimento si usa quindi la mtime piu' recente: deterministico ovunque.
+    """
+    return max(p.stat().st_mtime for p in cartella.iterdir())
+
+
 def test_m05_il_file_appena_creato_non_e_mai_un_candidato(protocollo,
                                                           tmp_path):
-    """La pulizia avviene prima della scrittura, non dopo."""
+    """La pulizia avviene prima della scrittura, non dopo.
+
+    Tre aperture lasciano tre file: ogni apertura pulisce PRIMA di scrivere,
+    quindi il file appena creato non e' mai un candidato e nessuna apertura
+    cancella quello che il browser sta per leggere. Poi, a parte, `ore=0`
+    (eta' >= 0, cioe' tutto cio' che e' gia' stato scritto) li riconosce tutti
+    come protocolli e li rimuove.
+    """
     modulo, _ = protocollo
     for _ in range(3):
         _apri(protocollo)
     assert len(list(tmp_path.rglob("*.html"))) == 3
-    assert modulo.pulisci_protocolli_vecchi(ore=0) == 3
+    adesso = _subito_dopo(modulo.cartella_protocolli())
+    assert modulo.pulisci_protocolli_vecchi(ore=0, adesso=adesso) == 3
     assert list(tmp_path.rglob("*.html")) == []
 
 
@@ -318,7 +339,8 @@ def test_m05_un_file_estraneo_non_viene_toccato(protocollo, tmp_path):
     for p in (estraneo, anche_questo):
         _invecchia(p, 72)
 
-    assert modulo.pulisci_protocolli_vecchi(ore=0) == 1
+    adesso = _subito_dopo(cartella)
+    assert modulo.pulisci_protocolli_vecchi(ore=0, adesso=adesso) == 1
     assert estraneo.exists() and anche_questo.exists()
     assert not modulo.e_un_protocollo(estraneo)
     assert not modulo.e_un_protocollo(anche_questo)

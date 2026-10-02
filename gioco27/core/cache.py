@@ -70,7 +70,7 @@ def load_decompositions(perm) -> "Optional[list]":
     oppure **incompleti**.
 
     La cache contiene per contratto l'insieme COMPLETO delle decomposizioni di
-    `perm`: 46.656 per un bersaglio in G, nessuna per un bersaglio fuori da G.
+    `perm`: 46.656 per un bersaglio in H, nessuna per un bersaglio fuori da H.
     Un elenco piu' corto e' una cache danneggiata, non una risposta: viene
     invalidata (il file e' rimosso) e il chiamante ricalcola. Vedi B08.
     """

@@ -48,7 +48,7 @@ def _class_type(triple):
 
 
 class ConjugacyDialog(tk.Toplevel):
-    """Dialog classi di coniugio e centro di G = GEN3^3."""
+    """Dialog classi di coniugio e centro di H = GEN3^3."""
 
     def __init__(self, parent):
         super().__init__(parent)
@@ -205,7 +205,7 @@ class ConjugacyDialog(tk.Toplevel):
         ord_counter = Counter(int(ord_arr[i]) for i in range(len(gd.kron_arr)))
         for o in sorted(ord_counter):
             stats += tr("conjugacy.stats.order", order=o, count=ord_counter[o])
-        # Equazione delle classi: |G| = somma delle dimensioni
+        # Equazione delle classi: |H| = somma delle dimensioni
         eq_parts = [f"{sz}·{cnt}" for sz, cnt in sorted(size_counts.items())]
         stats += tr("conjugacy.stats.equation", terms=" + ".join(eq_parts),
                     products=" + ".join(

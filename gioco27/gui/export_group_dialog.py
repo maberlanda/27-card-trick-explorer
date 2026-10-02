@@ -1,5 +1,5 @@
 """
-Export LaTeX / SVG per il gruppo G = GEN3^3.
+Export LaTeX / SVG per il gruppo H = GEN3^3 (216 elementi).
 
 Fornisce due dialog di esportazione, sullo stesso modello dell'ExportDialog
 dell'Explorer (anteprima a schede + «Esporta tutto in una cartella…»):

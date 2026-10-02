@@ -22,7 +22,8 @@ from gioco27.core.dominio import (PermutazioneNonValida, valida_indice,
                                   valida_permutazione)
 from gioco27.core.gioco_reale import (T_da_tabellone, mescolamenti_da_numero,
                                       parita, periodo, punti_fissi, tipo_ciclo)
-from gioco27.core.kronecker import (appartiene_a_G, appartiene_a_H,
+from gioco27.core.kronecker import (appartiene_a_G, appartiene_a_Gamma,
+                                    appartiene_a_H,
                                     find_all_kron_decompositions,
                                     try_kron_decompose)
 
@@ -170,7 +171,7 @@ def test_decomposizioni_valide_invariate():
     assert try_kron_decompose(IDENTITA) is not None
 
 
-# appartenenza: G, H \ G, fuori da H
+# appartenenza (nomenclatura del libro): H (216), Γ \ H (432), fuori da Γ
 def _comp(a, b):
     return tuple(a[b[i]] for i in range(len(b)))
 
@@ -180,32 +181,37 @@ def famiglie():
     from gioco27.core.constants import _MSC_PERM
     from gioco27.core.group_theory import get_group_data
     msc = tuple(_MSC_PERM)
-    G = [g.tolist() for g in get_group_data().kron_arr]
+    H = [g.tolist() for g in get_group_data().kron_arr]
     potenze = [tuple(range(27))]
     for _ in range(2):
         potenze.append(_comp(msc, potenze[-1]))
-    H = [_comp(g, k) for k in potenze for g in G]
-    return G, H
-
-
-def test_appartenenza_a_G(famiglie):
-    G, H = famiglie
-    assert len(G) == 216
-    assert all(appartiene_a_G(g) for g in G)
-    assert not any(appartiene_a_G(p) for p in H[216:])      # H \ G
+    gamma = [_comp(g, k) for k in potenze for g in H]
+    return H, gamma
 
 
 def test_appartenenza_a_H(famiglie):
-    G, H = famiglie
-    assert len(set(H)) == 648
-    assert all(appartiene_a_H(p) for p in H)
+    H, gamma = famiglie
+    assert len(H) == 216
+    assert all(appartiene_a_H(g) for g in H)
+    assert not any(appartiene_a_H(p) for p in gamma[216:])      # Γ \ H
 
 
-def test_fuori_da_H(famiglie):
-    """Una trasposizione di due carte non e' in H: G e H sono sottoinsiemi propri di S27."""
-    _G, H = famiglie
+def test_alias_legacy_appartiene_a_G_e_H():
+    """Fase P: `appartiene_a_G` resta come alias legacy del gruppo di 216."""
+    assert appartiene_a_G is appartiene_a_H
+
+
+def test_appartenenza_a_Gamma(famiglie):
+    H, gamma = famiglie
+    assert len(set(gamma)) == 648
+    assert all(appartiene_a_Gamma(p) for p in gamma)
+
+
+def test_fuori_da_Gamma(famiglie):
+    """Una trasposizione di due carte non e' in Γ: H e Γ sono sottoinsiemi propri di S27."""
+    _H, gamma = famiglie
     fuori = list(range(27))
     fuori[0], fuori[1] = fuori[1], fuori[0]
-    assert tuple(fuori) not in set(H)
-    assert not appartiene_a_G(fuori)
+    assert tuple(fuori) not in set(gamma)
     assert not appartiene_a_H(fuori)
+    assert not appartiene_a_Gamma(fuori)

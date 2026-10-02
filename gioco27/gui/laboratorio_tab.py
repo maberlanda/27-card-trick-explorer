@@ -6,8 +6,9 @@ Tutta la matematica sta in `services.laboratorio`; qui solo lettura dei campi
 e testo localizzato. Esiti con ✔/✘ e parole (non solo colore). Solo widget
 testuali: nessun Canvas, i grafi sono resi come elenchi di vertici e archi.
 
-Notazione DP2: «H — 216», «Γ — 648», «S27». Una sola nota tecnica ricorda i
-nomi legacy (G = 216 nel core, H = 648 altrove).
+Notazione DP2 (quella del libro): «H — 216», «Γ — 648», «S27». Una sola nota
+tecnica ricorda il nome storico G del gruppo di 216, conservato da alcuni
+identificatori interni (per esempio l'alias `kronecker.appartiene_a_G`).
 """
 
 import tkinter as tk

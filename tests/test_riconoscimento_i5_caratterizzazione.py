@@ -3,8 +3,10 @@
 Solo oracoli indipendenti dal service I5: la Def. 4.1 riscritta qui, aritmetica
 esatta e i numeri delle fonti (letti in LIBRO_MAIN.pdf e Articolo.pdf):
 
-* Articolo / App. D, Def. 4.1 e Teor. 4.2; Teor. 5.1 / 6.1 (somme di fibra);
-  App. D Teor. 6.4 (criterio per una permutazione arbitraria); Es. 6.1 / 7.1;
+* Articolo / App. D, Def. 4.1 e Teor. 4.2; App. D Teor. 6.1 (somme di fibra);
+  App. D Teor. 6.4 (criterio per una permutazione arbitraria); App. D Es. 7.1;
+  i numeri dell'articolo originale (settembre 2026) per gli stessi enunciati
+  stanno in `gioco27.riferimenti.RIFERIMENTI_ARTICOLO_ORIGINALE`;
 * § 1.10 Prop. 1.7 (36, 117, 198); § 2.4.8 (lettura del vettore finale);
 * § 7.1.1 A1 (finale = P · iniziale; #100); § 7.1.8 A8 (T_B T_A⁻¹);
 * § 7.1.13 A13 e I3 (traslazioni); § 10.2.1 / 10.2.2 (due carte guida).
@@ -109,7 +111,7 @@ def test_indietro_da_gli_inversi_in_152_righe_diversi():
     assert diverse == 152 == 216 - 4 ** 3
 
 
-# ════════════════════════ classe estesa (core: K ∘ MSC^k) ═══════════════════
+# ═════════════ Γ, nome tecnico classe estesa (core: K ∘ MSC^k) ═══════════════════
 
 def _classe_estesa_dal_core():
     elementi = {}

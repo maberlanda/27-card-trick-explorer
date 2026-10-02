@@ -37,13 +37,56 @@ def test_versione_unica_4_0_0():
     assert "version" not in progetto and "version" in progetto["dynamic"]
     attr = _pyproject()["tool"]["setuptools"]["dynamic"]["version"]["attr"]
     assert attr == "gioco27.__init__.__version__"
-    # nessun'altra costante di versione scritta a mano nel package
+    # nessun'altra costante di versione scritta a mano nel package. Il controllo
+    # e' sul codice (AST), non sul testo: commenti e docstring possono citare
+    # la 4.0.0 come fatto storico (per esempio le note di migrazione della
+    # Fase P) senza essere una seconda definizione della versione.
     for p in (ROOT / "gioco27").rglob("*.py"):
-        testo = p.read_text(encoding="utf-8")
         if p.name == "__init__.py" and p.parent.name == "gioco27":
             continue
-        assert not re.search(r'__version__\s*=\s*["\']', testo), p
-        assert VERSIONE not in testo, p        # la versione corrente non e' scritta a mano
+        assert _letterali_di_versione(p.read_text(encoding="utf-8")) == [], p
+
+
+def _letterali_di_versione(sorgente):
+    """Assegnazioni a `__version__` e letterali di codice uguali alla versione.
+
+    Esclusi solo i commenti (assenti dall'AST) e le docstring di modulo,
+    classe e funzione; restano vietati costanti, valori di dizionari,
+    argomenti e f-string che contengano la versione.
+    """
+    albero = ast.parse(sorgente)
+    docstring = set()
+    for nodo in ast.walk(albero):
+        if isinstance(nodo, (ast.Module, ast.ClassDef, ast.FunctionDef,
+                             ast.AsyncFunctionDef)) and nodo.body:
+            primo = nodo.body[0]
+            if (isinstance(primo, ast.Expr) and isinstance(primo.value, ast.Constant)
+                    and isinstance(primo.value.value, str)):
+                docstring.add(id(primo.value))
+    trovati = []
+    for nodo in ast.walk(albero):
+        if isinstance(nodo, (ast.Assign, ast.AnnAssign, ast.AugAssign)):
+            bersagli = nodo.targets if isinstance(nodo, ast.Assign) else [nodo.target]
+            for b in bersagli:
+                for n in ast.walk(b):
+                    if (isinstance(n, ast.Name) and n.id == "__version__") or (
+                            isinstance(n, ast.Attribute) and n.attr == "__version__"):
+                        trovati.append(("__version__", nodo.lineno))
+        if (isinstance(nodo, ast.Constant) and isinstance(nodo.value, str)
+                and id(nodo) not in docstring and VERSIONE in nodo.value):
+            trovati.append((nodo.value, nodo.lineno))
+    return trovati
+
+
+def test_il_controllo_di_versione_distingue_codice_e_commenti():
+    """Il controllo vieta le definizioni, non le citazioni."""
+    assert _letterali_di_versione('# Fino alla 4.0.0 RC2 ...\nx = 1\n') == []
+    assert _letterali_di_versione('"""Nota: dalla 4.0.0."""\n') == []
+    assert _letterali_di_versione('def f():\n    """4.0.0"""\n') == []
+    assert _letterali_di_versione('__version__ = "x"\n')
+    assert _letterali_di_versione('VERSIONE = "4.0.0"\n')
+    assert _letterali_di_versione('d = {"versione": "4.0.0"}\n')
+    assert _letterali_di_versione('print(f"gioco27 4.0.0")\n')
 
 
 def test_superfici_della_versione():

@@ -26,6 +26,7 @@ Nessun test usa screenshot pixel-perfect: si misurano proprietà —
 `winfo_ismapped`, geometria, `scrollregion`, focus, ordine di Tab — e i test
 si saltano da soli quando manca un display.
 """
+import contextlib
 import pathlib
 import tkinter as tk
 from tkinter import ttk
@@ -90,6 +91,30 @@ def _dimensiona(app, geometria):
     app.update()
     app.update_idletasks()
     return app.winfo_width(), app.winfo_height()
+
+
+def _fuoco_di_tastiera(applicazione, widget):
+    """Precondizione dei test che premono un tasto con `event_generate`.
+
+    Tk consegna i tasti, anche quelli sintetici, alla finestra che ha il
+    focus d'ingresso del sistema (`TkFocusKeyEvent`; la pagina `event` di Tk:
+    «key events require that the window has focus»). Se l'applicazione non lo
+    ha, il tasto viene scartato e nessun binding parte. Su un desktop Windows
+    la finestra dei test non e' in primo piano — lo e' il terminale da cui si
+    lancia pytest — e `focus_get()` risponde None; sotto Xvfb non c'e' un
+    gestore di finestre che lo assegni. Chi usa davvero la finestra il focus
+    ce l'ha: qui lo si assegna come farebbe il sistema e si VERIFICA di
+    averlo, cosi' un fallimento successivo riguarda il binding e non
+    l'ambiente. Se il sistema rifiuta il primo piano, la precondizione fallisce
+    con un messaggio esplicito: niente skip, niente falso verde.
+    """
+    applicazione.focus_force()
+    widget.focus_set()
+    applicazione.update()
+    fuoco = applicazione.focus_get()
+    assert fuoco is widget, (
+        "precondizione: la finestra non ha il focus di tastiera del sistema "
+        f"(focus_get() = {fuoco!r}); Tk scarterebbe i tasti sintetici")
 
 
 def _discendenti(widget, classi=INTERATTIVI, dentro=None):
@@ -268,9 +293,11 @@ def test_l_area_scorrevole_si_usa_da_tastiera(applicazione):
     applicazione.update()
     area = applicazione._aree_scorrevoli["explorer"]
     assert area.tela.cget("takefocus")
+    # c'e' davvero qualcosa da scorrere in verticale: altrimenti yview()
+    # resterebbe a 0 anche con un PagGiu' consegnato e gestito
+    assert area.barre_visibili()[0], "a 1280x720 l'Explorer non scorre"
 
-    area.tela.focus_set()
-    applicazione.update()
+    _fuoco_di_tastiera(applicazione, area.tela)
     partenza = area.tela.yview()[0]
     area.tela.event_generate("<Next>")
     applicazione.update()
@@ -342,8 +369,7 @@ def test_il_testo_lungo_del_banner_si_apre_da_tastiera(applicazione):
     banner = _banner_di(applicazione._schede["analisi"])[0]
     assert banner._toggle.winfo_ismapped()
 
-    banner._toggle.focus_set()
-    applicazione.update()
+    _fuoco_di_tastiera(applicazione, banner._toggle)
     banner._toggle.event_generate("<Return>")
     applicazione.update()
     assert banner._open is True, "Invio non ha aperto il testo lungo"
@@ -359,8 +385,7 @@ def test_il_collegamento_alla_guida_si_usa_da_tastiera(applicazione):
     applicazione.update()
     banner = _banner_di(applicazione._schede["analisi"])[0]
     assert hasattr(banner, "_link_guida")
-    banner._link_guida.focus_set()
-    applicazione.update()
+    _fuoco_di_tastiera(applicazione, banner._link_guida)
     banner._link_guida.event_generate("<space>")
     applicazione.update()
     assert applicazione._nb.select() == str(applicazione._schede["guida"])
@@ -437,7 +462,16 @@ DIALOGHI = (
 @pytest.mark.parametrize("modulo,classe", DIALOGHI)
 def test_i_dialoghi_scelgono_il_proprio_focus_iniziale(applicazione, modulo,
                                                        classe):
-    """«Qualcosa ha il focus» non basta: deve essere una scelta del dialogo."""
+    """«Qualcosa ha il focus» non basta: deve essere una scelta del dialogo.
+
+    Il dialogo assegna il focus al proprio controllo dopo la mappatura
+    (`prepara_dialogo`). Tk lo registra come focus della finestra
+    (`focus_lastfor`) e glielo consegna quando il sistema attiva il dialogo.
+    Se il processo dei test non e' in primo piano il sistema non attiva nulla
+    e `focus_get()` risponde None: si misura quindi la scelta del dialogo,
+    come nel test del dialogo delle impostazioni, e si verifica che nessun
+    altro widget abbia preso il focus al suo posto.
+    """
     import importlib
 
     dlg = getattr(importlib.import_module(f"gioco27.gui.{modulo}"), classe)(
@@ -446,7 +480,8 @@ def test_i_dialoghi_scelgono_il_proprio_focus_iniziale(applicazione, modulo,
         applicazione.update()
         atteso = getattr(dlg, "_focus_iniziale", None)
         assert atteso is not None, "il dialogo non dichiara un focus iniziale"
-        assert dlg.focus_get() is atteso
+        assert dlg.focus_lastfor() is atteso, repr(dlg.focus_lastfor())
+        assert dlg.focus_get() in (None, atteso), repr(dlg.focus_get())
     finally:
         dlg.destroy()
 
@@ -1056,12 +1091,50 @@ def test_ogni_azione_essenziale_puo_prendere_il_fuoco(applicazione):
     assert senza_fuoco == [], senza_fuoco
 
 
+@contextlib.contextmanager
+def _apertura_menu_osservabile(applicazione):
+    """Rende osservabile l'apertura di una tendina su ogni piattaforma.
+
+    Su X11 la tendina e' una finestra di Tk: aperta, `winfo_ismapped()` e'
+    vero, e `tk::MenuUnpost` la richiude. Su Windows (e su macOS) la tendina
+    e' un menu NATIVO: Tk la mostra con `TrackPopupMenu`, che non ritorna
+    finche' l'utente non sceglie o preme Esc, la finestra del menu di Tk non
+    viene mai mappata (`winfo_ismapped()` resta falso anche a tendina
+    aperta) e `menu unpost` non ha effetto («does not work on Windows and the
+    Macintosh»). Li', per non bloccare la suite su una tendina vera, si
+    sostituisce soltanto l'ultimo passo — `::tk::PostMenubuttonMenu`, che
+    disegna — con un registratore: tasto, binding del programma e decisione
+    di Tk (`tk::MbPost`, stato, menu associato) restano quelli reali.
+
+    Restituisce una funzione `aperto(menubutton, menu) -> bool`.
+    """
+    tcl = applicazione.tk
+    if str(tcl.call("tk", "windowingsystem")) == "x11":
+        yield lambda _mb, menu: bool(menu.winfo_ismapped())
+        return
+    registro = []
+    comando = applicazione.register(lambda pulsante, menu: registro.append(
+        (str(pulsante), str(menu))))
+    tcl.call("auto_load", "::tk::PostMenubuttonMenu")
+    tcl.call("rename", "::tk::PostMenubuttonMenu", "::tk::_PostMenubuttonMenu_vero")
+    tcl.eval("proc ::tk::PostMenubuttonMenu {button menu} "
+             f"{{ {comando} $button $menu }}")
+    try:
+        yield lambda mb, menu: (str(mb), str(menu)) in registro
+    finally:
+        tcl.eval("rename ::tk::PostMenubuttonMenu {}")
+        tcl.call("rename", "::tk::_PostMenubuttonMenu_vero",
+                 "::tk::PostMenubuttonMenu")
+        applicazione.deletecommand(comando)
+
+
 def test_i_menu_di_esportazione_si_aprono_da_tastiera(applicazione):
     """Non basta raggiungerli: da fermi non servono a niente.
 
-    Il test manda Invio sul pulsante e guarda se la tendina e' sullo schermo;
-    poi la chiude, perche' un menu aperto tiene un grab e i test che seguono
-    non riceverebbero piu' un tasto.
+    Il test manda Invio sul pulsante e guarda se la tendina si apre; poi la
+    chiude, perche' un menu aperto tiene un grab e i test che seguono non
+    riceverebbero piu' un tasto. Come si osserva l'apertura dipende dalla
+    piattaforma: vedi `_apertura_menu_osservabile`.
     """
     _dimensiona(applicazione, "1366x768")
     atteso = catalogo.tr("button.generate")
@@ -1073,19 +1146,19 @@ def test_i_menu_di_esportazione_si_aprono_da_tastiera(applicazione):
     menu = applicazione.nametowidget(str(menubutton.cget("menu")))
     assert not menu.winfo_ismapped()
 
-    applicazione.focus_force()
-    menubutton.focus_set()
-    applicazione.update()
-    try:
-        menubutton.event_generate("<Return>")
-        applicazione.update()
-        assert menu.winfo_ismapped(), "Invio non ha aperto la tendina"
-    finally:
+    with _apertura_menu_osservabile(applicazione) as aperto:
+        assert not aperto(menubutton, menu)
+        _fuoco_di_tastiera(applicazione, menubutton)
         try:
-            applicazione.tk.call("tk::MenuUnpost", "")
-        except tk.TclError:
-            pass
-        applicazione.update()
+            menubutton.event_generate("<Return>")
+            applicazione.update()
+            assert aperto(menubutton, menu), "Invio non ha aperto la tendina"
+        finally:
+            try:
+                applicazione.tk.call("tk::MenuUnpost", "")
+            except tk.TclError:
+                pass
+            applicazione.update()
     assert not menu.winfo_ismapped()
 
 
@@ -1099,20 +1172,20 @@ def test_un_menu_disabilitato_non_si_apre(applicazione):
     menu = applicazione.nametowidget(str(menubutton.cget("menu")))
     precedente = str(menubutton.cget("state"))
     menubutton.configure(state="disabled")
-    applicazione.focus_force()
-    menubutton.focus_set()
-    applicazione.update()
-    try:
-        menubutton.event_generate("<Return>")
-        applicazione.update()
-        assert not menu.winfo_ismapped()
-    finally:
+    with _apertura_menu_osservabile(applicazione) as aperto:
         try:
-            applicazione.tk.call("tk::MenuUnpost", "")
-        except tk.TclError:
-            pass
-        menubutton.configure(state=precedente)
-        applicazione.update()
+            _fuoco_di_tastiera(applicazione, menubutton)
+            menubutton.event_generate("<Return>")
+            applicazione.update()
+            assert not aperto(menubutton, menu)
+            assert not menu.winfo_ismapped()
+        finally:
+            try:
+                applicazione.tk.call("tk::MenuUnpost", "")
+            except tk.TclError:
+                pass
+            menubutton.configure(state=precedente)
+            applicazione.update()
 
 
 def test_tutti_i_menu_a_tendina_passano_dall_aiuto():
@@ -1893,9 +1966,10 @@ def test_i5_ordine_di_tab(applicazione):
         if w is None:
             break
     assert visti == attesi, [_etichetta(v) for v in visti]
-    # da un campo di testo il Tab esce (non inserisce un carattere)
-    vista._campo1.focus_set()
-    applicazione.update()
+    # da un campo di testo il Tab esce (non inserisce un carattere). Senza
+    # il focus di sistema il Tab verrebbe scartato e le due asserzioni sotto
+    # passerebbero senza aver provato nulla: la precondizione lo impedisce.
+    _fuoco_di_tastiera(applicazione, vista._campo1)
     vista._campo1.event_generate("<Tab>")
     applicazione.update()
     assert applicazione.focus_get() is not vista._campo1

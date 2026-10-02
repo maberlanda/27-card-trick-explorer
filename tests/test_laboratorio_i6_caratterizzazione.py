@@ -3,12 +3,15 @@
 Le tabelle sono trascritte da LIBRO_MAIN.pdf e verificate con oracoli scritti
 qui, senza il service I6:
 
-* § 6.7 e fig. 6.8: le 27 classi di coniugio di H (#, card, ord, tipo);
+* § 6.7: le 27 classi di coniugio di H (#, card, ord, tipo), cioe' la griglia
+  `riferimenti.RIFERIMENTI_LIBRO['griglia_classi_coniugio']` e la tabella senza
+  numero che la segue;
 * App. B.9: i 7 tipi ciclici con le loro molteplicita' e i punti fissi;
 * § 6.9 centro banale; § 6.10 J = DCS ⊗ DCS ⊗ DCS;
 * § 8.2 tavola locale 6×6 (riga P, colonna Q, cella P ∘ Q: prima Q);
 * § 8.5 decomposizioni locali (sei per ogni risultato);
-* § 11.7.6 classi laterali H ∘ R^r percorse dagli stadi; Prop. 9.58 (8:1);
+* § 11.7.6 classi laterali H ∘ R^r percorse dagli stadi; uniformita' del Gioco
+  ordinario, 8:1 (`riferimenti.RIFERIMENTI_LIBRO['uniformita_gioco_ordinario']`);
 * A4 (limite di Kronecker), A5, A6, A10, § 10.2.1 (somma delle guide).
 
 Notazione DP2: H = 216 (separabili), Γ = 648 (estesa), S27 ambiente.
@@ -91,7 +94,7 @@ def test_27_classi_come_nel_libro():
     for num, card, ordn, t in CLASSI_LIBRO:
         assert len(classi[t]) == card, (num, t)
         assert {ordine(p) for p in classi[t]} == {ordn}, (num, t)
-    # equazione delle classi (fig. 6.8)
+    # equazione delle classi (§ 6.7.2, «Controllo del conteggio»)
     assert sum(card for _, card, _, _ in CLASSI_LIBRO) == 216
 
 
@@ -241,7 +244,7 @@ def test_stadi_percorrono_le_classi_laterali():
     assert sorted(Counter(_coset(g) for g in GAMMA).values()) == [216, 216, 216]
 
 
-def test_prop_9_58_otto_procedure_per_trasformazione():
+def test_uniformita_gioco_ordinario_otto_procedure_per_trasformazione():
     s = servizio_procedure()
     conteggio = Counter()
     for n in range(216):
@@ -282,7 +285,7 @@ def test_parita_a10():
     assert conteggio == {1: 108, -1: 108}
 
 
-def test_prop_5_53_auto_inversa_se_righe_involutive():
+def test_autoinversa_tabellone_se_righe_involutive():
     for a, b, c in product(ORDINE_LIBRO, repeat=3):
         p = kron(LOC[a], LOC[b], LOC[c])
         righe = all(ordine(LOC[s]) <= 2 for s in (a, b, c))

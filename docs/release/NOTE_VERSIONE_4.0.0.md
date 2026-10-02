@@ -1,8 +1,10 @@
 # Gioco delle 27 carte — note della versione 4.0.0 (release candidate)
 
-> **4.0.0 RC** — release candidate **tecnicamente pronta per l'audit finale**
-> matematico, terminologico e linguistico, che resta da eseguire: finché non
-> è concluso questa non è la 4.0 definitiva.
+> **4.0.0 RC** — release candidate (RC2 pubblicata). Gli audit finali
+> A1–A5 (matematico, terminologico, linguistico italiano e inglese, verifica
+> incrociata) sono conclusi, con le correzioni verificate in `docs/audits/`.
+> Dopo la RC2 la Fase P ha riallineato nomenclatura e riferimenti al libro
+> (sezione «Fase P»). Questa non è ancora la 4.0 definitiva.
 >
 > Punto di partenza: **3.1.3** (`NOTE_VERSIONE_3.1.3.md`). Il dettaglio di ogni
 > passo è nei documenti di chiusura in `docs/history/`; il resoconto tecnico
@@ -49,8 +51,8 @@ interfaccia; K ha reso il pacchetto installabile e verificabile.
   reali nella Pratica.
 * **Spettatore (I4)** — la carta ignota: dinamica fisica e dinamica
   informativa (27 → 9 → 3 → 1) separate.
-* **Riconoscimento (I5)** — da una permutazione alla riga della Tavola, alla
-  classe estesa, al criterio delle somme.
+* **Riconoscimento (I5)** — da una permutazione alla riga della Tavola,
+  all'appartenenza a Γ, al criterio delle somme.
 * **Laboratorio matematico (I6)** — proprietà verificate su un dominio
   dichiarato (S₃, H, Γ, S₂₇, Procedure), controesempi, classi, piccoli grafi.
 * **Percorso didattico (I7)** — quattro livelli (Base, Intermedio, Avanzato,
@@ -75,6 +77,52 @@ interfaccia; K ha reso il pacchetto installabile e verificabile.
   Store; in caso di errore esegue la diagnostica delle dipendenze.
 * `controlla_requisiti.py` distingue Python, Tk, runtime, export e (con
   `--dev`) test/build; è fatale solo ciò che serve davvero.
+
+## Fase P — allineamento con il libro (dopo la RC2)
+
+La Fase P confronta il programma con il libro (`LIBRO_MAIN`, dopo la Fase G
+del libro: contatori azzerati a ogni capitolo). La prima iterazione non ha
+trovato errori matematici; la seconda riallinea nomi, testi e riferimenti,
+senza cambiare alcun calcolo.
+
+* **Nomenclatura H/Γ nel core**: `kronecker.appartiene_a_H` indica ora il
+  gruppo di **216** elementi (H) e il nuovo `kronecker.appartiene_a_Gamma`
+  quello di **648** (Γ = ⟨H, MSC⟩ = H ⊔ H∘MSC ⊔ H∘MSC²).
+  `appartiene_a_G` resta come **alias legacy** di `appartiene_a_H`;
+  `DECOMPOSIZIONI_PER_TARGET_IN_H` affianca il vecchio nome `…_IN_G`.
+  *Cambiamento incompatibile per l'API interna*: fino alla RC2
+  `appartiene_a_H` indicava Γ; chi lo usava in quel senso deve passare a
+  `appartiene_a_Gamma`.
+* **Γ nell'interfaccia**: il Riconoscimento, la CLI (`recognize`) e la Guida
+  dicono **Γ** (la scheda si chiama «Γ (classe estesa)»). La chiave JSON
+  `classe_estesa` degli esperimenti (schema 1) resta invariata: i file già
+  salvati si aprono e si verificano come prima.
+* **Riferimenti al libro**: i numeri correnti stanno solo in
+  `gioco27/riferimenti.py` (chiavi semantiche, titolo, etichetta LaTeX,
+  sezione); i testi usano un segnaposto risolto all'avvio. Aggiornati:
+  forma normale delle trasformazioni intermedie (ora Teor. 11.10),
+  uniformità del Gioco ordinario (ora Prop. 9.5), auto-inversività
+  (ora Prop. 5.2); aggiunta la ricostruzione mediante le fibre digitali
+  (Teor. 11.12).
+* **Articolo originale e App. D** (iterazione 3): le citazioni «Articolo» con
+  numerazione 5.x/6.1 si riferiscono alla versione originale dell'articolo
+  (`Articolo.pdf` del 10 settembre 2026, sorgente `8a2e41a`, non pubblicata
+  formalmente) e ora lo dichiarano; i numeri stanno in
+  `RIFERIMENTI_ARTICOLO_ORIGINALE`, con l'equivalente in App. D quando è
+  identico (Teor. 5.1 → App. D Teor. 6.1, Es. 6.1 → App. D Es. 7.1).
+  L'osservazione 5.3 non ha un equivalente identico in App. D e resta citata
+  come fonte originale. La «fig. 6.8» di un test (numerazione precedente alla
+  Fase G del libro) è la griglia delle 27 classi di coniugio, oggi figura 6.3
+  (`fig:coniugio-griglia`), con chiave `griglia_classi_coniugio`.
+* **Fasi e stadi**: l'interfaccia numera le fasi 1–3, il modello matematico gli
+  stadi h = 0, 1, 2 (fase k ↔ h = k − 1); il glossario lo dichiara.
+* **Testi**: firma di blocco e somme di fibra descritte come firme
+  strutturate, non come invarianti individuali; nella verifica del protocollo
+  i numeri delle carte 1–27 sono distinti dalle posizioni 0–26; docstring del
+  core con indici 0–2 (A0, A1, A2; f2, f1, f0) e tavola di Cayley di H
+  216×216.
+* **Roadmap**: le visualizzazioni a grafo sono pianificate per una release
+  successiva (`docs/release/ROADMAP_4.x.md`), non fanno parte della 4.0.0.
 
 ## Decisioni di prodotto
 
@@ -110,10 +158,10 @@ interfaccia; K ha reso il pacchetto installabile e verificabile.
 
 ## Limiti noti
 
-* **Audit finale** matematico, terminologico e linguistico non ancora eseguito.
-* Identificatori interni del core con il nome storico G/H (per esempio
-  `appartiene_a_G`, e `appartiene_a_H` che indica Γ): non visibili
-  all'utente, registrati per l'audit.
+* Alcuni identificatori interni conservano il nome storico G del gruppo di
+  216 (alias `appartiene_a_G`, `DECOMPOSIZIONI_PER_TARGET_IN_G`, nomi
+  `classe_estesa`/`ClasseEstesa` del servizio e della chiave JSON): non sono
+  visibili all'utente e restano per compatibilità (sezione «Fase P»).
 * Il salvataggio atomico non esegue `fsync`; nessuna richiesta di conferma
   alla chiusura con una sessione non salvata (debiti J).
 * L'eseguibile Windows e la CI sono configurati ma non ancora eseguiti su un

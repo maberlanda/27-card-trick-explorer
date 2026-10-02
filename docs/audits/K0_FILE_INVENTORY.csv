@@ -213,3 +213,4 @@ docs/audits/A3_FINAL_ITALIAN_LANGUAGE_AUDIT.csv,G PROJECT AUDIT / DESIGN,yes,A3 
 docs/audits/A5_FINAL_CROSSCHECK.md,G PROJECT AUDIT / DESIGN,yes,A5 final cross-check,Controllo trasversale finale A1-A4,KEEP,"A5: verbale storico dell'audit diagnostico finale",low
 docs/audits/A5_FIX_VERIFICATION.md,G PROJECT AUDIT / DESIGN,yes,A5-FIX,Verifica delle due correzioni terminologiche finali,KEEP,"A5-FIX: chiusura verificata dei due rilievi A5-MEDIUM",low
 docs/release/RC2_TECHNICAL_VERIFICATION.md,F DEVELOPER DOCUMENTATION CURRENT,yes,RC2,Verifica tecnica locale e pubblicazione RC2,KEEP,"RC2: evidenze locali, CI remota conclusiva e tag pubblicato",low
+docs/release/ROADMAP_4.x.md,F DEVELOPER DOCUMENTATION CURRENT,yes,"README, docs/README.md, note 4.0.0",Roadmap dopo la 4.0.0: visualizzazioni strutturali a grafo (future release),KEEP,"Fase P: sviluppi futuri annotati, non implementati nella 4.0.0",low

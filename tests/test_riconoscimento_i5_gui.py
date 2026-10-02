@@ -228,9 +228,23 @@ def test_chiavi_simmetriche_e_termini_neutri():
     en = {k: v for k, v in catalogo._ENGLISH.items() if k.startswith("recognition.")}
     assert set(it) == set(en) and len(it) == 102
     import re
-    vietati = re.compile(r"\b(Gaia|Cronaca|Giullare|G_ext|Γ|H_\{)|\bG\b|\bH\b")
+    # Fase P: DP2 e' decisa, quindi H e Γ (nomi del libro) sono ammessi; restano
+    # vietati i nomi narrativi, G_ext e il vecchio G.
+    vietati = re.compile(r"\b(Gaia|Cronaca|Giullare|G_ext|H_\{)|\bG\b")
     for testo in list(it.values()) + list(en.values()):
         assert not vietati.search(testo), testo
+
+
+def test_gamma_e_il_termine_canonico_del_riconoscimento():
+    for cat, etichetta in ((catalogo._ITALIAN, "Γ (classe estesa)"),
+                           (catalogo._ENGLISH, "Γ (extended class)")):
+        assert cat["recognition.tab.extended"] == etichetta
+        assert "Γ {extended}" in cat["recognition.summary"]
+        for k in ("recognition.extended.yes", "recognition.extended.no",
+                  "recognition.extended.intro"):
+            assert "Γ" in cat[k], k
+            assert "classe estesa" not in cat[k] and "extended class" not in cat[k], k
+        assert "Γ" in cat["cli.recognize"]
 
 
 # ═════════════════════════════ integrazione ═════════════════════════════════
@@ -268,5 +282,5 @@ def test_dall_explorer_al_riconoscimento(app):
     app.update()
     app._riconoscimento.usa_T_explorer()
     e = _testo(app._riconoscimento._estesa_txt)
-    assert "k = 1" in e                      # T = K ∘ MSC: classe estesa, non separabile
+    assert "k = 1" in e                      # T = K ∘ MSC: in Γ (k = 1), non separabile
     app._explorer_clear()

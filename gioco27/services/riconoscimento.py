@@ -22,13 +22,20 @@ Due riconoscitori indipendenti (DP1 = C)
   la cifra di livello i di π(x) dipende solo dalla cifra di livello i di x;
 * **somme** (`criterio_somme`): App. D Teor. 6.4 — ρ̂_i(t) =
   (Σ_{i,t} − C_i) / 3^(2+i) e' una permutazione di {0,1,2} a ogni livello.
-  L'Oss. 5.3 dell'Articolo non nega il teorema: non lo assume.
+  L'articolo originale (versione di settembre 2026, `riferimenti.ARTICOLO_ORIGINALE`)
+  non nega il teorema: non lo assume (osservazione
+  `RIFERIMENTI_ARTICOLO_ORIGINALE["somme_non_criterio"]`, senza equivalente
+  identico in App. D).
 
 Il criterio per somme non chiama `separabile`: i due si confrontano nei test.
 
-Classe estesa (nome neutro, DP2 aperta): π = K ∘ MSC^k con K separabile e
-MSC la permutazione del core (`AlgebraEngine.MSC_PERM`), come nella forma
-canonica del programma; il classificatore cerca k con π ∘ MSC^{-k} separabile.
+Appartenenza a Γ (DP2 decisa, nomenclatura del libro): π = K ∘ MSC^k con K
+separabile (K ∈ H) e MSC la permutazione del core (`AlgebraEngine.MSC_PERM`),
+come nella forma canonica del programma; il classificatore cerca k con
+π ∘ MSC^{-k} separabile. Γ = H ⊔ H∘MSC ⊔ H∘MSC² e' il gruppo delle
+trasformazioni complete e intermedie (648 elementi). Il nome tecnico
+`classe_estesa` (funzione, classe `ClasseEstesa`, chiave JSON degli
+esperimenti) resta per compatibilita': nei testi per l'utente si chiama Γ.
 
 Traslazioni (DP10a = C): nessuna operazione nuova; C_k e' solo un input.
 Mazzi gemelli (DP10b, A8): `trasformazione_relativa(A, B) = T_B ∘ T_A⁻¹`.
@@ -64,7 +71,8 @@ AVANTI, INDIETRO = "avanti", "indietro"
 LEGGI_A1 = ("trasformazione_da_mazzi", "finale_da_iniziale",
             "iniziale_da_finale", "verifica")
 
-#: C_i = b^{m−2} · b(b−1)/2 · Σ_{j≠i} b^j (Teor. 5.1 / 6.1), b = m = 3
+#: C_i = b^{m−2} · b(b−1)/2 · Σ_{j≠i} b^j (App. D, Teor. 6.1; nell'articolo
+#: originale `RIFERIMENTI_ARTICOLO_ORIGINALE["statistiche_fibra"]`), b = m = 3
 COSTANTI_C: Tuple[int, int, int] = tuple(
     3 ** (3 - 2) * (3 * 2 // 2) * sum(3 ** j for j in range(3) if j != i)
     for i in range(3))
@@ -327,10 +335,12 @@ def criterio_somme(p, verso: str = AVANTI) -> CriterioSomme:
     return CriterioSomme(verso, q, livelli, ricostruita)
 
 
-# ══════════════════════════════ classe estesa ═══════════════════════════════
+# ═══════════════════ appartenenza a Γ (nome tecnico: classe estesa) ═══════════
 
 @dataclass(frozen=True)
 class ClasseEstesa:
+    """Esito dell'appartenenza a Γ = H ⊔ H∘MSC ⊔ H∘MSC² (nome tecnico legacy)."""
+
     appartiene: bool
     k: Optional[int]                               # π = K ∘ MSC^k
     componente: Optional[Permutazione]             # K = π ∘ MSC^{-k}
@@ -349,7 +359,7 @@ def _msc_potenza(k: int) -> Permutazione:
 
 
 def classe_estesa(p) -> ClasseEstesa:
-    """L'unico k ∈ {0,1,2} con π ∘ MSC^{-k} separabile, se esiste (App. D § 5.3)."""
+    """Appartenenza a Γ: l'unico k ∈ {0,1,2} con π ∘ MSC^{-k} separabile, se esiste (App. D § 5.3)."""
     p = permutazione(p)
     for k in range(3):
         comp = _componi(p, inversa(_msc_potenza(k)))

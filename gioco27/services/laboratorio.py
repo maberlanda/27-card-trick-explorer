@@ -10,13 +10,16 @@ Notazione (DP2, decisa prima di I6)
 -----------------------------------
 
 * **H** = il gruppo delle 216 trasformazioni separabili (§ 6, § 11.7, App. B);
-* **Γ** = il gruppo esteso di 648 elementi, Γ = H ⊔ H∘MSC ⊔ H∘MSC² (Teor. 11.68);
+* **Γ** = il gruppo esteso di 648 elementi, Γ = H ⊔ H∘MSC ⊔ H∘MSC² (forma normale
+  delle trasformazioni intermedie, `riferimenti.RIFERIMENTI_LIBRO`);
 * **S27** = il gruppo ambiente di tutte le permutazioni delle 27 posizioni.
 
-Nel codice legacy il gruppo di 216 si chiama ancora ``G``
-(`core.group_theory`, capitolo 6 del libro) e altrove ``H`` indica 648:
-questo modulo legge quei dati solo tramite l'adattatore `_Adattatore` e non
-rinomina nulla (la migrazione dei nomi e' K0). ``R`` e' la permutazione MSC
+Nel codice storico il gruppo di 216 si chiamava ``G`` (capitolo 6 del libro:
+G ≅ H ≅ S3³); dalla Fase P il core usa i nomi del libro (`core.group_theory`
+documenta H, `core.kronecker.appartiene_a_H` = 216 e `appartiene_a_Gamma` =
+648, con `appartiene_a_G` come alias legacy). Questo modulo legge i dati di
+`core.group_theory` solo tramite l'adattatore `_Adattatore`.
+``R`` e' la permutazione MSC
 del core (`AlgebraEngine.MSC_PERM`), come nella forma canonica K ∘ MSC^k e
 in `riconoscimento.classe_estesa` (I5), che qui viene riusata.
 
@@ -203,7 +206,7 @@ def _h() -> Tuple[Permutazione, ...]:
 
 @lru_cache(maxsize=None)
 def _gamma() -> Tuple[Permutazione, ...]:
-    """Γ in forma normale h ∘ R^r (Teor. 11.68): indice r·216 + n."""
+    """Γ in forma normale h ∘ R^r (forma normale delle trasformazioni intermedie): indice r·216 + n."""
     return tuple(_comp(h, _msc(r)) for r in range(3) for h in _h())
 
 
@@ -253,7 +256,7 @@ def etichetta(p) -> Etichetta:
 # ════════════════════════ adattatore dei dati legacy ═════════════════════════
 
 class _Adattatore:
-    """Dati di `core.group_theory` (legacy «G» = il nostro H) sugli indici di Tavola."""
+    """Dati di `core.group_theory` (H, storicamente «G») sugli indici di Tavola."""
 
     def __init__(self):
         g = _legacy_gruppo_216()
@@ -625,59 +628,60 @@ def _s27(pred, codice, dati):
     return lambda pid, d: _primo_in_s27(pid, pred, codice, dati)
 
 
-H, G, S, P, L = Dominio.H, Dominio.GAMMA, Dominio.S27, Dominio.PROCEDURE, Dominio.S3
+# Abbreviazioni locali dei domini (GA = Γ: la lettera G non indica piu' un gruppo).
+H, GA, S, P, L = Dominio.H, Dominio.GAMMA, Dominio.S27, Dominio.PROCEDURE, Dominio.S3
 
 #: Il catalogo chiuso (§ 18.4 dell'audit, con le fonti del libro).
 CATALOGO: Tuple[Proprieta, ...] = (
     _voce("separabile", "articolo_def_4_1",
-          [(H, _v_separabile), (G, _v_separabile), (S, _v_separabile)],
-          [(G, "nota_gamma_r")]),
+          [(H, _v_separabile), (GA, _v_separabile), (S, _v_separabile)],
+          [(GA, "nota_gamma_r")]),
     _voce("chiuso_composizione", "libro_8_4",
-          [(H, _v_chiuso), (G, _v_chiuso)]),
+          [(H, _v_chiuso), (GA, _v_chiuso)]),
     _voce("commutativo", "libro_8_2",
-          [(L, _v_commutativo), (H, _v_commutativo), (G, _v_commutativo),
+          [(L, _v_commutativo), (H, _v_commutativo), (GA, _v_commutativo),
            (S, _v_commutativo)]),
     _voce("centro_banale", "libro_6_9",
-          [(H, _v_centro), (G, _v_centro), (S, _v_centro)]),
+          [(H, _v_centro), (GA, _v_centro), (S, _v_centro)]),
     _voce("ordini_1_2_3_6", "libro_6_7",
           [(H, _el(_p_ordini, "ordine", _ce_ordini)),
-           (G, _el(_p_ordini, "ordine", _ce_ordini)),
+           (GA, _el(_p_ordini, "ordine", _ce_ordini)),
            (S, _s27(_p_ordini, "ordine", _ce_ordini))],
-          [(G, "nota_ordine_9")]),
+          [(GA, "nota_ordine_9")]),
     _voce("punti_fissi_potenze_di_3", "libro_b9_a5",
           [(H, _el(_p_punti_fissi, "punti_fissi", _ce_punti_fissi)),
-           (G, _el(_p_punti_fissi, "punti_fissi", _ce_punti_fissi)),
+           (GA, _el(_p_punti_fissi, "punti_fissi", _ce_punti_fissi)),
            (S, _s27(_p_punti_fissi, "punti_fissi", _ce_punti_fissi))]),
     _voce("somma_guide_39", "libro_10_2_1",
           [(H, _el(_p_guide, "somma_guide", _ce_guide)),
-           (G, _el(_p_guide, "somma_guide", _ce_guide)),
+           (GA, _el(_p_guide, "somma_guide", _ce_guide)),
            (S, _s27(_p_guide, "somma_guide", _ce_guide))]),
     _voce("coniugati_stesso_tipo", "libro_b9",
-          [(H, _v_coniugati_stesso_tipo), (G, _v_coniugati_stesso_tipo),
+          [(H, _v_coniugati_stesso_tipo), (GA, _v_coniugati_stesso_tipo),
            (S, _v_coniugati_stesso_tipo)]),
     _voce("stesso_tipo_coniugati", "libro_6_7_b9",
-          [(H, _v_tipo_implica_coniugati), (G, _v_tipo_implica_coniugati),
+          [(H, _v_tipo_implica_coniugati), (GA, _v_tipo_implica_coniugati),
            (S, _v_tipo_implica_coniugati)],
           [(H, "nota_27_classi_7_tipi")]),
     _voce("carta_bersaglio_otto", "libro_a4",
-          [(H, _v_carta_otto), (G, _v_carta_otto)]),
+          [(H, _v_carta_otto), (GA, _v_carta_otto)]),
     _voce("due_carte_forzabili", "libro_a4",
-          [(H, _v_due_carte), (G, _v_due_carte), (S, _v_due_carte)],
+          [(H, _v_due_carte), (GA, _v_due_carte), (S, _v_due_carte)],
           [(H, "nota_audit_0_9")]),
     _voce("parita_prodotto_locale", "libro_a10", [(H, _v_parita)]),
-    _voce("autoinversa_fattori_involutivi", "libro_prop_5_53", [(H, _v_autoinversa)]),
+    _voce("autoinversa_fattori_involutivi", "libro_autoinversa_tabellone", [(H, _v_autoinversa)]),
     _voce("j_fissa_solo_13", "libro_6_10", [(H, _v_j)]),
     _voce("somme_riconoscono_h", "appendice_d_teor_6_4",
-          [(H, _v_somme), (G, _v_somme), (S, _v_somme)]),
-    _voce("h_normale_in_gamma", "libro_11_7", [(G, _v_normale)]),
-    _voce("forma_normale_unica", "libro_teor_11_68", [(G, _v_forma_normale)]),
+          [(H, _v_somme), (GA, _v_somme), (S, _v_somme)]),
+    _voce("h_normale_in_gamma", "libro_11_7", [(GA, _v_normale)]),
+    _voce("forma_normale_unica", "libro_forma_normale_intermedie", [(GA, _v_forma_normale)]),
     _voce("stadi_classe_laterale", "libro_11_7_6", [(P, _v_stadi)]),
-    _voce("otto_procedure", "libro_prop_9_58", [(P, _v_otto_procedure)]),
+    _voce("otto_procedure", "libro_uniformita_gioco_ordinario", [(P, _v_otto_procedure)]),
     _voce("tavola_quadrato_latino", "libro_8_2", [(L, _v_quadrato_latino)]),
     _voce("decomposizioni_uniformi", "libro_8_5",
           [(L, _v_decomposizioni), (H, _v_decomposizioni)]),
 )
-del H, G, S, P, L
+del H, GA, S, P, L
 
 
 def proprieta(pid: str) -> Proprieta:
