@@ -175,6 +175,8 @@ class SimulatorFrame(PraticaRealeMixin, ttk.Frame):
                                      foreground="#555")
         self._status_lbl.grid(row=1, column=0, columnspan=8, sticky="w",
                               pady=(4, 0))
+        ttk.Label(ctrl, text=tr("ux3.positions"), wraplength=1050).grid(
+            row=2, column=0, columnspan=8, sticky="w", pady=(2, 0))
 
         nb = ttk.Notebook(self)
         nb.grid(row=2, column=0, sticky="nsew", padx=10, pady=(0, 8))
@@ -269,10 +271,11 @@ class SimulatorFrame(PraticaRealeMixin, ttk.Frame):
     def _build_practice_tab(self):
         fr = self._practice_tab
         fr.columnconfigure(0, weight=1)
-        fr.rowconfigure(3, weight=1)
+        fr.columnconfigure(1, weight=1)
+        fr.rowconfigure(2, weight=1)
 
         phdr = ttk.Frame(fr, padding=(10, 6, 10, 4))
-        phdr.grid(row=0, column=0, sticky="ew")
+        phdr.grid(row=0, column=0, columnspan=2, sticky="ew")
         phdr.columnconfigure(1, weight=1)
         self._pstep_lbl = ttk.Label(
             phdr, text=tr("simulator.practice.first_calculate"),
@@ -295,7 +298,7 @@ class SimulatorFrame(PraticaRealeMixin, ttk.Frame):
         deck_fr = ttk.LabelFrame(
             fr, text=f" {tr('simulator.practice.table_columns')} ",
             padding=(6, 4))
-        deck_fr.grid(row=1, column=0, padx=10, pady=4, sticky="ew")
+        deck_fr.grid(row=1, column=0, padx=10, pady=4, sticky="nw")
         self._p_deck_col_labels = []
         for col in range(3):
             col_f = ttk.Frame(deck_fr)
@@ -317,12 +320,12 @@ class SimulatorFrame(PraticaRealeMixin, ttk.Frame):
         self._p_action_fr = ttk.LabelFrame(
             fr, text=f" {tr('simulator.practice.action_required')} ",
                                            padding=(12, 8))
-        self._p_action_fr.grid(row=2, column=0, padx=10, pady=4, sticky="ew")
+        self._p_action_fr.grid(row=1, column=1, padx=10, pady=4, sticky="new")
         self._p_action_fr.columnconfigure(0, weight=1)
 
         self._p_question_lbl = ttk.Label(
             self._p_action_fr, text="",
-            font=("Segoe UI", 10), wraplength=720, justify="left")
+            font=("Segoe UI", 10), wraplength=420, justify="left")
         self._p_question_lbl.grid(row=0, column=0, sticky="w", pady=(0, 8))
 
         self._p_col_btn_frame = ttk.Frame(self._p_action_fr)
@@ -334,6 +337,7 @@ class SimulatorFrame(PraticaRealeMixin, ttk.Frame):
 
         self._p_col_feedback = ttk.Label(self._p_action_fr, text="",
                                          font=("Segoe UI", 10))
+        self._p_col_feedback.configure(wraplength=420)
         self._p_col_feedback.grid(row=2, column=0, sticky="w", pady=(6, 0))
 
         self._p_order_frame = ttk.Frame(self._p_action_fr)
@@ -349,7 +353,10 @@ class SimulatorFrame(PraticaRealeMixin, ttk.Frame):
         self._p_order_desc_lbl = ttk.Label(
             self._p_order_frame, text=_gesto("SCD"),
             font=("Segoe UI", 9, "italic"), foreground="#555")
+        self._p_order_desc_lbl.configure(wraplength=260)
         self._p_order_desc_lbl.pack(side="left", padx=4)
+        ttk.Label(self._p_action_fr, text=tr("ux3.stacking"), wraplength=420).grid(
+            row=6, column=0, sticky="w", pady=3)
         order_cb.bind("<<ComboboxSelected>>", self._p_on_order_select)
         self._p_order_cb = order_cb
 
@@ -358,13 +365,16 @@ class SimulatorFrame(PraticaRealeMixin, ttk.Frame):
             text=f"✔  {tr('simulator.practice.confirm_stacking')}",
             command=self._practice_confirm_order)
         self._p_confirm_btn.grid(row=5, column=0, sticky="w", pady=(10, 0))
+        self._p_latest_feedback = ttk.Label(self._p_action_fr, text="", wraplength=420,
+                                             foreground="#1a3a5c")
+        self._p_latest_feedback.grid(row=7, column=0, sticky="w", pady=3)
 
         log_fr = ttk.Frame(fr)
-        log_fr.grid(row=3, column=0, sticky="nsew", padx=10, pady=(4, 8))
+        log_fr.grid(row=2, column=1, sticky="nsew", padx=10, pady=(4, 8))
         log_fr.columnconfigure(0, weight=1)
         log_fr.rowconfigure(0, weight=1)
         self._p_log = tk.Text(log_fr, font=("Segoe UI", 9), state="disabled",
-                              wrap="word", height=8, background="#F8F8F8",
+                              wrap="word", height=5, width=48, background="#F8F8F8",
                               relief="flat", padx=8, pady=4)
         vsb = ttk.Scrollbar(log_fr, orient="vertical",
                             command=self._p_log.yview)
@@ -619,6 +629,10 @@ class SimulatorFrame(PraticaRealeMixin, ttk.Frame):
         self._p_errors  = 0
         self._p_err_log = []
         self._pstep     = 1
+        self._p_latest_feedback.configure(text="")
+        self._p_piano_lbl.configure(text=tr("ux3.plan.initial", initial=" ".join(plan["mescolamenti"])))
+        self._status_lbl.configure(text="✓  " + tr("simulator.status.sequence",
+            shuffles=" ".join(plan["mescolamenti"]), number=plan["numero"]))
         self._p_deck    = list(range(27))
         self._p_cols    = gr.distribuisci(self._p_deck)
 
@@ -661,6 +675,8 @@ class SimulatorFrame(PraticaRealeMixin, ttk.Frame):
         self._p_err_log = []
         self._p_deck = self._p_cols = None
         self._p_modo_var.set("valutazione")
+        self._p_modo_attivo = "valutazione"
+        self._p_piano_lbl.configure(text="")
         self._p_fisico_var.set("nessuno")
         self._p_stato = self._p_prevista = self._p_esito = None
         self._p_opzioni_recupero = ()
@@ -670,6 +686,8 @@ class SimulatorFrame(PraticaRealeMixin, ttk.Frame):
         self._p_recupero_btn.configure(state="disabled")
         self._p_recupero_lbl.configure(text="")
         self._p_reale_fr.grid_remove()
+        self._p_recovery_fr.grid_remove()
+        self._p_latest_feedback.configure(text="")
         self._scrivi_confronto("")
         self._card_var.set(0)
         self._target_var.set(13)
@@ -836,6 +854,7 @@ class SimulatorFrame(PraticaRealeMixin, ttk.Frame):
         self._p_log.configure(state="disabled")
 
     def _p_log_append(self, text, tag="info"):
+        self._p_latest_feedback.configure(text=text.strip())
         self._p_log.configure(state="normal")
         self._p_log.insert("end", text, tag)
         self._p_log.see("end")

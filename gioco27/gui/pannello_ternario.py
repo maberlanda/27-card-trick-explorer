@@ -561,12 +561,12 @@ class PannelloTernario(ttk.Frame):
         return "\n".join(righe)
 
     # ── scheda «27 posizioni» ────────────────────────────────────────────────
-    _COLONNE = (("n", "ternary.pos.col.n", 32),
-                ("terna", "ternary.pos.col.digits", 56),
-                ("parola", "ternary.pos.col.word", 56),
-                ("terna_finale", "ternary.pos.col.final_digits", 56),
-                ("parola_finale", "ternary.pos.col.final_word", 56),
-                ("dest", "ternary.pos.col.dest", 36))
+    _COLONNE = (("n", "ternary.pos.col.n", 70),
+                ("terna", "ternary.pos.col.digits", 105),
+                ("parola", "ternary.pos.col.word", 110),
+                ("terna_finale", "ternary.pos.col.final_digits", 110),
+                ("parola_finale", "ternary.pos.col.final_word", 155),
+                ("dest", "ternary.pos.col.dest", 90))
 
     def _costruisci_posizioni(self, dentro):
         dentro.columnconfigure(0, weight=1)
@@ -577,7 +577,7 @@ class PannelloTernario(ttk.Frame):
         tab = ttk.Treeview(dentro, columns=[c for c, _, _ in self._COLONNE],
                            show="tree headings", selectmode="browse", height=12)
         tab.heading("#0", text="")
-        tab.column("#0", width=128, stretch=False)
+        tab.column("#0", width=240, stretch=False)
         for c, chiave, w in self._COLONNE:
             tab.heading(c, text=tr(chiave))
             tab.column(c, width=w, anchor="center", stretch=False)

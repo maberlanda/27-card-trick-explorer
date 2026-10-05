@@ -13,6 +13,7 @@ from tkinter import ttk
 from ..core import gioco_reale as gr
 from ..services import errori as er
 from .i18n import tr
+from .dialoghi_stato import _scegli
 
 __all__ = ["PraticaRealeMixin", "MODO_VALUTAZIONE", "MODO_CONSEGUENZE"]
 
@@ -34,6 +35,7 @@ class PraticaRealeMixin:
         modi.grid(row=1, column=0, columnspan=3, sticky="w", pady=(4, 0))
         ttk.Label(modi, text=tr("practice.real.mode.label")).pack(side="left")
         self._p_modo_var = tk.StringVar(value=MODO_VALUTAZIONE)
+        self._p_modo_attivo = MODO_VALUTAZIONE
         self._p_modo_valutazione = ttk.Radiobutton(
             modi, text=tr("practice.real.mode.evaluation"),
             variable=self._p_modo_var, value=MODO_VALUTAZIONE,
@@ -44,6 +46,8 @@ class PraticaRealeMixin:
             command=self._su_modo)
         self._p_modo_valutazione.pack(side="left", padx=(6, 0))
         self._p_modo_conseguenze.pack(side="left", padx=(6, 0))
+        self._p_piano_lbl = ttk.Label(phdr, text="", wraplength=1050)
+        self._p_piano_lbl.grid(row=2, column=0, columnspan=3, sticky="w")
 
         # errore fisico della fase corrente (E2/E3), solo in conseguenze reali
         self._p_fisico_var = tk.StringVar(value="nessuno")
@@ -57,7 +61,7 @@ class PraticaRealeMixin:
                                ("E3", "practice.real.physical.E3")):
             rb = ttk.Radiobutton(self._p_fisico_fr, text=tr(chiave),
                                  variable=self._p_fisico_var, value=valore)
-            rb.pack(anchor="w", padx=(12, 0))
+            rb.pack(side="left", padx=(6, 0))
             self._p_fisico_radios.append(rb)
         # ordine di Tab = ordine visivo: impilamento → errore fisico → conferma
         self._p_fisico_fr.lower(self._p_confirm_btn)
@@ -66,27 +70,33 @@ class PraticaRealeMixin:
         # confronto previsto/eseguito e recupero
         self._p_reale_fr = ttk.LabelFrame(
             fr, text=f" {tr('practice.real.frame')} ", padding=(8, 4))
-        self._p_reale_fr.grid(row=4, column=0, padx=10, pady=(0, 8), sticky="ew")
+        self._p_reale_fr.grid(row=2, column=0, padx=10, pady=(0, 8), sticky="new")
         self._p_reale_fr.columnconfigure(0, weight=1)
         self._p_confronto_txt = tk.Text(
-            self._p_reale_fr, height=7, wrap="word", relief="flat",
+            self._p_reale_fr, height=4, width=48, wrap="word", relief="flat",
             font=("Consolas", 9), background="#FAFCFF", takefocus=True)
         self._p_confronto_txt.grid(row=0, column=0, columnspan=3, sticky="ew")
         self._p_confronto_txt.configure(state="disabled")
-        self._p_recupero_lbl = ttk.Label(self._p_reale_fr, text="",
-                                         wraplength=700, justify="left")
+        sb = ttk.Scrollbar(self._p_reale_fr, command=self._p_confronto_txt.yview)
+        sb.grid(row=0, column=3, sticky="ns")
+        self._p_confronto_txt.configure(yscrollcommand=sb.set)
+        self._p_recovery_fr = ttk.Frame(self._p_action_fr)
+        self._p_recovery_fr.grid(row=8, column=0, sticky="ew", pady=3)
+        self._p_recupero_lbl = ttk.Label(self._p_recovery_fr, text="",
+                                         wraplength=400, justify="left")
         self._p_recupero_lbl.grid(row=1, column=0, columnspan=3, sticky="w",
                                   pady=(4, 2))
         self._p_recupero_var = tk.StringVar()
-        self._p_recupero_cb = ttk.Combobox(self._p_reale_fr,
+        self._p_recupero_cb = ttk.Combobox(self._p_recovery_fr,
                                            textvariable=self._p_recupero_var,
-                                           state="disabled", width=60)
+                                           state="disabled", width=32)
         self._p_recupero_cb.grid(row=2, column=0, sticky="w")
         self._p_recupero_btn = ttk.Button(
-            self._p_reale_fr, text=tr("practice.real.recovery.apply"),
+            self._p_recovery_fr, text=tr("practice.real.recovery.apply"),
             command=self._reale_applica_recupero, state="disabled")
         self._p_recupero_btn.grid(row=2, column=1, sticky="w", padx=6)
         self._p_reale_fr.grid_remove()
+        self._p_recovery_fr.grid_remove()
         self._p_stato = None
         self._p_prevista = None
         self._p_esito = None
@@ -99,10 +109,19 @@ class PraticaRealeMixin:
 
     def _su_modo(self):
         """Cambiare modalità ricomincia la stessa sessione (stessi input)."""
+        if self._p_modo_var.get() == self._p_modo_attivo:
+            return
+        advanced = self._sessione is not None and (self._pstep > 1 or self._pstate == "order_q")
+        if advanced and _scegli(self, tr("ux3.mode.title"), tr("ux3.mode.restart"),
+                               ((True, "ux3.mode.change"), (False, "button.cancel"))) is not True:
+            self._p_modo_var.set(self._p_modo_attivo)
+            return
+        self._p_modo_attivo = self._p_modo_var.get()
         if self._modo_reale():
             self._p_reale_fr.grid()
         else:
             self._p_reale_fr.grid_remove()
+            self._p_recovery_fr.grid_remove()
         if self._sessione is not None:
             self._init_practice(self._sessione)
         # J: la sessione registra il nuovo stato scientifico (se collegata)
@@ -241,6 +260,8 @@ class PraticaRealeMixin:
     def _aggiorna_recupero(self):
         stato = self._p_stato
         con_errori = stato is not None and any(p.eventi for p in stato.passi)
+        (self._p_recovery_fr.grid if con_errori and not stato.completata
+         else self._p_recovery_fr.grid_remove)()
         if stato is None or stato.completata or not stato.passi or not con_errori:
             self._p_opzioni_recupero = ()
             self._p_recupero_lbl.configure(text="")
@@ -271,6 +292,10 @@ class PraticaRealeMixin:
         indice = max(0, self._p_recupero_cb.current())
         opzione = self._p_opzioni_recupero[indice]
         self._p_stato = er.applica_recupero(self._p_stato, opzione)
+        self._p_piano_lbl.configure(text=tr("ux3.plan.active",
+            initial=" ".join(self._sessione.piano["mescolamenti"]),
+            active=" ".join(opzione.suffisso)))
+        self._status_lbl.configure(text=self._p_piano_lbl.cget("text"))
         self._p_log_append(tr("practice.real.recovery.applied",
                               phase=opzione.dopo_fase,
                               shuffles=" ".join(opzione.suffisso)) + "\n", "info")

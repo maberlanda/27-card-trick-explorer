@@ -203,7 +203,9 @@ def test_riepilogo_completo_e_ritorno(sim):
         assert attesa in testo, attesa
 
 
-def test_cambiare_modalita_riparte_dalla_stessa_sessione(sim):
+def test_cambiare_modalita_riparte_dalla_stessa_sessione(sim, monkeypatch):
+    from gioco27.gui import pratica_reale
+    monkeypatch.setattr(pratica_reale, "_scegli", lambda *args: True)
     _calcola(sim, 0, 13, "conseguenze")
     _fase(sim, fisico="E2")
     sim._p_modo_var.set("valutazione")

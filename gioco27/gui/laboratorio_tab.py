@@ -44,7 +44,7 @@ class LaboratorioFrame(ttk.Frame):
         # la nota a capo a 1100 px): con i font di Tk 8.6 su Linux la pagina non
         # stava nella vista a 1280×720 (H2). Stesso testo, nessun contenuto tolto.
         self._nota_legacy = self._paragrafo_intestazione(
-            tr("lab.header"), tr("lab.legacy_note"))
+            tr("lab.header"), tr("ux3.lab.independent") + " " + tr("lab.legacy_note"))
         self._nota_legacy.grid(row=0, column=0, sticky="ew", pady=(0, 1))
         nb = ttk.Notebook(self)
         nb.grid(row=2, column=0, sticky="nsew")

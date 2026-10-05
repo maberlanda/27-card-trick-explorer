@@ -39,11 +39,13 @@ class ExplorerTabMixin:
 
         hdr = ttk.Frame(outer)
         hdr.grid(row=0, column=0, sticky="ew", pady=(0, 1))
+        ttk.Button(hdr, text=tr("ux3.example.load"), command=self._explorer_example).pack(side="right")
         ttk.Label(hdr, text=f"🔬  {tr('explorer.title')}",
                   font=("Segoe UI", 13, "bold"), foreground="#1F4E79").pack(side="left")
         ttk.Label(hdr,
-                  text=f"   {tr('explorer.subtitle')}",
-                  font=("Segoe UI", 10, "italic"), foreground="#555").pack(side="left")
+                  text=tr("ux3.explorer.purpose"),
+                  font=("Segoe UI", 10, "italic"), foreground="#555",
+                  wraplength=580, justify="left").pack(side="left", padx=8)
 
         inp_frame = ttk.LabelFrame(
             outer, text=f"  {tr('explorer.expression')}  ", padding=(10, 2))
@@ -125,6 +127,14 @@ class ExplorerTabMixin:
             _livelli.ORDINE_SOTTOSCHEDE_EXPLORER,
             (enb.nametowidget(t) for t in enb.tabs())))
         return outer
+
+    def _explorer_example(self):
+        from ..services.procedure import ProceduraGioco
+        from ..services.tabellone import espressione_per_explorer
+        expression = espressione_per_explorer(ProceduraGioco.da_identificatore(100, 0))
+        self._explorer_entry.delete("1.0", "end")
+        self._explorer_entry.insert("1.0", expression)
+        self._explorer_calc()
 
     def _exp_adatta_altezza(self, _evento=None):
         """Matrice, Riconoscimento e Laboratorio: riquadro alto quanto il contenuto.

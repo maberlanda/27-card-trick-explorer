@@ -86,16 +86,16 @@ class CayleyDialog(tk.Toplevel):
         row2 = ttk.Frame(calc)
         row2.pack(fill="x", pady=(8, 0))
 
-        for lbl, attr in [("A ∘ B =", "_res_ab"), ("B ∘ A =", "_res_ba"),
-                          ("A⁻¹ =", "_res_inv_a"), ("B⁻¹ =", "_res_inv_b")]:
+        for i, (lbl, attr) in enumerate([("A ∘ B =", "_res_ab"), ("B ∘ A =", "_res_ba"),
+                          ("A⁻¹ =", "_res_inv_a"), ("B⁻¹ =", "_res_inv_b")]):
             f = ttk.Frame(row2)
-            f.pack(side="left", padx=(0, 24))
+            f.grid(row=i//2, column=i%2, sticky="w", padx=(0, 12), pady=2)
             ttk.Label(f, text=lbl, font=("Segoe UI", 9, "bold")).pack(side="left")
             var = tk.StringVar(value="—")
             setattr(self, attr, var)
             ttk.Label(f, textvariable=var,
                       font=("Courier New", 9),
-                      foreground="#1a3a5c").pack(side="left", padx=(4, 0))
+                      foreground="#1a3a5c", wraplength=340).pack(side="left", padx=(4, 0))
 
         # Riquadro ordini e informazioni
         info = ttk.LabelFrame(self, text=tr("cayley.info.title"),
@@ -105,7 +105,7 @@ class CayleyDialog(tk.Toplevel):
         self._info_var = tk.StringVar(value=tr("cayley.info.prompt"))
         ttk.Label(info, textvariable=self._info_var,
                   font=("Courier New", 9), foreground="#333",
-                  justify="left").pack(anchor="w")
+                  justify="left", wraplength=850).pack(anchor="w")
 
         # --- Bottoni: impaccati per primi in basso (side="bottom") così
         #     restano sempre visibili anche con finestra piccola. ---

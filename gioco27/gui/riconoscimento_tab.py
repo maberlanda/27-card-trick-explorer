@@ -117,6 +117,8 @@ class RiconoscimentoFrame(ttk.Frame):
             self._modi_rb.append(rb)
         self._lbl1 = ttk.Label(fr, text="")
         self._lbl1.grid(row=1, column=0, sticky="nw", pady=(4, 0))
+        self._input_hint = ttk.Label(fr, wraplength=1000, justify="left")
+        self._input_hint.grid(row=5, column=0, columnspan=2, sticky="w", pady=2)
         self._campo1 = tk.Text(fr, height=2, width=80, font=("Consolas", 10),
                                wrap="word", undo=True)
         self._campo1.grid(row=1, column=1, sticky="ew", pady=(4, 0))
@@ -198,23 +200,27 @@ class RiconoscimentoFrame(ttk.Frame):
         self._guide_mazzi_btn = ttk.Button(riga, text=tr("recognition.guides.from_decks"),
                                            command=self.guide_da_mazzi)
         self._guide_mazzi_btn.pack(side="left", padx=(6, 0))
+        ttk.Label(guide, text=tr("ux3.guides.positions"), wraplength=900,
+                  justify="left").grid(row=1, column=0, sticky="w", pady=3)
         self._guide_txt = self._testo(guide, 12)
-        self._guide_txt.grid(row=1, column=0, sticky="nsew", pady=(2, 0))
+        self._guide_txt.grid(row=2, column=0, sticky="nsew", pady=(2, 0))
         nb.add(guide, text=f" {tr('recognition.tab.guides')} ")
 
         a1 = ttk.Frame(nb, padding=(4, 2))
         a1.columnconfigure(1, weight=1)
         self._a1_campi = []
+        ttk.Label(a1, text=tr("ux3.a1"), wraplength=1000).grid(
+            row=0, column=0, columnspan=2, sticky="w", pady=4)
         for r, chiave in enumerate(("recognition.a1.initial", "recognition.a1.final",
                                     "recognition.a1.transformation")):
-            ttk.Label(a1, text=tr(chiave)).grid(row=r, column=0, sticky="w")
+            ttk.Label(a1, text=tr(chiave)).grid(row=r+1, column=0, sticky="w")
             e = ttk.Entry(a1, font=("Consolas", 9))
-            e.grid(row=r, column=1, sticky="ew", pady=1)
+            e.grid(row=r+1, column=1, sticky="ew", pady=1)
             self._a1_campi.append(e)
         self._a1_btn = ttk.Button(a1, text=tr("recognition.a1.run"), command=self.a1)
-        self._a1_btn.grid(row=3, column=0, sticky="w", pady=(2, 2))
+        self._a1_btn.grid(row=4, column=0, sticky="w", pady=(2, 2))
         self._a1_txt = self._testo(a1, 8)
-        self._a1_txt.grid(row=4, column=0, columnspan=2, sticky="nsew")
+        self._a1_txt.grid(row=5, column=0, columnspan=2, sticky="nsew")
         nb.add(a1, text=f" {tr('recognition.tab.a1')} ")
 
         vw = ttk.Frame(nb, padding=(4, 2))
@@ -235,6 +241,8 @@ class RiconoscimentoFrame(ttk.Frame):
     # ── ingresso ─────────────────────────────────────────────────────────────
     def _su_modo(self):
         modo = self._modo_var.get()
+        self._input_hint.configure(text=tr("ux3.recognition.independent") + "\n" +
+                                  tr("ux3.permutation" if modo == MODO_PERM else "ux3.decks"))
         etichette = {MODO_PERM: ("recognition.field.T", None),
                      MODO_MAZZI: ("recognition.field.initial", "recognition.field.final"),
                      MODO_DUE: ("recognition.field.deck_a", "recognition.field.deck_b")}

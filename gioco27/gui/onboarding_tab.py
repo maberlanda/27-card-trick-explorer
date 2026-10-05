@@ -9,7 +9,7 @@ from tkinter import ttk
 
 from .tooltip import attach as _tip
 from .help_banner import HelpBanner
-from .glossary import GLOSSARIO_MATEMATICO, GLOSSARIO_NARRATIVO, ONBOARD_STEPS
+from .glossary import GLOSSARIO_MATEMATICO, GLOSSARIO_NARRATIVO
 from .i18n import tr
 from . import livelli as _livelli
 
@@ -63,7 +63,12 @@ class OnboardingTabMixin:
         steps.grid(row=3, column=0, sticky="ew")
         for i in range(3):
             steps.columnconfigure(i, weight=1, uniform="step")
-        for i, (icon, title_key, desc_key) in enumerate(ONBOARD_STEPS):
+        self._onboard_actions = []
+        for i, (icon, title_key, desc_key, destination) in enumerate((
+            ("🎩", "ux3.start.trick", "ux3.start.trick.desc", "simulatore"),
+            ("🔎", "ux3.start.recognize", "ux3.start.recognize.desc", "riconoscimento"),
+            ("📚", "ux3.start.study", "ux3.start.study.desc", "tavola"),
+        )):
             title, desc = tr(title_key), tr(desc_key)
             card = tk.Frame(steps, bg="white", bd=0,
                             highlightthickness=1, highlightbackground="#D6E0EC")
@@ -72,8 +77,10 @@ class OnboardingTabMixin:
             tk.Label(card, text=icon, bg="white", fg="#1F4E79",
                      font=("Segoe UI", 18, "bold")).pack(anchor="w",
                                                          padx=12, pady=(10, 0))
-            tk.Label(card, text=title, bg="white", fg="#1a1a2e",
-                     font="GiocoHelpBold").pack(anchor="w", padx=12)
+            button = ttk.Button(card, text=title,
+                                command=lambda d=destination: self._onboard_go(d))
+            button.pack(anchor="w", padx=12)
+            self._onboard_actions.append(button)
             tk.Label(card, text=desc, bg="white", fg="#555",
                      font="GiocoHelp", wraplength=210, justify="left"
                      ).pack(anchor="w", padx=12, pady=(2, 12))
@@ -103,14 +110,6 @@ class OnboardingTabMixin:
 
         qa = ttk.LabelFrame(body, text=f"  {tr('onboarding.quick_actions')}  ", padding=10)
         qa.grid(row=5, column=0, sticky="ew", pady=(14, 0))
-        b0 = ttk.Button(qa, text=f"🎩  {tr('onboarding.button.try_simulator')}",
-                        command=lambda: self._seleziona_scheda("simulatore"))
-        b0.pack(side="left", padx=(0, 8))
-        _tip(b0, tr("tooltip.try_simulator"))
-        b1 = ttk.Button(qa, text=f"📚  {tr('onboarding.button.open_table')}",
-                        command=lambda: self._seleziona_scheda("tavola"))
-        b1.pack(side="left", padx=8)
-        _tip(b1, tr("tooltip.open_table"))
         b3 = ttk.Button(qa, text=f"📖  {tr('onboarding.button.open_guide')}",
                         command=lambda: self._open_guide())
         b3.pack(side="left", padx=8)
@@ -148,3 +147,13 @@ class OnboardingTabMixin:
                 _tip(d, long)
 
         return outer
+
+    def _onboard_go(self, destination):
+        if destination == "riconoscimento":
+            if not _livelli.visibile(_livelli.AVANZATO, self._livello):
+                self._imposta_livello(_livelli.AVANZATO)
+            self._seleziona_scheda("explorer")
+            self._explorer_nb.select(self._riconoscimento)
+            self._riconoscimento._campo1.focus_set()
+        else:
+            self._seleziona_scheda(destination)

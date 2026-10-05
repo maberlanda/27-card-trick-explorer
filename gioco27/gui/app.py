@@ -1080,6 +1080,7 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
         sim.imposta_disposizione_fissa(numero)
         self._seleziona_scheda("simulatore")
         sim._find_sequence()
+        sim._notebook.select(sim._practice_tab)
 
     # ── Navigazione minima (I2d, D-I2-7) ────────────────────────────────────
     def _scheda_disponibile(self, chiave):

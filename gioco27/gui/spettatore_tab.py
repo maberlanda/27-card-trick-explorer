@@ -59,7 +59,7 @@ class SpettatoreFrame(ttk.Frame):
 
     # ── costruzione ──────────────────────────────────────────────────────────
     def _costruisci(self):
-        ttk.Label(self, text=tr("spectator.intro"), wraplength=880,
+        ttk.Label(self, text=tr("ux3.spectator.context"), wraplength=880,
                   justify="left").grid(row=0, column=0, columnspan=2,
                                        sticky="w", padx=10, pady=(8, 4))
 
@@ -106,13 +106,16 @@ class SpettatoreFrame(ttk.Frame):
         self._avvia_btn = ttk.Button(ctrl, text=tr("spectator.start"),
                                      command=self.avvia)
         self._avvia_btn.grid(row=3, column=0, sticky="w", pady=(6, 0))
+        self._context_hint = ttk.Label(ctrl, wraplength=880, justify="left")
+        self._context_hint.grid(row=4, column=0, columnspan=3, sticky="w", pady=3)
 
         # ── stato fisico ────────────────────────────────────────────────────
         fis = ttk.LabelFrame(self, text=f" {tr('spectator.physical.title')} ",
                              padding=(8, 4))
         fis.grid(row=2, column=0, sticky="nsew", padx=(10, 5), pady=8)
         fis.columnconfigure(0, weight=1)
-        self._fase_lbl = ttk.Label(fis, text="", font=("Segoe UI", 10, "bold"))
+        self._fase_lbl = ttk.Label(fis, text="", font=("Segoe UI", 10, "bold"),
+                                   wraplength=540, justify="left")
         self._fase_lbl.grid(row=0, column=0, sticky="w")
         self._pile = ttk.Treeview(fis, columns=("S", "C", "D"), show="headings",
                                   height=9, selectmode="none")
@@ -170,6 +173,7 @@ class SpettatoreFrame(ttk.Frame):
     # ── controlli ────────────────────────────────────────────────────────────
     def _aggiorna_controlli(self):
         b12 = self._modo_var.get() == MODO_B12
+        self._context_hint.configure(text=tr("ux3.spectator.unknown" if b12 else "ux3.spectator.known"))
         if b12:
             self._bersaglio_var.set(sp.CENTRO)
             self._bersaglio_spin.configure(state="disabled")
@@ -244,12 +248,20 @@ class SpettatoreFrame(ttk.Frame):
         self._scrivi(self._info_txt, self._righe_informative(s))
 
     def _mostra_pile(self, s):
+        for g, col in enumerate(("S", "C", "D")):
+            heading = (tr("ux3.spectator.positions", first=g*9, last=g*9+8)
+                       if s is not None and s.conclusa else self._nome_mazzetto(g))
+            self._pile.heading(col, text=heading)
         self._pile.delete(*self._pile.get_children())
         if s is None:
             self._fase_lbl.configure(text=tr("spectator.idle"))
             return
         if s.conclusa:
-            self._fase_lbl.configure(text=tr("spectator.done"))
+            self._fase_lbl.configure(text=tr("ux3.spectator.done", target=s.bersaglio))
+            deck = sp.ordine_corrente(s)
+            for i in range(9):
+                self._pile.insert("", "end", values=tuple(
+                    f"{g*9+i}: {_carta(self._facce[deck[g*9+i]])}" for g in range(3)))
             return
         fase = s.fase + 1
         self._fase_lbl.configure(text=tr("spectator.phase", phase=fase))
@@ -337,6 +349,10 @@ class SpettatoreFrame(ttk.Frame):
             return righe
         a1, a2, a3 = e.risposte
         n2, n1, n0 = e.cifre
+        operational = [tr("ux3.spectator.done", target=e.posizione_finale),
+                       tr("spectator.result.card", card=_carta(e.carta), position=e.posizione_iniziale)
+                       if e.carta is not None else tr("spectator.result.card_unknown", position=e.posizione_finale)]
+        righe = operational + [""] + righe
         righe += [
             "", tr("spectator.result.title"),
             tr("spectator.result.answers", history=", ".join(e.storia),

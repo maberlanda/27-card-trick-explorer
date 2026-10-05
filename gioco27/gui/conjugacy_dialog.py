@@ -126,9 +126,9 @@ class ConjugacyDialog(tk.Toplevel):
         self._cls_tree.heading("ord",  text=tr("conjugacy.column.order"))
         self._cls_tree.heading("tipo", text=tr("conjugacy.column.type"))
         self._cls_tree.column("idx",  width=36,  stretch=False, anchor="center")
-        self._cls_tree.column("size", width=50,  stretch=False, anchor="center")
-        self._cls_tree.column("ord",  width=46,  stretch=False, anchor="center")
-        self._cls_tree.column("tipo", width=190, anchor="w")
+        self._cls_tree.column("size", width=95,  stretch=False, anchor="center")
+        self._cls_tree.column("ord",  width=75,  stretch=False, anchor="center")
+        self._cls_tree.column("tipo", width=190, stretch=False, anchor="w")
         self._cls_tree.tag_configure("center_cls", foreground="#8B0000",
                                      font=("Segoe UI", 9, "bold"))
         vsb1 = ttk.Scrollbar(lf, orient="vertical", command=self._cls_tree.yview)
@@ -136,6 +136,9 @@ class ConjugacyDialog(tk.Toplevel):
         self._cls_tree.grid(row=0, column=0, sticky="nsew")
         _tip(self._cls_tree, tr("conjugacy.tooltip.classes"))
         vsb1.grid(row=0, column=1, sticky="ns")
+        hsb1 = ttk.Scrollbar(lf, orient="horizontal", command=self._cls_tree.xview)
+        self._cls_tree.configure(xscrollcommand=hsb1.set)
+        hsb1.grid(row=1, column=0, sticky="ew")
         self._cls_tree.bind("<<TreeviewSelect>>", self._on_cls_select)
 
         # --- Colonna centrale: elementi della classe ---
@@ -157,13 +160,16 @@ class ConjugacyDialog(tk.Toplevel):
         # --- Colonna destra: centro e statistiche ---
         rf = ttk.LabelFrame(main, text=tr("conjugacy.center_stats.title"), padding=6)
         rf.grid(row=0, column=2, sticky="nsew", padx=(4, 0))
-        rf.rowconfigure(1, weight=1)
+        rf.rowconfigure(2, weight=1)
         rf.columnconfigure(0, weight=1)
 
-        self._stats_lbl = ttk.Label(rf, text="",
-                                    font=("Segoe UI", 9),
-                                    justify="left", wraplength=240)
-        self._stats_lbl.grid(row=0, column=0, sticky="nw", pady=(0, 8))
+        self._stats_txt = tk.Text(rf, font=("Segoe UI", 9), wrap="word",
+                                 height=12, width=24, state="disabled",
+                                 relief="flat", takefocus=True)
+        self._stats_txt.grid(row=0, column=0, sticky="ew", pady=(0, 8))
+        stats_sb = ttk.Scrollbar(rf, command=self._stats_txt.yview)
+        stats_sb.grid(row=0, column=1, sticky="ns", pady=(0, 8))
+        self._stats_txt.configure(yscrollcommand=stats_sb.set)
 
         ttk.Label(rf, text=tr("conjugacy.center_elements"),
                   font=("Segoe UI", 9, "bold")).grid(row=1, column=0, sticky="nw")
@@ -171,6 +177,10 @@ class ConjugacyDialog(tk.Toplevel):
                                    wrap="word", state="disabled",
                                    background="#fff8f0", height=8)
         self._center_box.grid(row=2, column=0, sticky="nsew")
+        sb = ttk.Scrollbar(rf, command=self._center_box.yview)
+        sb.grid(row=2, column=1, sticky="ns")
+        self._center_box.configure(yscrollcommand=sb.set, width=24)
+        self._elem_box.configure(width=32)
 
 
     # --------------------------------------------------------------- load ---
@@ -213,7 +223,10 @@ class ConjugacyDialog(tk.Toplevel):
         stats += tr("conjugacy.stats.center", identity="e",
                     center_identity="(e,e,e)")
         stats += tr("conjugacy.stats.game")
-        self._stats_lbl.configure(text=stats)
+        self._stats_txt.configure(state="normal")
+        self._stats_txt.delete("1.0", "end")
+        self._stats_txt.insert("1.0", stats)
+        self._stats_txt.configure(state="disabled")
 
         # Popolamento lista classi (col tipo S3 dei tre fattori)
         for i, c in enumerate(cls):

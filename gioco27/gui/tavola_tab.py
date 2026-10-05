@@ -311,7 +311,15 @@ class TavolaFrame(ttk.Frame):
         win.title(tr("table.detail_title", number=r["numero"]))
         txt = tk.Text(win, width=88, height=24, font=("Consolas", 10),
                       wrap="none", padx=10, pady=8)
-        txt.pack(fill="both", expand=True)
+        win.geometry("1000x600")
+        win.rowconfigure(0, weight=1)
+        win.columnconfigure(0, weight=1)
+        txt.grid(row=0, column=0, sticky="nsew")
+        vs = ttk.Scrollbar(win, command=txt.yview)
+        hs = ttk.Scrollbar(win, orient="horizontal", command=txt.xview)
+        vs.grid(row=0, column=1, sticky="ns")
+        hs.grid(row=1, column=0, sticky="ew")
+        txt.configure(yscrollcommand=vs.set, xscrollcommand=hs.set)
 
         def riga27(nome, arr):
             testa = "  ".join(f"{i:2d}" for i in range(27))
