@@ -58,8 +58,10 @@ class BarraAdattiva(ttk.Frame):
         self._nascosti = set()           # I7: widget esclusi dal livello
         self._elastici = set()           # widget che possono restringersi
         self._disposizione = None        # l'ultima calcolata, per non rifarla
-        self._contenitori_riga = []
         self._orizzontale = self._padding_orizzontale(padding)
+        self._verticale = (2 * int(padding[1])
+                           if isinstance(padding, (tuple, list)) and len(padding) > 1
+                           else self._orizzontale)
         self.bind("<Configure>", self._su_configure)
 
     # ── costruzione ──────────────────────────────────────────────────────────
@@ -120,7 +122,7 @@ class BarraAdattiva(ttk.Frame):
         if prima != (chiave in self._nascosti):
             self._disposizione = None
             if not visibile:
-                widget.grid_forget()
+                widget.place_forget()
             self._su_configure()
 
     def _visibili(self):
@@ -156,7 +158,7 @@ class BarraAdattiva(ttk.Frame):
         righe = self._righe(larghezza)
         # Nessun widget viene toccato se la disposizione non è cambiata: è
         # questo che impedisce il ciclo configure → geometry → configure.
-        firma = tuple(tuple(str(w) for w, _, _ in riga) for riga in righe)
+        firma = (larghezza, tuple(tuple(str(w) for w, _, _ in riga) for riga in righe))
         if firma == self._disposizione:
             return
         self._disposizione = firma
@@ -164,43 +166,41 @@ class BarraAdattiva(ttk.Frame):
 
     def _disponi(self, righe):
         for widget, _, _ in self._voci:
-            widget.grid_forget()
-        for frame in self._contenitori_riga:
-            frame.grid_forget()
-            for colonna in range(frame.grid_size()[0]):
-                frame.columnconfigure(colonna, weight=0, minsize=0)
-        self.columnconfigure(0, weight=1)
-
+            widget.place_forget()
+        # I controlli restano veri figli della barra. Non usare frame fratelli
+        # come contenitori geometrici: grid(in_=...) non cambia il parent Tk
+        # e quei frame possono coprire i controlli e intercettarne il mouse.
+        larghezza = self._larghezza_utile()
+        y = self._verticale // 2
         una_riga = len(righe) == 1
-        for numero, riga in enumerate(righe):
-            if numero == len(self._contenitori_riga):
-                self._contenitori_riga.append(ttk.Frame(self))
-            frame = self._contenitori_riga[numero]
-            frame.grid(row=numero, column=0, sticky="ew")
-            colonna = 0
+        for riga in righe:
+            widths = [self.MINIMO_ELASTICO if str(w) in self._elastici
+                      else w.winfo_reqwidth() for w, _, _ in riga]
+            pads = [2 * p if isinstance(p, int) else sum(p) for _, p, _ in riga]
+            spazio_destra = una_riga and any(destra for _, _, destra in riga)
+            elastici = sum(str(w) in self._elastici for w, _, _ in riga)
+            extra = max(0, larghezza - sum(widths) - sum(pads))
+            quote = elastici + int(spazio_destra)
+            quota, resto = divmod(extra, quote) if quote else (0, 0)
+            x = self._orizzontale // 2
+            altezza = max(w.winfo_reqheight() for w, _, _ in riga) + 2
             spazio_messo = False
-            for widget, padx, a_destra in riga:
-                if una_riga and a_destra and not spazio_messo:
-                    # Su una riga sola il gruppo di destra resta a destra: fra
-                    # i due gruppi si mette una colonna che si allarga.
-                    frame.columnconfigure(colonna, weight=1)
-                    colonna += 1
+            for (widget, padx, a_destra), width, pad in zip(riga, widths, pads):
+                if spazio_destra and a_destra and not spazio_messo:
+                    x += quota + resto
+                    resto = 0
                     spazio_messo = True
                 if str(widget) in self._elastici:
-                    # `minsize` perché una colonna elastica in una riga piena
-                    # arriverebbe a zero, e Tk smette di mostrare un widget
-                    # largo zero: la riga di stato sparirebbe proprio quando
-                    # ha qualcosa da dire.
-                    frame.columnconfigure(colonna, weight=1,
-                                         minsize=self.MINIMO_ELASTICO + 2 * padx)
-                    aggancio = "ew"
-                elif isinstance(widget, ttk.Separator):
-                    aggancio = "ns"
-                else:
-                    aggancio = "w"
-                widget.grid(in_=frame, row=0, column=colonna, padx=padx, pady=1,
-                            sticky=aggancio)
-                colonna += 1
+                    width += quota + resto
+                    resto = 0
+                height = (altezza - 2 if isinstance(widget, ttk.Separator)
+                          else widget.winfo_reqheight())
+                left_pad = padx if isinstance(padx, int) else padx[0]
+                widget.place(x=x + left_pad, y=y + 1 + (altezza - 2 - height) // 2,
+                             width=width, height=height)
+                x += width + pad
+            y += altezza
+        self.configure(height=y + self._verticale // 2)
 
     # ── per i test e per chi deve sapere com'è andata ────────────────────────
 

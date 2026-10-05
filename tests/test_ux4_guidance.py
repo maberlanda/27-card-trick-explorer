@@ -1,4 +1,5 @@
 """Targeted operational contracts for UX-4, without mathematical re-audit."""
+import tkinter as tk
 from tkinter import ttk
 import pytest
 
@@ -77,6 +78,37 @@ def test_t02_toolbar_long_count_and_status(app):
     assert len(app._status_display.get()) <= 48
     assert app._status_lbl._tooltip.text() == app.status_var.get()
     app.withdraw()
+
+
+@pytest.mark.parametrize("level", ["base", "intermedio", "avanzato", "laboratorio"])
+def test_toolbar_controls_are_not_covered(app, level):
+    app._imposta_livello(level)
+    app.count_var.set("5 159 780 352")
+    app.status_var.set("Long status " * 30)
+    app.deiconify()
+    try:
+        # Verify resize both ways, not only the initial mapped geometry.
+        for width in (1280, 1600, 1280):
+            app.geometry(f"{width}x800+0+0")
+            app.update()
+            bar = app._barra_azioni
+            buttons = [w for w, _, _ in bar._visibili()
+                       if isinstance(w, (ttk.Button, ttk.Menubutton, tk.Menubutton))]
+            assert any(w.cget("text").endswith(i18n.tr("button.settings")) for w in buttons)
+            if level == "laboratorio":
+                assert app._azioni_livello["protocollo"] in buttons
+            for button in buttons:
+                assert button.winfo_ismapped()
+                assert button.winfo_rootx() + button.winfo_width() <= app.winfo_rootx() + width
+                x = button.winfo_rootx() + button.winfo_width() // 2
+                y = button.winfo_rooty() + button.winfo_height() // 2
+                hit = app.winfo_containing(x, y)
+                assert hit not in getattr(bar, "_contenitori_riga", ())
+                assert hit is button or (hit is not None and
+                                         str(hit).startswith(str(button) + ".")), (
+                    level, width, button.cget("text"), str(hit))
+    finally:
+        app.withdraw()
 
 
 def test_t03_fixed_any_and_uniform(app):
