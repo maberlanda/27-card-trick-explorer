@@ -195,6 +195,13 @@ def _azioni_essenziali_presenti(app):
         for attesa in attese:
             if attesa and attesa in testo:
                 presenti.add(attesa)
+        # UX-4: reset generale e diagnostica sono raggiungibili in Strumenti.
+        if isinstance(w, tk.Menubutton) and testo == catalogo.tr("ux4.tools"):
+            menu = app.nametowidget(str(w.cget("menu")))
+            for index in range(menu.index("end") + 1):
+                label = menu.entrycget(index, "label")
+                if label in attese and menu.entrycget(index, "state") != "disabled":
+                    presenti.add(label)
     return presenti, attese
 
 

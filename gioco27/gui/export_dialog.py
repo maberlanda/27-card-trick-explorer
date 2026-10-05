@@ -17,6 +17,7 @@ from ..core.analysis import cycle_decomposition, order_of, cycle_type
 from ..core.kronecker import decomposition_context
 from .export_contract import esporta_cartella
 from .i18n import tr
+from . import guidance, context_help
 
 
 class ExportDialog(tk.Toplevel):
@@ -39,6 +40,14 @@ class ExportDialog(tk.Toplevel):
 
         self._build_ui()
         self._refresh_preview()
+        context_help.banner(self, "A11", getattr(parent, "_open_guide", None)).grid(
+            row=3, column=0, sticky="ew", padx=10)
+        guidance.install(self, "export")
+        from .tooltip import attach
+        for widget in self.winfo_children():
+            for child in widget.winfo_children():
+                if isinstance(child, ttk.Button) and child.cget("text") == tr("button.close"):
+                    attach(child, tr("ux4.export.close"))
 
     # ─── UI ──────────────────────────────────────────────────────────────────
 

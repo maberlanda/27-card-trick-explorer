@@ -20,6 +20,7 @@ from ..core.parallel import atomic_write
 from ..services import tabellone as _tb
 from ..services.procedure import ProceduraGioco
 from .i18n import tr
+from .tooltip import attach
 from .pannello_ternario import PannelloTernario
 
 
@@ -173,6 +174,8 @@ class TavolaFrame(ttk.Frame):
         tv.tag_configure("pari", background="#f4f9f4")
         tv.tag_configure("evid", background="#fff2c4")
         self._tv = tv
+        attach(tv, tr("ux4.table.selection"))
+        attach(self._export_scope, tr("ux4.export.scope"))
 
         self._status = ttk.Label(self, text="", padding=(10, 2),
                                  foreground="#555")

@@ -16,6 +16,9 @@ from ..core.parallel import atomic_write
 from .common import prepara_dialogo, rendi_menu_apribile
 from ..services import Revisioni
 from .help_banner import HelpBanner
+from . import context_help
+from . import guidance
+from .tooltip import attach
 from .errori import per_file
 from .i18n import tr
 from .i18n import format_integer, get_language
@@ -73,6 +76,9 @@ class DecompositionDialog(tk.Toplevel):
         self.geometry("1260x760")
         self.resizable(True, True)
         self._build_ui()
+        guidance.install(self, "decomposition")
+        attach(self._tree, tr("ux4.decomp.blocks"))
+        guidance.install(self._tree, "decomposition")
         # H2: si comincia dall'albero delle decomposizioni.
         prepara_dialogo(self, self._tree)
         self._start_search()
@@ -90,10 +96,11 @@ class DecompositionDialog(tk.Toplevel):
 
         HelpBanner(
             self,
-            tr("explorer.decomposition.help_short"),
-            long=tr("explorer.decomposition.help_long"),
+            tr("ux4.decomp.prompt"),
+            long=context_help.text(("A10b",)) + "\n\n" + tr("explorer.decomposition.help_long"),
             on_open_guide=getattr(self.master, "_open_guide", None),
-        ).pack(fill="x", padx=10, pady=(0, 4))
+            guide_section="s16",
+        ).pack(fill="x", padx=10, pady=(0, 4), before=hdr)
 
         self._status_var = tk.StringVar(
             value=tr("explorer.decomposition.searching"))
@@ -139,6 +146,7 @@ class DecompositionDialog(tk.Toplevel):
         self._filter_var = tk.StringVar(value="")
         fe = ttk.Entry(ctrl_fr, textvariable=self._filter_var, width=22)
         fe.pack(side="left")
+        attach(fe, tr("ux4.decomp.filter"))
         fe.bind("<Return>", lambda e: self._redisplay())
         ttk.Button(ctrl_fr, text=tr("explorer.decomposition.apply"),
                    command=self._redisplay).pack(
@@ -211,7 +219,10 @@ class DecompositionDialog(tk.Toplevel):
             values=(tr("ux2.export.all_decomp"), tr("ux2.export.visible")))
         self._export_scope.current(0)
         self._export_scope.pack(side="left", padx=8)
-        ttk.Button(bf, text=tr("button.close"), command=self.destroy).pack(side="left")
+        attach(self._export_scope, tr("ux4.export.scope"))
+        close = ttk.Button(bf, text=tr("button.close"), command=self.destroy)
+        close.pack(side="left")
+        attach(close, tr("ux4.decomp.close"))
 
     # -------------------------------------------------- target / search -----
 

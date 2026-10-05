@@ -18,6 +18,7 @@ from tkinter import ttk
 from ..core import gioco_reale as gr
 from ..services import spettatore as sp
 from .i18n import tr
+from . import context_help, guidance
 
 MODO_NOTO = "noto"
 MODO_B12 = "b12"
@@ -46,6 +47,12 @@ class SpettatoreFrame(ttk.Frame):
         self._costruisci()
         self._aggiorna_controlli()
         self._mostra()
+        guidance.install(self, "spectator")
+        for button in self._risposta_btn:
+            from .tooltip import attach
+            attach(button, tr("ux4.column.spectator"))
+        for combo in self._osservati_cb:
+            attach(combo, tr("ux4.spectator.observed"))
 
     def reset(self):
         self._sessione = self._riavvolgimento = self._facce = None
@@ -59,9 +66,8 @@ class SpettatoreFrame(ttk.Frame):
 
     # ── costruzione ──────────────────────────────────────────────────────────
     def _costruisci(self):
-        ttk.Label(self, text=tr("ux3.spectator.context"), wraplength=880,
-                  justify="left").grid(row=0, column=0, columnspan=2,
-                                       sticky="w", padx=10, pady=(8, 4))
+        context_help.banner(self, "A06", getattr(self.winfo_toplevel(), "_open_guide", None)).grid(
+            row=0, column=0, columnspan=2, sticky="ew", padx=10, pady=(8, 4))
 
         ctrl = ttk.Frame(self)
         ctrl.grid(row=1, column=0, columnspan=2, sticky="w", padx=10)

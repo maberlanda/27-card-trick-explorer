@@ -11,6 +11,7 @@ from .common import prepara_dialogo, rendi_menu_apribile
 from ..core.group_theory import get_group_data
 from .common import run_in_thread, ui_call
 from .tooltip import attach as _tip
+from . import context_help, guidance
 from .errori import per_file
 from .i18n import tr
 from .i18n import get_language
@@ -28,6 +29,9 @@ class CayleyDialog(tk.Toplevel):
         self._calculated_pair = None
         self._names: list = []
         self._build_ui()
+        context_help.banner(self, "A10", getattr(parent, "_open_guide", None),
+                            short=tr("ux4.cayley.prompt")).pack(fill="x", before=self.winfo_children()[0])
+        guidance.install(self, "cayley")
         # H2: si comincia dall'elemento A, che è la prima cosa da scegliere.
         prepara_dialogo(self, self._combo_a)
         # run_in_thread (non Thread nudo): registra il traceback nel log e

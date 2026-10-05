@@ -30,6 +30,8 @@ from ..services.successione import Successione
 from . import livelli as _livelli
 from .i18n import tr
 from .help_banner import HelpBanner
+from . import context_help
+from . import guidance
 from .dialoghi_stato import conferma_abbandono
 from .errori import per_file
 
@@ -267,6 +269,11 @@ class SessioneMixin:
         self._sessione_dialog = SessioneDialog(self)
         return self._sessione_dialog
 
+    def _open_successione(self):
+        dialog = self._open_sessione()
+        dialog._schede.select(dialog._sequence_page)
+        return dialog
+
 
 def _mazzo_breve(v, n=9):
     return " ".join(str(x) for x in v[:n]) + " …"
@@ -300,6 +307,14 @@ class SessioneDialog(tk.Toplevel):
         self._titolo_var.trace_add("write", self._bozza_cambiata)
         self._nota.bind("<<Modified>>", self._nota_cambiata)
         self.protocol("WM_DELETE_WINDOW", self._chiudi)
+        guidance.install(self, "session")
+        guidance.fields(self, {"_titolo": "ux4.annotations.tip", "_nota": "ux4.annotations.tip"})
+        for combo in self._sigle:
+            from .tooltip import attach
+            attach(combo, guidance.tip("session", "sequence.procedure"))
+        for widget in self._sequence_page.winfo_children()[0].winfo_children():
+            if isinstance(widget, ttk.Checkbutton):
+                attach(widget, tr("ux4.epsilon"))
 
     def _chiudi(self):
         self.acquisisci_bozza()
@@ -309,7 +324,8 @@ class SessioneDialog(tk.Toplevel):
     def _costruisci_esperimento(self, nb):
         pagina = ttk.Frame(nb)
         HelpBanner(pagina, tr("session.help.short"),
-                   long=tr("session.help.long")).pack(fill="x")
+                   long=context_help.text(("A12",)) + "\n\n" + tr("session.help.long"),
+                   on_open_guide=self.app._open_guide, guide_section="s29").pack(fill="x")
         fr = ttk.Frame(pagina, padding=8)
         fr.pack(fill="both", expand=True)
         fr.columnconfigure(1, weight=1)
@@ -530,6 +546,7 @@ class SessioneDialog(tk.Toplevel):
             self._albero.heading(c, text=tr(f"sequence.col.{c}"))
             self._albero.column(c, width=w, stretch=(c == "disposizione"))
         self._albero.grid(row=1, column=0, sticky="nsew", pady=(6, 0))
+        self._albero.bind("<<TreeviewSelect>>", lambda e: self._stati_successione())
         sb = ttk.Scrollbar(fr, orient="vertical", command=self._albero.yview)
         self._albero.configure(yscrollcommand=sb.set)
         sb.grid(row=1, column=1, sticky="ns", pady=(6, 0))
@@ -549,6 +566,20 @@ class SessioneDialog(tk.Toplevel):
                                takefocus=True)
         self._replay.grid(row=3, column=0, columnspan=2, sticky="ew", pady=(6, 0))
         nb.add(fr, text=f" {tr('session.tab.sequence')} ")
+        self._sequence_page = fr
+        context_help.banner(fr, "A12", self.app._open_guide).grid(
+            row=4, column=0, columnspan=2, sticky="ew", pady=4)
+
+    def _stati_successione(self):
+        length = self.successione().lunghezza
+        selected = self._selezionato()
+        enabled = {"remove": selected is not None,
+                   "up": selected is not None and selected > 0,
+                   "down": selected is not None and selected < length - 1,
+                   "back": self._passo > 0, "forward": self._passo < length,
+                   "return": length > 0, "export": length > 0}
+        for key, active in enabled.items():
+            self._btn[key].state(["!disabled" if active else "disabled"])
 
     def successione(self) -> Successione:
         inp = self.app._sessione.input_di("successione")
@@ -580,6 +611,7 @@ class SessioneDialog(tk.Toplevel):
         if i is not None and 0 <= i + verso < s.lunghezza:
             self._registra(s.sposta(i, i + verso))
             self._albero.selection_set(str(i + verso))
+            self._stati_successione()
 
     def _aggiorna_successione(self):
         s = self.successione()
@@ -598,6 +630,7 @@ class SessioneDialog(tk.Toplevel):
         self._tappa_lbl.configure(text=tr("sequence.stage", k=self._passo, n=s.lunghezza))
         self._scrivi(self._replay, [tr("sequence.deck", k=self._passo),
                                     " ".join(map(str, v))])
+        self._stati_successione()
 
     def replay(self, verso):
         s = self.successione()

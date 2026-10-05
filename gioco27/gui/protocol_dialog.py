@@ -16,6 +16,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 from .common import prepara_dialogo
 from .help_banner import HelpBanner
+from . import guidance, context_help
 from .i18n import tr
 from .i18n import get_language
 import webbrowser
@@ -487,6 +488,7 @@ class ProtocolDialog(tk.Toplevel):
         self.title(tr("protocol.dialog.title"))
         self.resizable(False, False)
         self._build_ui()
+        guidance.install(self, "protocol")
         # H2: si comincia dal primo riquadro delle sezioni da includere.
         prepara_dialogo(self, self._prima_opzione)
 
@@ -503,8 +505,9 @@ class ProtocolDialog(tk.Toplevel):
         HelpBanner(
             self,
             tr("protocol.help.short"),
-            long=tr("protocol.help.long"),
+            long=context_help.text(("A11",)) + "\n\n" + tr("protocol.help.long"),
             on_open_guide=getattr(self.master, "_open_guide", None),
+            guide_section="s24",
         ).pack(fill="x", padx=16, pady=(0, 8))
 
         ttk.Separator(self).pack(fill="x")

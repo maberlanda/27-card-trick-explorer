@@ -15,6 +15,7 @@ import tkinter as tk
 
 from .common import rendi_azionabile
 from .i18n import tr
+from .scorrimento import AreaScorrevole
 
 
 class HelpBanner(tk.Frame):
@@ -47,7 +48,7 @@ class HelpBanner(tk.Frame):
             link = tk.Label(row, text=f"ⓘ {tr('banner.open_guide')}", bg=self.BG, fg=self.FG,
                             font="GiocoHelpLink", cursor="hand2")
             link.pack(side="right")
-            rendi_azionabile(link, lambda: self._on_open(self._section),
+            rendi_azionabile(link, self._apri_guida,
                              sfondo=self.BG, colore_focus=self.FG)
             self._link_guida = link
 
@@ -59,15 +60,41 @@ class HelpBanner(tk.Frame):
             self._toggle.pack(side="right", padx=(0, 14))
             rendi_azionabile(self._toggle, self._toggle_long,
                              sfondo=self.BG, colore_focus=self.FG)
-            self._longlbl = tk.Label(self, text=long, bg=self.BG, fg=self.FG2,
+            self._long_area = AreaScorrevole(self)
+            self._long_area.tela.configure(height=180, width=640, bg=self.BG)
+            self._longlbl = tk.Label(self._long_area.contenuto, text=long, bg=self.BG, fg=self.FG2,
                                      font="GiocoHelp", wraplength=640,
                                      justify="left")
+            self._longlbl.pack(fill="x", anchor="w")
+            self._long_area.bind("<Configure>", lambda e: self._longlbl.configure(
+                wraplength=max(180, min(900, e.width - 28))), add="+")
+
+    def _apri_guida(self):
+        owner = getattr(self._on_open, "__self__", None)
+        window = self.winfo_toplevel()
+        if owner is not None and isinstance(owner, tk.Tk) and window is not owner:
+            owner._guide_origin_window = window
+            owner._guide_restore_grab = window.grab_current() is window
+            if owner._guide_restore_grab:
+                window.grab_release()
+            owner._guide_hidden_windows = []
+            ancestor = window
+            while ancestor is not owner:
+                if ancestor.state() != "withdrawn":
+                    owner._guide_hidden_windows.append(ancestor)
+                    ancestor.withdraw()
+                parent = getattr(ancestor, "master", None)
+                if parent is None:
+                    break
+                ancestor = parent.winfo_toplevel()
+            owner.lift()
+        self._on_open(self._section)
 
     def _toggle_long(self, _event=None):
         self._open = not self._open
         if self._open:
-            self._longlbl.pack(fill="x", padx=34, pady=(0, 8))
+            self._long_area.pack(fill="x", padx=12, pady=(0, 8))
             self._toggle.config(text=tr("banner.show_less"))
         else:
-            self._longlbl.pack_forget()
+            self._long_area.pack_forget()
             self._toggle.config(text=tr("banner.show_more"))

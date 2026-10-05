@@ -5,6 +5,7 @@ import numpy as np
 
 from ..core.espressione import ParseError, traccia_simulazione
 from .i18n import tr
+from . import guidance
 
 class ShuffleViewerFrame(ttk.Frame):
     """
@@ -28,6 +29,7 @@ class ShuffleViewerFrame(ttk.Frame):
         self._play_id  = None
         self._speed_ms = 800
         self._build_ui()
+        guidance.install(self, "shuffle")
 
     # ─── UI ──────────────────────────────────────────────────────────────────
     def _build_ui(self):
@@ -81,7 +83,7 @@ class ShuffleViewerFrame(ttk.Frame):
         for row in range(9):
             row_lbls = []
             for col in range(3):
-                lbl = tk.Label(gf, text="C00",
+                lbl = tk.Label(gf, text="—",
                                font=("Courier New", 9, "bold"),
                                width=5, relief="solid", borderwidth=1,
                                bg=self._CLR_NORMAL, padx=3, pady=3,
@@ -160,12 +162,15 @@ class ShuffleViewerFrame(ttk.Frame):
         # piccola etichetta sotto ogni cella con la posizione nel mazzo
         for v in range(27):
             ttk.Label(inv_row_f, text=f"{v:02d}",
-                      font=("Segoe UI", 6), foreground="#999",
+                      font=("Segoe UI", 8), foreground="#526273",
                       anchor="center").grid(row=1, column=v, sticky="ew")
 
         # Riga 4: controlli
         ctrl = ttk.Frame(self)
-        ctrl.grid(row=4, column=0, sticky="ew", pady=(6, 2))
+        ctrl.grid(row=2, column=0, sticky="ew", pady=(6, 2))
+        mid.grid_configure(row=4)
+        self.rowconfigure(2, weight=0)
+        self.rowconfigure(4, weight=1)
         ttk.Button(ctrl, text=f"\u23ee  {tr('shuffle.reset')}",
                    command=self.reset).pack(side="left", padx=2)
         ttk.Button(ctrl, text=f"\u23ed  {tr('shuffle.step_button')}",
@@ -198,7 +203,8 @@ class ShuffleViewerFrame(ttk.Frame):
 
         # Riga 3b: navigazione estesa
         ctrl2 = ttk.Frame(self)
-        ctrl2.grid(row=5, column=0, sticky="ew", pady=(0, 2))
+        ctrl2.grid(row=3, column=0, sticky="ew", pady=(0, 2))
+        inv_row_f.grid_configure(row=5)
 
         ttk.Button(ctrl2, text=f"⏮ {tr('shuffle.start')}",
                    command=self._goto_start
@@ -226,6 +232,13 @@ class ShuffleViewerFrame(ttk.Frame):
             self, text="", font=("Segoe UI", 9, "italic"),
             foreground="#555", wraplength=950, justify="left")
         self._msg_lbl.grid(row=6, column=0, sticky="ew", pady=(2, 0))
+        self._transport = [w for row in (ctrl, ctrl2) for w in row.winfo_children()
+                           if isinstance(w, ttk.Button)]
+        self._update_transport()
+
+    def _update_transport(self):
+        for button in self._transport:
+            button.state(["!disabled" if self._steps else "disabled"])
 
     # ─── caricamento e validazione ────────────────────────────────────────────
     def load_formula(self):
@@ -257,6 +270,7 @@ class ShuffleViewerFrame(ttk.Frame):
         else:
             self._build_steps(traccia)
         self.reset()
+        self._update_transport()
 
     def _validate_and_parse(self, expr):
         """Adattatore: chiede il parsing al linguaggio, non lo esegue.
@@ -460,11 +474,23 @@ class ShuffleViewerFrame(ttk.Frame):
         """Reset completo: scarica la formula e torna allo stato iniziale."""
         self.pause()
         self._traccia = None
-        self._build_steps([])          # solo lo stato iniziale (mazzo ordinato)
-        self._formula_lbl.configure(text="", foreground="#333")
+        self._steps = []
+        for row in self._cell_labels:
+            for label in row:
+                label.configure(text="—", bg=self._CLR_NORMAL)
+        for label in self._inv_labels:
+            label.configure(text="·", bg="#F0F0F0", fg="#555")
+        for text in (self._vec_text, self._log_text):
+            text.configure(state="normal")
+            text.delete("1.0", "end")
+            text.configure(state="disabled")
+        self._formula_lbl.configure(text=tr("shuffle.no_formula"), foreground="#555")
+        self._step_lbl.configure(text=tr("shuffle.step", current="—", total="—"))
+        self._op_lbl.configure(text="")
         self._set_msg(tr("shuffle.no_formula_loaded"))
         self._cur = 0
         self._refresh()
+        self._update_transport()
 
     def step_once(self):
         """Avanza di un passo (o una carta in modalità carta-per-carta)."""

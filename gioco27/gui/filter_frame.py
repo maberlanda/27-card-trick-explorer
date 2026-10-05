@@ -5,6 +5,7 @@ from tkinter import ttk
 from ..core.constants import P_OPTS, J_OPTS, ANY
 from .tooltip import attach as _tip
 from .i18n import tr
+from . import context_help
 
 # Descrizioni in parole semplici delle 6 permutazioni P (su S=sinistra,
 # C=centro, D=destra) e delle 2 orientazioni J.
@@ -67,6 +68,7 @@ class FilterFrame(ttk.LabelFrame):
         self._vars = {}               # nome → (StringVar_dropdown, [(opt, BoolVar)])
         self._j_row_widgets = []      # widget J1 e J2 da disabilitare
         self._caselle = {}            # nome → [Checkbutton] (per i test e M01)
+        self._combo = {}
         # M01: guardia contro la ricorsione quando il pannello riaccende da se'
         # l'ultima casella tolta.
         self._riallineando = False
@@ -76,6 +78,7 @@ class FilterFrame(ttk.LabelFrame):
                          highlightbackground="#BcD3EA",
                          highlightthickness=1)
         intro.pack(side="top", fill="x", pady=(0, 8))
+        context_help.banner(intro, "A04", getattr(self.winfo_toplevel(), "_open_guide", None)).pack(fill="x")
         self._intro_lbl = tk.Label(
             intro,
             text=tr("filter.intro"),
@@ -145,6 +148,7 @@ class FilterFrame(ttk.LabelFrame):
             style="JUniform.TCheckbutton",
         )
         self._j_uniform_chk.pack(fill="x", padx=6, pady=5)
+        _tip(self._j_uniform_chk, tr("ux4.uniform.reason"))
 
         ttk.Label(j_unif_frame,
                   text=f"     {tr('filter.uniform_j_note')}",
@@ -226,7 +230,27 @@ class FilterFrame(ttk.LabelFrame):
 
         self._vars[name] = (dvar, bvars)
         self._caselle[name] = caselle
+        self._combo[name] = combo
+        dvar.trace_add("write", lambda *_: self._aggiorna_disponibilita())
         return widgets
+
+    def _aggiorna_disponibilita(self):
+        uniform = self._j_uniform_var.get()
+        for name, (fixed, _) in self._vars.items():
+            locked = uniform and name in ("J1", "J2")
+            self._combo[name].configure(state="disabled" if locked else "readonly")
+            for checkbox in self._caselle[name]:
+                checkbox.state(["disabled" if locked or fixed.get() != ANY else "!disabled"])
+                option = checkbox.cget("text")
+                desc = _PERM3_DESC.get(option) or _J_DESC.get(option)
+                checkbox._tooltip.set_text(tr("ux4.uniform.reason") if locked else
+                    tr("ux4.fixed.reason") if fixed.get() != ANY else
+                    tr("filter.option.tooltip", option=option, description=tr(desc)))
+            _tip(self._combo[name], tr("ux4.uniform.reason") if locked else
+                 tr("filter.combo.tooltip", name=name))
+        fixed_names = [name for name, (fixed, _) in self._vars.items() if fixed.get() != ANY]
+        self._nota_lbl.configure(text=tr("filter.never_empty.note") +
+                                 ("\n" + tr("ux4.fixed.reason") if fixed_names else ""))
 
     # ─────────────────────────────────────────────────────────────────────────
 
@@ -279,6 +303,7 @@ class FilterFrame(ttk.LabelFrame):
                 w.configure(state=state)
             except tk.TclError:
                 pass
+        self._aggiorna_disponibilita()
         if self._on_change:
             self._on_change()
 

@@ -18,6 +18,9 @@ from ..core import gioco_reale as gr
 from ..services import laboratorio as lab
 from ..services.laboratorio import Dominio, Esito, Metodo
 from .i18n import tr
+from . import context_help
+from .tooltip import attach
+from . import guidance
 
 _SEGNO = {Esito.VERA: "✔", Esito.FALSA: "✘", Esito.NON_DECISA: "?"}
 
@@ -43,8 +46,8 @@ class LaboratorioFrame(ttk.Frame):
         # va a capo su due righe. Erano due etichette separate (21 + 42 px,
         # la nota a capo a 1100 px): con i font di Tk 8.6 su Linux la pagina non
         # stava nella vista a 1280×720 (H2). Stesso testo, nessun contenuto tolto.
-        self._nota_legacy = self._paragrafo_intestazione(
-            tr("lab.header"), tr("ux3.lab.independent") + " " + tr("lab.legacy_note"))
+        self._nota_legacy = context_help.banner(self, "A10", short=tr("ux4.lab.prompt"))
+        self._nota_legacy._longlbl.configure(text=self._nota_legacy._long + "\n\n" + tr("lab.legacy_note"))
         self._nota_legacy.grid(row=0, column=0, sticky="ew", pady=(0, 1))
         nb = ttk.Notebook(self)
         nb.grid(row=2, column=0, sticky="nsew")
@@ -56,6 +59,7 @@ class LaboratorioFrame(ttk.Frame):
         self._costruisci_grafi(nb)
         self._elenco.selection_set(0)
         self._su_proprieta()
+        guidance.install(self, "lab")
 
     def reset(self):
         self._elenco.selection_clear(0, "end")
@@ -153,6 +157,8 @@ class LaboratorioFrame(ttk.Frame):
         p = self.proprieta_scelta()
         for d, rb in self._domini_rb.items():
             rb.configure(state="normal" if d in p.domini else "disabled")
+            attach(rb, guidance.tip("lab", f"lab.domain.short.{d.value}") if d in p.domini else
+                   tr("ux4.lab.domain.reason", domains=", ".join(_dominio(x) for x in p.domini)))
         if Dominio(self._dominio_var.get()) not in p.domini:
             self._dominio_var.set(p.domini[0].value)
         self.verifica()
@@ -175,9 +181,9 @@ class LaboratorioFrame(ttk.Frame):
         altri = ", ".join(tr(f"lab.domain.short.{x.value}") for x in p.domini)
         righe = [
             f"{tr('lab.field.statement')}: {tr(f'lab.prop.{p.id}')}",
+            f"{tr('lab.field.outcome')}: {_SEGNO[v.esito]} {tr(f'lab.outcome.{v.esito.value}')}",
             f"{tr('lab.field.domain')}: {_dominio(v.dominio)}   "
             f"({tr('lab.field.declared_domains')}: {altri})",
-            f"{tr('lab.field.outcome')}: {_SEGNO[v.esito]} {tr(f'lab.outcome.{v.esito.value}')}",
             f"{tr('lab.field.verification')}: {tr(f'lab.method.{v.metodo.value}')} — "
             + self._conteggio(v),
             f"{tr('lab.field.counterexample')}: " + self._controesempio(v),
@@ -418,6 +424,8 @@ class LaboratorioFrame(ttk.Frame):
         abilita = "normal" if g.dominio is Dominio.H else "disabled"
         for w in (self._da_spin, self._a_spin, self._cammino_btn):
             w.configure(state=abilita)
+            attach(w, tr("ux4.graph.reason") if abilita == "disabled" else
+                   guidance.tip("lab", "lab.graph.path.run"))
         if g.dominio is Dominio.H:
             try:
                 da, a = int(self._da_var.get()), int(self._a_var.get())

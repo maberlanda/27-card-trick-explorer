@@ -44,6 +44,8 @@ from .sessione_tab import SessioneMixin
 from . import tooltip as _tooltip
 from .i18n import format_integer, set_language, tr
 from .help_banner import HelpBanner
+from . import context_help
+from . import guidance
 from .glossary import TAB_HELP, testo_aiuto_scheda
 from . import livelli as _livelli
 from . import uifont
@@ -159,6 +161,12 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
         self._build_ui()
         self._sessione_collega()
         self._update_count()   # conteggio iniziale
+        guidance.install(self, "general")
+        _tooltip.attach(self._explorer_entry, tr("ux4.input.expression"))
+        _tooltip.attach(self._livello_cb, tr("tooltip.level"))
+        _tooltip.attach(self._azioni_livello["combinazioni"], tr("ux4.count.tip"))
+        _tooltip.attach(self._btn_annulla, lambda: tr("tooltip.cancel_export")
+                        if self._export_busy else tr("ux4.empty.export"))
 
         # Salva config alla chiusura
         self.protocol("WM_DELETE_WINDOW", self._on_close)
@@ -302,9 +310,13 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
         gen_mb["menu"] = gen_menu
         rendi_menu_apribile(gen_mb)
         self._azioni_livello["genera"] = _azione(gen_mb, tr("tooltip.generate"))
-        _azione(ttk.Button(inner, text=f"↺  {tr('button.reset_all')}",
-                           style="Action.TButton", command=self._reset),
-                tr("tooltip.reset_all"))
+        tools = tk.Menubutton(inner, text=tr("ux4.tools"), relief="raised")
+        tools_menu = tk.Menu(tools, tearoff=0)
+        tools_menu.add_command(label=tr("button.reset_all"), command=self._reset)
+        tools_menu.add_command(label=tr("button.verify"), command=self._run_selftest)
+        tools["menu"] = tools_menu
+        rendi_menu_apribile(tools)
+        _azione(tools, tr("ux4.tools.tip"))
 
         inner.separatore()
         # DP7: selettore dei quattro livelli (tastiera: Tab, poi frecce)
@@ -329,12 +341,17 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
                   style="Status.TLabel").pack(side="left")
         self.count_var = tk.StringVar(value="—")
         ttk.Label(count_frame, textvariable=self.count_var,
-                  style="Count.TLabel").pack(side="left", padx=(6, 0))
+                  style="Count.TLabel", width=14, anchor="w").pack(side="left", padx=(6, 0))
         self._azioni_livello["combinazioni"] = _azione(count_frame, None)
 
         self.status_var = tk.StringVar(value="")
-        self._status_lbl = ttk.Label(inner, textvariable=self.status_var,
-                                     style="Status.TLabel", wraplength=380)
+        self._status_display = tk.StringVar()
+        self.status_var.trace_add("write", lambda *_: self._status_display.set(
+            self.status_var.get() if len(self.status_var.get()) <= 48
+            else self.status_var.get()[:45] + "…"))
+        self._status_lbl = ttk.Label(inner, textvariable=self._status_display,
+                                     style="Status.TLabel", width=26, wraplength=220)
+        _tooltip.attach(self._status_lbl, lambda: self.status_var.get())
         # La riga di stato è l'elemento che cede: è l'unico che può stare
         # stretto senza che si perda un'azione.
         _azione(self._status_lbl, None, padx=14, elastico=True)
@@ -361,9 +378,6 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
         _azione(ttk.Button(inner, text=f"🖥️  {tr('button.presentation')}",
                            command=self._open_presentation),
                 tr("tooltip.presentation"), padx=2, a_destra=True)
-        _azione(ttk.Button(inner, text=f"✔  {tr('button.verify')}",
-                           command=self._run_selftest),
-                tr("tooltip.verify"), padx=2, a_destra=True)
         _azione(ttk.Button(inner, text=f"⚙️  {tr('button.settings')}",
                            command=self._open_settings),
                 tr("tooltip.settings"), padx=2, a_destra=True)
@@ -422,7 +436,8 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
 
         # ── Notebook ─────────────────────────────────────────────────────────
         # Legenda colori sempre visibile, in fondo alla finestra
-        self._build_legend_bar().pack(fill="x", side="bottom")
+        self._legend_bar = self._build_legend_bar()
+        self._legend_bar.pack(fill="x", side="bottom")
 
         nb = ttk.Notebook(self)
         nb.pack(fill="both", expand=True, padx=10, pady=(4, 10))
@@ -509,7 +524,7 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
             _tooltip.attach(chip, tr("tooltip.color_chip", name=name))
         tk.Label(bar,
                  text=tr("label.legend_note"),
-                 bg=self.C_ACTION_BG, fg="#8a96a3",
+                 bg=self.C_ACTION_BG, fg="#526273",
                  font=("Segoe UI", 8, "italic")).pack(side="left", padx=10)
         return bar
 
@@ -529,12 +544,18 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
         """
         wrap = ttk.Frame(self._nb)
         short_key, long_key = TAB_HELP[key]
-        self._mk_banner(wrap, tr(short_key), testo_aiuto_scheda(key),
+        topics = context_help.AREAS.get(key, ())
+        long = context_help.text(topics) + "\n\n" + testo_aiuto_scheda(key)
+        self._mk_banner(wrap, tr(short_key), long,
                         section=section).pack(fill="x")
         area = AreaScorrevole(wrap)
         area.pack(fill="both", expand=True)
         inner = build_fn(area.contenuto)
         inner.pack(fill="both", expand=True)
+        guidance.install(inner, {"simulatore": "simulator", "tavola": "table",
+                                "anteprima": "preview", "analisi": "analysis"}.get(key, key))
+        if key in ("simulatore", "tavola"):
+            ttk.Button(wrap, text=tr("ux4.sequence.open"), command=self._open_successione).pack(anchor="e", padx=8)
         self._aree_scorrevoli[key] = area
         return wrap
 
@@ -608,7 +629,8 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
         if preset is not None:
             vedi = _livelli.visibile(_livelli.AZIONI["preset"], corrente)
             if vedi and not preset.winfo_manager():
-                preset.pack(fill="x", before=self._riga_progresso)
+                preset.pack(fill="x", before=(self._riga_progresso
+                            if self._riga_progresso.winfo_manager() else self._nb))
             elif not vedi and preset.winfo_manager():
                 preset.pack_forget()
         cb = getattr(self, "_livello_cb", None)
@@ -619,6 +641,19 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
             onb.set(corrente)
         if hasattr(self, "_tavola_frame"):
             self._tavola_frame.aggiorna_navigazione()
+        self._aggiorna_secondari()
+
+    def _aggiorna_secondari(self):
+        base = self._livello == _livelli.BASE
+        row = self._riga_progresso
+        if base and not self._export_busy:
+            row.pack_forget()
+        elif not row.winfo_manager():
+            row.pack(fill="x", padx=12, pady=(4, 0), before=self._nb)
+        if base:
+            self._legend_bar.pack_forget()
+        elif not self._legend_bar.winfo_manager():
+            self._legend_bar.pack(fill="x", side="bottom")
 
     def _aggiungi_scheda(self, nb, chiave, widget, testo):
         """Aggiunge una scheda al notebook e ne registra la chiave stabile.
@@ -654,6 +689,9 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
         link «Apri Guida» apriva la Guida in cima, qualunque fosse la scheda
         di partenza.
         """
+        if self._nb.select() != str(self._schede["guida"]):
+            self._guide_origin = self._nb.select()
+            self._guide_return.state(["!disabled"])
         self._seleziona_scheda("guida")
         if not section:
             return
@@ -840,6 +878,7 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
         _nw = _cfg.effective_n_workers if _cfg.get("use_parallel", True) else 1
 
         self._export_busy = True
+        self._aggiorna_secondari()
         self._export_stop.clear()
         self._btn_annulla.configure(state="normal")
         self.progress["maximum"] = n
@@ -904,6 +943,7 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
         if getattr(self, "_closing", False):
             return
         self._export_busy = False
+        self._aggiorna_secondari()
         self._export_stop.clear()
         try:
             self._btn_annulla.configure(state="disabled")
@@ -965,8 +1005,22 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
     def _build_guide_tab(self, parent):
         """Tab Guida — documentazione completa, scrollabile, read-only."""
         frame = ttk.Frame(parent, padding=0)
-        frame.rowconfigure(0, weight=1)
+        frame.rowconfigure(1, weight=1)
         frame.columnconfigure(0, weight=1)
+        nav = ttk.Frame(frame)
+        nav.grid(row=0, column=0, columnspan=2, sticky="ew", padx=12, pady=4)
+        self._guide_query = tk.StringVar()
+        query = ttk.Entry(nav, textvariable=self._guide_query, width=28)
+        query.pack(side="left")
+        query.bind("<Return>", lambda e: self._guide_search())
+        ttk.Button(nav, text=tr("ux4.guide.search"), command=self._guide_search).pack(side="left", padx=6)
+        ttk.Button(nav, text=tr("ux4.guide.index"), command=lambda: self._guide_text.yview("1.0")).pack(side="left")
+        self._guide_return = ttk.Button(nav, text=tr("ux4.guide.return"), state="disabled",
+                                        command=self._guide_back)
+        self._guide_return.pack(side="left", padx=6)
+        self._guide_feedback = ttk.Label(nav)
+        self._guide_feedback.pack(side="left")
+        self._guide_search_end = "1.0"
 
         txt = tk.Text(frame, wrap="word", font=("Segoe UI", 11),
                       bg="#FAFCFF", fg="#1a1a2e",
@@ -974,8 +1028,8 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
                       spacing1=2, spacing3=5)
         vsb = ttk.Scrollbar(frame, orient="vertical", command=txt.yview)
         txt.configure(yscrollcommand=vsb.set)
-        txt.grid(row=0, column=0, sticky="nsew")
-        vsb.grid(row=0, column=1, sticky="ns")
+        txt.grid(row=1, column=0, sticky="nsew")
+        vsb.grid(row=1, column=1, sticky="ns")
 
         txt.tag_configure("h1",  font=("Segoe UI", 16, "bold"),
                           foreground="#1F4E79", spacing1=18, spacing3=8)
@@ -1019,6 +1073,16 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
         self._guide_text = txt
 
         def ins(tag, text):
+            if tag == "toc":
+                num = text.strip().split(".", 1)[0].strip()
+                if num.isdigit():
+                    link = f"toc_{num}"
+                    txt.tag_configure(link, underline=True)
+                    txt.tag_bind(link, "<Button-1>", lambda e, n=num: txt.yview(self._guide_marks[n]))
+                    txt.tag_bind(link, "<Enter>", lambda e: txt.configure(cursor="hand2"))
+                    txt.tag_bind(link, "<Leave>", lambda e: txt.configure(cursor="xterm"))
+                    txt.insert("end", text, (tag, link))
+                    return
             if tag == "h2":
                 num = text.strip().split(".", 1)[0].strip()
                 if num.isdigit():
@@ -1036,6 +1100,41 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
 
         txt.configure(state="disabled")
         return frame
+
+    def _guide_search(self):
+        txt, term = self._guide_text, self._guide_query.get().strip()
+        txt.tag_remove("search_hit", "1.0", "end")
+        if not term:
+            return
+        start = getattr(self, "_guide_search_end", "1.0")
+        found = txt.search(term, start, stopindex="end", nocase=True)
+        if not found:
+            found = txt.search(term, "1.0", stopindex=start, nocase=True)
+        self._guide_feedback.configure(text="" if found else tr("ux4.guide.not_found"))
+        if found:
+            end = f"{found}+{len(term)}c"
+            txt.tag_configure("search_hit", background="#FFE082")
+            txt.tag_add("search_hit", found, end)
+            txt.see(found)
+            self._guide_search_end = end
+
+    def _guide_back(self):
+        origin = getattr(self, "_guide_origin", None)
+        if origin:
+            self._nb.select(origin)
+        window = getattr(self, "_guide_origin_window", None)
+        for hidden in reversed(getattr(self, "_guide_hidden_windows", [])):
+            if hidden.winfo_exists():
+                hidden.deiconify()
+        self._guide_hidden_windows = []
+        if window is not None and window.winfo_exists():
+            window.deiconify()
+            window.lift()
+            window.focus_set()
+            if getattr(self, "_guide_restore_grab", False):
+                window.grab_set()
+        self._guide_origin_window = None
+        self._guide_restore_grab = False
     # ── Tab Cicli ───────────────────────────────────────────────────────────
     def _build_cycles_tab(self, nb):
         self._cycles_frame = CyclesFrame(
@@ -1291,7 +1390,8 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
         HelpBanner(
             dlg,
             tr("settings.help.short"),
-            long=tr("settings.help.long"),
+            long=context_help.text(("A13",)) + "\n\n" + tr("settings.help.long"),
+            on_open_guide=self._open_guide, guide_section="s27",
         ).pack(fill="x")
 
         fr = ttk.Frame(dlg, padding=(20, 14))
@@ -1303,7 +1403,7 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
         n_cpu = multiprocessing.cpu_count()
         cur_w  = self._cfg.get("n_workers") or max(1, n_cpu - 1)
         w_var  = tk.StringVar(value=str(cur_w))
-        worker_box = ttk.Spinbox(fr, from_=1, to=n_cpu, textvariable=w_var,
+        worker_box = ttk.Spinbox(fr, from_=1, to=min(n_cpu, 256), textvariable=w_var,
                                  width=5)
         worker_box.grid(row=0, column=1, padx=10, sticky="w")
         ttk.Label(fr, text=tr("settings.logical_cpus_default",
@@ -1427,9 +1527,17 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
         def do_save():
             nascondi_avviso()
             try:
+                workers = int(w_var.get())
+                if not 1 <= workers <= min(n_cpu, 256):
+                    raise ValueError("workers outside available range")
+            except (ValueError, tk.TclError):
+                mostra_avviso(tr("ux4.workers.invalid", maximum=min(n_cpu, 256)))
+                worker_box.focus_set()
+                return
+            try:
                 scale = _scale_map[hs_var.get()]
                 code = language_codes[language_var.get()]
-                self._cfg.commit({"n_workers": int(w_var.get()),
+                self._cfg.commit({"n_workers": workers,
                                   "use_parallel": bool(par_var.get()),
                                   "help_font_scale": scale, "language": code})
             except (ValueError, KeyError, tk.TclError):
@@ -1445,6 +1553,9 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
             dlg.destroy()
 
         salva.configure(command=do_save)
+        guidance.install(dlg, "settings")
+        _tooltip.attach(worker_box, guidance.tip("settings", "settings.workers"))
+        _tooltip.attach(language_combo, guidance.tip("settings", "settings.language"))
         # Il fuoco iniziale va sul primo controllo modificabile, non su
         # «Salva»: chi apre le impostazioni vuole cambiare qualcosa.
         prepara_dialogo(dlg, worker_box)

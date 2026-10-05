@@ -23,6 +23,8 @@ from types import MappingProxyType
 
 from ..core import gioco_reale as gr
 from .i18n import tr
+from . import guidance
+from .tooltip import attach
 from .spettatore_tab import SpettatoreFrame
 from .pratica_reale import PraticaRealeMixin
 
@@ -124,6 +126,12 @@ class SimulatorFrame(PraticaRealeMixin, ttk.Frame):
         self._p_card   = 0
 
         self._build_ui()
+        guidance.install(self, "simulator")
+        guidance.fields(self, {"_target_spin": ("simulator", "simulator.final_position"),
+                              "_phase_scale": ("simulator", "simulator.photo"),
+                              "_p_recupero_cb": "ux4.recovery.choice"})
+        for button in self._p_col_btn_frame.winfo_children():
+            attach(button, tr("ux4.column.practice"))
 
     # ─── UI ────────────────────────────────────────────────────────────────────
 

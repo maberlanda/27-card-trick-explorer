@@ -282,6 +282,10 @@ class ExplorerTabMixin:
         self._exp_lbl(fr, tr("explorer.log_errors"))
         _f, self._exp_log = self._exp_scrolled(fr, height=3)
         _f.pack(fill="x")
+        children = fr.winfo_children()
+        # Present the numerical effect before its algebraic descriptions.
+        children[4].pack(before=children[0])
+        children[5].pack(before=children[0])
 
     def _build_explorer_tab_rewrite(self, nb):
         fr = ttk.Frame(nb, padding=8)
@@ -452,7 +456,7 @@ class ExplorerTabMixin:
             corpo.columnconfigure(1, weight=1)
             corpo.rowconfigure(2, weight=1)
 
-            cv = tk.Canvas(corpo, width=cv_size, height=cv_size,
+            cv = tk.Canvas(corpo, width=cv_size+26, height=cv_size+26,
                            bg="white", highlightthickness=1,
                            highlightbackground="#AAAAAA")
             cv.grid(row=0, column=0, rowspan=3, sticky="n", padx=(0, 8))
@@ -476,7 +480,7 @@ class ExplorerTabMixin:
                                 highlightbackground="#888")
                 fcv.pack()
                 self._draw_empty_grid(fcv, 3, SMALL)
-                flbl = ttk.Label(col_fr, text=f"P{i+1} = —",
+                flbl = ttk.Label(col_fr, text=f"P{2-i} = —",
                                  font=("Consolas", 9), foreground="#1F4E79")
                 flbl.pack(pady=(2, 0))
                 fcvs.append(fcv)
@@ -521,6 +525,10 @@ class ExplorerTabMixin:
             canvas.create_line(x, 0, x, size+1, fill=col, width=w)
             canvas.create_line(0, x, size+1, x, fill=col, width=w)
         canvas.create_rectangle(0, 0, size, size, outline="#333333", width=2)
+        if n == 27:
+            for i in (0, 3, 6, 9, 12, 15, 18, 21, 24, 26):
+                canvas.create_text((i + .5) * cell, size + 12, text=str(i), font=("Segoe UI", 8), fill="#333")
+                canvas.create_text(size + 12, (i + .5) * cell, text=str(i), font=("Segoe UI", 8), fill="#333")
 
     def _draw_perm_on_canvas(self, canvas, perm, cell, color="#27AE60"):
         """Disegna la matrice di permutazione: perm[col]=row → quadratino verde."""
@@ -542,7 +550,7 @@ class ExplorerTabMixin:
         scritti. Non è un riassunto: è la permutazione, per intero.
         """
         valori = ", ".join(str(v) for v in perm27)
-        righe = [tr("explorer.matrix.as_text", values=valori)]
+        righe = [tr("ux4.matrix.axes"), tr("explorer.matrix.as_text", values=valori)]
         if fattori:
             righe.append(tr("explorer.matrix.factors_as_text",
                             factors=" ⊗ ".join(str(f) for f in fattori)))
@@ -571,7 +579,7 @@ class ExplorerTabMixin:
                 nomi_fattori = list(names)
                 for i, (fcv, flbl) in enumerate(zip(fcvs, flbls)):
                     self._draw_perm_on_canvas(fcv, canonical_form.kron_factors[i], SMALL)
-                    flbl.config(text=f"P{i+1} = {names[i]}")
+                    flbl.config(text=f"P{2-i} = {names[i]}")
             except Exception:
                 cf_lbl.config(text=tr("explorer.matrix.canonical_error"))
         else:
@@ -889,7 +897,7 @@ class ExplorerTabMixin:
             self._exp_set_colored(self._exp_nf_sym, nf.symbolic)
             if nf.kron_factors_repr:
                 kron_str = "\n".join(
-                    f"  P{i+1} = {f}" for i, f in enumerate(nf.kron_factors_repr))
+                    f"  P{2-i} = {f}" for i, f in enumerate(nf.kron_factors_repr))
             else:
                 kron_str = f"  {tr('explorer.no_residual_kronecker')}"
             self._exp_set_colored(self._exp_nf_kron, kron_str)

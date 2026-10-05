@@ -78,6 +78,8 @@ class PreviewTabMixin:
                                      state="readonly",
                                      font=("Consolas", 11))
                 combo.grid(row=s+1, column=col+1, padx=8, pady=6)
+                from .tooltip import attach
+                attach(combo, tr("filter.level." + key.upper()) + "\n" + tr("ux4.preview.values"))
                 stage_vars[key] = var
             self._prev_vars.append(stage_vars)
 
@@ -91,7 +93,7 @@ class PreviewTabMixin:
                    command=self._calcola_anteprima).pack(side="left")
 
         ttk.Button(btn_frame,
-                   text="↺ Reset",
+                   text=tr("ux4.preview.reset"),
                    style="Preset.TButton",
                    command=self._reset_anteprima).pack(side="left", padx=8)
 

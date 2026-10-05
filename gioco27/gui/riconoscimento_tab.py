@@ -14,6 +14,8 @@ from ..core import gioco_reale as gr
 from ..core.dominio import PermutazioneNonValida
 from ..services import riconoscimento as rc
 from .i18n import tr
+from . import context_help, guidance
+from .tooltip import attach
 
 MODO_PERM, MODO_MAZZI, MODO_DUE = "perm", "mazzi", "due"
 _SIGLA = {v: k for k, v in gr.MESCOLAMENTO.items()}
@@ -80,6 +82,14 @@ class RiconoscimentoFrame(ttk.Frame):
         self._esito_lbl.grid(row=1, column=0, sticky="w", pady=(4, 4))
         self._costruisci_schede()
         self._su_modo()
+        context_help.banner(self, "A08", getattr(self.winfo_toplevel(), "_open_guide", None)).grid(
+            row=3, column=0, sticky="ew", pady=4)
+        guidance.install(self, "recognition")
+        attach(self._campo1, lambda: tr("ux4.input.permutation") if self._modo_var.get() == MODO_PERM else tr("ux4.input.decks"))
+        attach(self._campo2, tr("ux4.input.decks"))
+        attach(self._esempio_cb, tr("ux4.input.examples"))
+        for entry in self._a1_campi:
+            attach(entry, tr("ux4.input.a1"))
 
     def reset(self):
         self._pi = self._mazzi = None

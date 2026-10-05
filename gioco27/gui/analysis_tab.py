@@ -69,7 +69,7 @@ class AnalysisTabMixin:
                   font=("Segoe UI", 13, "bold"),
                   foreground="#1a5276").pack(side="left")
         ttk.Label(hdr,
-                  text=f"   {tr('analysis.subtitle')}",
+                  text=tr("ux4.analysis.scope"), wraplength=820,
                   font=("Segoe UI", 10, "italic"),
                   foreground="#555").pack(side="left")
 
@@ -131,7 +131,7 @@ class AnalysisTabMixin:
             "perm", text=tr("analysis.column.permutation"))
         self._analisi_tv.heading(
             "simbolica_0", text=tr("analysis.column.first_symbolic"))
-        self._analisi_tv.column("n_sim",       width=70,  anchor="center", stretch=False)
+        self._analisi_tv.column("n_sim",       width=110, anchor="center", stretch=False)
         self._analisi_tv.column("perm",        width=340, anchor="w")
         self._analisi_tv.column("simbolica_0", width=600, anchor="w")
         vsb = ttk.Scrollbar(tv_frame, orient="vertical",   command=self._analisi_tv.yview)

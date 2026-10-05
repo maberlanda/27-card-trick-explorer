@@ -58,6 +58,7 @@ class BarraAdattiva(ttk.Frame):
         self._nascosti = set()           # I7: widget esclusi dal livello
         self._elastici = set()           # widget che possono restringersi
         self._disposizione = None        # l'ultima calcolata, per non rifarla
+        self._contenitori_riga = []
         self._orizzontale = self._padding_orizzontale(padding)
         self.bind("<Configure>", self._su_configure)
 
@@ -74,7 +75,7 @@ class BarraAdattiva(ttk.Frame):
 
     #: Larghezza minima riservata a un widget elastico quando si decide se la
     #: riga è piena: il resto se lo prende se avanza, e lo cede se manca.
-    MINIMO_ELASTICO = 40
+    MINIMO_ELASTICO = 180
 
     def aggiungi(self, widget, padx=4, a_destra=False, elastico=False):
         """Aggiunge un widget in coda. Restituisce il widget, per comodità.
@@ -164,18 +165,25 @@ class BarraAdattiva(ttk.Frame):
     def _disponi(self, righe):
         for widget, _, _ in self._voci:
             widget.grid_forget()
-        for colonna in range(self.grid_size()[0]):
-            self.columnconfigure(colonna, weight=0, minsize=0)
+        for frame in self._contenitori_riga:
+            frame.grid_forget()
+            for colonna in range(frame.grid_size()[0]):
+                frame.columnconfigure(colonna, weight=0, minsize=0)
+        self.columnconfigure(0, weight=1)
 
         una_riga = len(righe) == 1
         for numero, riga in enumerate(righe):
+            if numero == len(self._contenitori_riga):
+                self._contenitori_riga.append(ttk.Frame(self))
+            frame = self._contenitori_riga[numero]
+            frame.grid(row=numero, column=0, sticky="ew")
             colonna = 0
             spazio_messo = False
             for widget, padx, a_destra in riga:
                 if una_riga and a_destra and not spazio_messo:
                     # Su una riga sola il gruppo di destra resta a destra: fra
                     # i due gruppi si mette una colonna che si allarga.
-                    self.columnconfigure(colonna, weight=1)
+                    frame.columnconfigure(colonna, weight=1)
                     colonna += 1
                     spazio_messo = True
                 if str(widget) in self._elastici:
@@ -183,14 +191,14 @@ class BarraAdattiva(ttk.Frame):
                     # arriverebbe a zero, e Tk smette di mostrare un widget
                     # largo zero: la riga di stato sparirebbe proprio quando
                     # ha qualcosa da dire.
-                    self.columnconfigure(colonna, weight=1,
-                                         minsize=self.MINIMO_ELASTICO)
+                    frame.columnconfigure(colonna, weight=1,
+                                         minsize=self.MINIMO_ELASTICO + 2 * padx)
                     aggancio = "ew"
                 elif isinstance(widget, ttk.Separator):
                     aggancio = "ns"
                 else:
                     aggancio = "w"
-                widget.grid(row=numero, column=colonna, padx=padx, pady=1,
+                widget.grid(in_=frame, row=0, column=colonna, padx=padx, pady=1,
                             sticky=aggancio)
                 colonna += 1
 

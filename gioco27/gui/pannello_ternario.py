@@ -22,6 +22,7 @@ from ..services import tabellone as _tb
 from ..services.procedure import ProceduraGioco
 from .i18n import tr
 from .scorrimento import AreaScorrevole
+from .tooltip import attach
 
 __all__ = ["PannelloTernario"]
 
@@ -119,6 +120,11 @@ class PannelloTernario(ttk.Frame):
                                  wraplength=_LARGHEZZA_TESTO)
         self._titolo.grid(row=riga, column=0, sticky="w", padx=6, pady=(6, 2))
         riga += 1
+        self._return_shortcut = ttk.Button(dentro, command=self._vai_al_ritorno,
+                                           state="disabled")
+        self._return_shortcut.grid(row=riga, column=0, sticky="w", padx=6, pady=2)
+        attach(self._return_shortcut, tr("ux4.return.command"))
+        riga += 1
 
         ttk.Label(dentro, text=tr("ternary.board.chronology"),
                   foreground="#555").grid(row=riga, column=0, sticky="w", padx=6)
@@ -151,6 +157,7 @@ class PannelloTernario(ttk.Frame):
         self._vai_ritorno = ttk.Button(dentro, command=self._vai_al_ritorno,
                                        state="disabled")
         self._vai_ritorno.grid(row=riga, column=0, sticky="w", padx=6, pady=4)
+        attach(self._vai_ritorno, tr("ux4.return.command"))
         riga += 1
         ttk.Label(dentro, text=tr("ternary.text.heading"),
                   foreground="#555").grid(row=riga, column=0, sticky="w", padx=6)
@@ -219,6 +226,7 @@ class PannelloTernario(ttk.Frame):
                 for lbl in riga:
                     lbl.configure(text="", style="Cella.TLabel")
         self._vai_ritorno.state(["disabled"])
+        self._return_shortcut.state(["disabled"])
         self._mostra_vuoto()
 
     def mostra_disposizione(self, numero):
@@ -280,6 +288,8 @@ class PannelloTernario(ttk.Frame):
         self._vai_ritorno.configure(
             text=tr("ternary.board.goto", number=ritorno.numero_tavola),
             state="normal" if self._on_vai_alla_riga else "disabled")
+        self._return_shortcut.configure(text=tr("ternary.board.goto", number=ritorno.numero_tavola),
+                                       state="normal" if self._on_vai_alla_riga else "disabled")
         _scrivi(self._testo_tabellone, self._tabellone_in_testo())
 
     def _riempi_griglia(self, righe, etichette, celle, evidenziate):
@@ -344,6 +354,7 @@ class PannelloTernario(ttk.Frame):
                                        textvariable=self._carta_var,
                                        command=self._su_carta)
         self._spin_carta.pack(side="left", padx=4)
+        attach(self._spin_carta, tr("ux4.input.guide"))
         self._spin_carta.bind("<Return>", self._su_carta)
         self._spin_carta.bind("<FocusOut>", self._su_carta)
         riga += 1
@@ -356,6 +367,7 @@ class PannelloTernario(ttk.Frame):
             c = ttk.Checkbutton(rov, text=tr("ternary.card.flip", phase=fase),
                                 variable=v, command=self._su_rovesciamenti)
             c.pack(anchor="w")
+            attach(c, tr("ux4.epsilon"))
             self._eps_vars.append(v)
             self._eps_check.append(c)
         riga += 1
@@ -397,6 +409,7 @@ class PannelloTernario(ttk.Frame):
         self._lettura = etichetta()
         self._realizzata = etichetta()
         self._vai_realizzata = ttk.Button(dentro, command=self._vai_alla_realizzata)
+        attach(self._vai_realizzata, tr("ux4.realised.command"))
         self._vai_realizzata.grid(row=riga, column=0, sticky="w", padx=6, pady=4)
         riga += 1
         ttk.Label(dentro, text=tr("ternary.text.heading"),

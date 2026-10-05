@@ -22,6 +22,7 @@ from .i18n import get_language
 
 _log = get_logger(__name__)
 from .tooltip import attach as _tip
+from . import context_help, guidance
 
 # Classe di coniugio in S3 di ciascun generatore GEN3:
 # l'identità, le 3 trasposizioni, i 2 tre-cicli.
@@ -57,6 +58,9 @@ class ConjugacyDialog(tk.Toplevel):
         self.resizable(True, True)
         self._gd = None
         self._build_ui()
+        context_help.banner(self, "A10", getattr(parent, "_open_guide", None),
+                            short=tr("ux4.conjugacy.prompt")).pack(fill="x", before=self.winfo_children()[0])
+        guidance.install(self, "conjugacy")
         # H2: si comincia dall'elenco delle classi, che è ciò che si consulta.
         prepara_dialogo(self, self._cls_tree)
         # run_in_thread (non Thread nudo): registra il traceback nel log e
