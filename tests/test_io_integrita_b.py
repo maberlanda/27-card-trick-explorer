@@ -369,10 +369,12 @@ class _TestoFinto:
 
 @pytest.fixture
 def dialogo_senza_finestre(monkeypatch, tmp_path):
+    from gioco27.gui import export_contract
     mostrati = []
-    monkeypatch.setattr(egd, "messagebox", types.SimpleNamespace(
+    monkeypatch.setattr(export_contract, "_scegli", lambda *a: True)
+    monkeypatch.setattr(export_contract, "messagebox", types.SimpleNamespace(
         showinfo=lambda t, m, **k: mostrati.append(("info", t, m)),
-        showerror=lambda t, m, **k: mostrati.append(("error", t, m))))
+        showwarning=lambda t, m, **k: mostrati.append(("warning", t, m))))
     monkeypatch.setattr(egd, "filedialog", types.SimpleNamespace(
         askdirectory=lambda **k: str(tmp_path)))
     return mostrati
@@ -388,9 +390,10 @@ def test_b12_generatore_fallito_non_produce_file(tmp_path, dialogo_senza_finestr
     assert (tmp_path / "buono.svg").read_text(encoding="utf-8") == "<svg/>"
     assert not (tmp_path / "rotto.svg").exists(), "nessun .svg falso"
     tipi = [t for t, *_ in dialogo_senza_finestre]
-    assert "error" in tipi and "info" in tipi
-    completato = [m for t, _ti, m in dialogo_senza_finestre if t == "info"][0]
-    assert "buono.svg" in completato and "rotto.svg" not in completato
+    assert tipi == ["warning"]
+    completato = dialogo_senza_finestre[0][2]
+    assert "Creati: 1" in completato and "buono.svg" in completato
+    assert "Omessi" in completato and "generatore guasto" in completato
 
 
 def test_b12_errore_non_e_contenuto():
@@ -431,8 +434,8 @@ def test_b12_batch_misto_conta_solo_i_riusciti(tmp_path, dialogo_senza_finestre)
     d._export_all()
     creati = sorted(p.name for p in tmp_path.iterdir())
     assert creati == ["k0.svg", "k2.svg"]
-    completato = [m for t, _ti, m in dialogo_senza_finestre if t == "info"][0]
-    assert "2" in completato
+    completato = [m for t, _ti, m in dialogo_senza_finestre if t == "warning"][0]
+    assert "Creati: 2" in completato and "Omessi" in completato
 
 
 # ─────────────────────────────── R02 ────────────────────────────────────────

@@ -80,7 +80,7 @@ class ExplorerTabMixin:
             command=self._explorer_to_tavola)
         self._exp_tavola_btn.pack(side="left", padx=(6, 0))
         self._explorer_status = tk.StringVar(
-            value=tr("explorer.status.prompt"))
+            value=tr("ux2.result.absent") + " — " + tr("explorer.status.prompt"))
         ttk.Label(btn_row, textvariable=self._explorer_status,
                   font="GiocoHelp", foreground="#333",
                   wraplength=380).pack(side="left", padx=(10, 0))
@@ -647,6 +647,12 @@ class ExplorerTabMixin:
         if self._explorer_entry.edit_modified():
             self._invalidate_decompositions()
             self._explorer_entry.edit_modified(False)
+            r = getattr(self, "_explorer_last_result", None)
+            if r and r.get("ok"):
+                stale = self._explorer_entry.get("1.0", "end-1c").strip() != getattr(
+                    self, "_explorer_calculated_input", None)
+                self._explorer_status.set(tr("ux2.result.stale" if stale else "ux2.result.current"))
+                self._exp_export_btn.configure(text=tr("ux2.export.last"))
 
     def _explorer_find_decompositions(self):
         """Apre il dialog con tutte le decomposizioni Kronecker di T e T⁻¹."""
@@ -659,9 +665,7 @@ class ExplorerTabMixin:
             messagebox.showinfo(tr("explorer.inverse_unavailable_title"),
                                 tr("explorer.inverse_unavailable"))
             return
-        # Memorizza per il Protocollo
-        self._last_T_perm   = perm
-        self._last_inv_perm = inv_perm
+        # La ricerca usa il risultato locale: non ripubblica la T condivisa.
         self._invalidate_decompositions()
         revision = self._decomposition_revision
 
@@ -713,7 +717,7 @@ class ExplorerTabMixin:
         self._invalidate_decompositions()
         text = self._explorer_entry.get("1.0", "end-1c").strip()
         if not text:
-            self._explorer_last_result = None
+            self._explorer_clear_results()
             self._aggiorna_link_tavola(None)
             self._explorer_status.set(
                 f"⚠  {tr('explorer.status.empty_expression')}")
@@ -726,16 +730,18 @@ class ExplorerTabMixin:
             self._exp_set(self._exp_log, result["error"])
             self._explorer_clear_results(except_log=True)
         else:
+            self._explorer_calculated_input = text
             period = result["period"]
             sig    = result["signature"][:40]
             self._explorer_status.set(
-                f"✓  {tr('explorer.status.result', period=period, signature=sig)}")
+                f"{tr('ux2.result.current')} — {tr('explorer.status.result', period=period, signature=sig)}")
             self._exp_set(self._exp_log, "")
             self._explorer_display(result)
             if result.get('perm') is not None:
+                self._T_origin = "Explorer"
                 self._notify_T_changed(list(result['perm']))
             if hasattr(self, "_exp_export_btn") and result.get("perm") is not None:
-                self._exp_export_btn.configure(state="normal")
+                self._exp_export_btn.configure(state="normal", text=tr("ux2.export.last"))
             if hasattr(self, "_decomp_btn") and result.get("inverse_perm"):
                 self._decomp_btn.configure(state="normal")
         # J: l'espressione calcolata e' lo stato scientifico dell'Explorer
@@ -772,7 +778,7 @@ class ExplorerTabMixin:
         self._aggiorna_link_tavola(None)
         self._explorer_entry.delete("1.0", "end")
         self._explorer_clear_results()
-        self._explorer_status.set("")
+        self._explorer_status.set(tr("ux2.result.absent"))
 
     def _explorer_export(self):
         r = getattr(self, "_explorer_last_result", None)
@@ -785,7 +791,7 @@ class ExplorerTabMixin:
         self._open_export_dialog(
             perm=perm, inv_perm=inv,
             decompositions=decomps,
-            title_label=r.get("normalized_str", "T"))
+            title_label=r.get("normalized_str", "T"), origin="Explorer")
 
     def _explorer_clear_results(self, except_log=False):
         self._invalidate_decompositions()

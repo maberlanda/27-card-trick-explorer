@@ -101,6 +101,12 @@ class PreviewTabMixin:
             state="disabled",
             command=self._anteprima_export)
         self._prev_export_btn.pack(side="left", padx=8)
+        self._prev_state = tk.StringVar(value=tr("ux2.result.absent"))
+        ttk.Label(btn_frame, textvariable=self._prev_state, wraplength=480).pack(side="left")
+        self._prev_calculated_inputs = None
+        for stage in self._prev_vars:
+            for var in stage.values():
+                var.trace_add("write", self._prev_input_changed)
 
         # ── Area risultati ────────────────────────────────────────────────────
         res_frame = ttk.LabelFrame(outer,
@@ -153,11 +159,26 @@ class PreviewTabMixin:
         txt.configure(state="disabled")
 
     def _reset_anteprima(self):
+        self._prev_T_perm = None
+        self._prev_calculated_inputs = None
         for s, stage_vars in enumerate(self._prev_vars):
             for key, var in stage_vars.items():
                 opts = P_OPTS if key.startswith("p") else J_OPTS
                 var.set(opts[0])
         self._prev_show_placeholder()
+        self._prev_export_btn.configure(state="disabled", text=tr("explorer.button.export"))
+        self._prev_state.set(tr("ux2.result.absent"))
+
+    def _prev_inputs(self):
+        return tuple(tuple(stage[k].get() for k in ("p0", "p1", "p2", "j0", "j1", "j2"))
+                     for stage in self._prev_vars)
+
+    def _prev_input_changed(self, *_args):
+        if getattr(self, "_prev_T_perm", None) is None:
+            return
+        stale = self._prev_inputs() != self._prev_calculated_inputs
+        self._prev_state.set(tr("ux2.result.stale" if stale else "ux2.result.current"))
+        self._prev_export_btn.configure(text=tr("ux2.export.last"))
 
     def _anteprima_export(self):
         perm = getattr(self, "_prev_T_perm", None)
@@ -165,7 +186,8 @@ class PreviewTabMixin:
             return
         import numpy as np
         inv = list(np.argsort(perm))
-        self._open_export_dialog(perm=perm, inv_perm=inv, title_label=f"T ({tr('tab.preview')})")
+        self._open_export_dialog(perm=perm, inv_perm=inv, title_label=f"T ({tr('tab.preview')})",
+                                 origin=tr("tab.preview"))
 
     def _calcola_anteprima(self):
         params = []
@@ -207,6 +229,9 @@ class PreviewTabMixin:
 
         txt.configure(state="disabled")
         self._prev_T_perm = list(T_perm)
+        self._prev_calculated_inputs = self._prev_inputs()
+        self._prev_state.set(tr("ux2.result.current"))
         if hasattr(self, "_prev_export_btn"):
-            self._prev_export_btn.configure(state="normal")
+            self._prev_export_btn.configure(state="normal", text=tr("ux2.export.last"))
+        self._T_origin = tr("tab.preview")
         self._notify_T_changed(list(T_perm))

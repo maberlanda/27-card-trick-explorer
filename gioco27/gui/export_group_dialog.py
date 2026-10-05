@@ -20,14 +20,12 @@ Avvio:
     ConjugacyExportDialog(parent, gd)
 """
 import colorsys
-import os
 from collections import Counter
 from typing import NamedTuple
 
 import tkinter as tk
-from tkinter import ttk, filedialog, messagebox
-from ..core.parallel import atomic_write
-from .errori import per_file
+from tkinter import ttk, filedialog
+from .export_contract import esporta_cartella
 from .i18n import tr
 
 
@@ -209,50 +207,20 @@ class _PreviewExportDialog(tk.Toplevel):
             t.configure(state="disabled")
 
     def _export_all(self):
+        contents, omissions = [], []
+        for key, label, fname, gen in self._items:
+            if not self._opts[key].get():
+                continue
+            esito = self._content(key, gen)
+            if esito.ok:
+                contents.append((fname, esito.testo))
+            else:
+                omissions.append(f"{label}: {esito.errore}")
         folder = filedialog.askdirectory(parent=self,
                                          title=tr("export.choose_folder"))
         if not folder:
             return
-        done = []
-        falliti = []
-        try:
-            for key, _label, fname, gen in self._items:
-                if not self._opts[key].get():
-                    continue
-                esito = self._content(key, gen)
-                if not esito.ok:
-                    # Nessun file: un generatore fallito non produce un .svg
-                    # o un .tex "riuscito" pieno del messaggio d'errore.
-                    falliti.append((fname, esito.errore))
-                    continue
-                path = os.path.join(folder, fname)
-                # Pubblicazione atomica: un errore a meta' scrittura non
-                # sostituisce un file precedente con uno troncato.
-                with atomic_write(path, "w", encoding="utf-8") as f:
-                    f.write(esito.testo)
-                done.append(path)
-            if falliti:
-                messagebox.showerror(
-                    tr("export.error_title"),
-                    "\n".join(f"{nome}: "
-                              f"{tr('export.generation_error', detail=err)}"
-                              for nome, err in falliti),
-                    parent=self)
-            if not done:
-                if not falliti:
-                    messagebox.showinfo(tr("export.no_files_title"),
-                                        tr("export.no_content_selected"),
-                                        parent=self)
-                return
-            messagebox.showinfo(
-                tr("export.completed_title"),
-                tr("export.completed", count=len(done), folder=folder,
-                   files="\n".join(os.path.basename(x) for x in done)),
-                parent=self)
-        except OSError as exc:
-            messagebox.showerror(
-                *per_file(exc, "", titolo=tr("export.error_title")),
-                parent=self)
+        esporta_cartella(self, folder, contents, omissions)
 
 
 # ── Dialog Cayley ────────────────────────────────────────────────────────────
@@ -262,8 +230,8 @@ class CayleyExportDialog(_PreviewExportDialog):
     def __init__(self, parent, gd, ia=0, ib=1):
         self._gd = gd
         n = len(gd.kron_arr)
-        self._ia = ia if 0 <= ia < n else 0
-        self._ib = ib if 0 <= ib < n else (1 if n > 1 else 0)
+        self._ia = ia if ia is None or 0 <= ia < n else 0
+        self._ib = ib if ib is None or 0 <= ib < n else (1 if n > 1 else 0)
         # colori precalcolati per indice elemento
         self._cols_hex = [_hue_hex(v, n) for v in range(n)]
         items = [
@@ -359,7 +327,9 @@ class CayleyExportDialog(_PreviewExportDialog):
 
     # ---- LaTeX calcolo selezionato ----------------------------------------
     def _calc_data(self):
-        """Calcola i valori per A,B correnti (indipendente dalla GUI)."""
+        """Valori della coppia calcolata che il dialogo ha ricevuto."""
+        if self._ia is None or self._ib is None:
+            raise ValueError(tr("ux2.cayley.no_calc"))
         gd = self._gd
         cay = gd.cayley
         inv = gd.inverse

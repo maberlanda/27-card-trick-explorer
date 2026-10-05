@@ -135,7 +135,8 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
         # Font dei testi d'aiuto, scalabili dall'utente (utile su 4K)
         uifont.apply_scale(self._cfg.get("help_font_scale", 1.0), root=self)
         self._presentation_win = None   # finestra presentazione (singleton)
-        self._last_T_perm      = None   # ultima T calcolata (per protocollo)
+        self._last_T_perm      = None   # T corrente condivisa; Protocollo usa Explorer
+        self._T_origin = ""
         # Un solo export massivo alla volta: due export concorrenti si
         # rubavano la progress bar e saturavano la CPU con 2xN processi.
         self._export_busy      = False
@@ -701,6 +702,8 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
     # ── Aggiornamento contatore live ──────────────────────────────────────────
 
     def _update_count(self):
+        if hasattr(self, "_analisi_input_changed"):
+            self._analisi_input_changed()
         try:
             filters = self._get_filters()
             n = count_combinations_ex(filters)
@@ -770,6 +773,7 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
 
         # anche lo stato "ultima T" viene dimenticato
         self._last_T_perm = None
+        self._T_origin = ""
         self._last_inv_perm = None
         if hasattr(self, "_last_decompositions"):
             self._last_decompositions = None
@@ -1052,6 +1056,7 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
 
     def _on_simulator_T(self, perm_27):
         """Il simulatore ha calcolato una nuova sequenza di gioco."""
+        self._T_origin = tr("tab.simulator")
         self._notify_T_changed(perm_27)
         if hasattr(self, "_sessione_nota"):
             self._sessione_nota("simulatore")
@@ -1061,7 +1066,7 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
         # I2d: callback tardivi (lambda), perche' le schede di destinazione
         # si costruiscono dopo e i test possono sostituire _notify_T_changed.
         self._tavola_frame = TavolaFrame(
-            nb, on_usa_T=lambda perm: (self._notify_T_changed(perm),
+            nb, on_usa_T=lambda perm: (self._pubblica_tavola(perm),
                                        self._sessione_nota("tavola", perm)),
             on_apri_explorer=lambda espr: self._apri_nell_explorer(espr),
             on_apri_cicli=lambda perm: self._apri_nei_cicli(perm),
@@ -1099,8 +1104,12 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
         self._explorer_calc()
 
     def _apri_nei_cicli(self, perm):
-        self._notify_T_changed(perm)
+        self._pubblica_tavola(perm)
         self._seleziona_scheda("cicli")
+
+    def _pubblica_tavola(self, perm):
+        self._T_origin = tr("ux2.origin.table", number=self._tavola_frame.pannello.numero)
+        self._notify_T_changed(perm)
 
     # ── Notifica cambio T ───────────────────────────────────────────────────
     def _notify_T_changed(self, perm_27):
@@ -1123,9 +1132,11 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
         self._last_T_perm = list(perm_27)
         if hasattr(self, "_cycles_frame"):
             self._cycles_frame.set_permutation(perm_27)
+            if hasattr(self._cycles_frame, "_hint"):
+                self._cycles_frame._hint.configure(text=tr("ux2.origin", source=getattr(self, "_T_origin", "")))
         if self._presentation_win is not None:
             try:
-                self._presentation_win.update_from_T({"perm": perm_27})
+                self._presentation_win.update_from_T({"perm": perm_27, "origin": getattr(self, "_T_origin", "")})
             except tk.TclError:
                 # la finestra e' stata chiusa fra un calcolo e l'altro: e'
                 # l'unico errore atteso, e il rimedio e' dimenticarla.
@@ -1133,9 +1144,9 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
 
     # ── Export dialog ────────────────────────────────────────────────────────
     def _open_export_dialog(self, perm=None, inv_perm=None,
-                             decompositions=None, title_label="T"):
+                             decompositions=None, title_label="T", origin=""):
         ExportDialog(self, perm=perm, inv_perm=inv_perm,
-                     decompositions=decompositions, title_label=title_label)
+                     decompositions=decompositions, title_label=title_label, origin=origin)
 
     # ── Analisi gruppo ────────────────────────────────────────────────────────
     def _open_conjugacy(self):
@@ -1192,14 +1203,14 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
         if self._presentation_win is None or not self._presentation_win.winfo_exists():
             self._presentation_win = PresentationWindow(self)
             if self._last_T_perm is not None:
-                self._presentation_win.update_from_T({"perm": self._last_T_perm})
+                self._presentation_win.update_from_T({"perm": self._last_T_perm, "origin": self._T_origin})
         else:
             self._presentation_win.lift()
             self._presentation_win.focus_force()
 
     # ── Protocollo HTML ───────────────────────────────────────────────────────
     def _open_protocol(self):
-        """Apre il dialog export protocollo per l'ultima T calcolata."""
+        """Apre il protocollo dell'ultimo risultato calcolato nell'Explorer."""
         r = getattr(self, "_explorer_last_result", None)
         if not r or not r.get("ok") or r.get("perm") is None:
             messagebox.showinfo(

@@ -11,20 +11,18 @@ Genera:
 Avvio: app._open_export_dialog(perm, inv_perm, decompositions, title_label)
 """
 import tkinter as tk
-from tkinter import ttk, filedialog, messagebox
-import os
+from tkinter import ttk, filedialog
 
 from ..core.analysis import cycle_decomposition, order_of, cycle_type
 from ..core.kronecker import decomposition_context
-from ..core.parallel import atomic_write
-from .errori import per_file
+from .export_contract import esporta_cartella
 from .i18n import tr
 
 
 class ExportDialog(tk.Toplevel):
 
     def __init__(self, parent, perm=None, inv_perm=None,
-                 decompositions=None, title_label="T"):
+                 decompositions=None, title_label="T", origin=""):
         super().__init__(parent)
         self.title(tr("export.booklet_title"))
         self.geometry("860x640")
@@ -37,6 +35,7 @@ class ExportDialog(tk.Toplevel):
         self._decomps = (self._decomposition_context["results"]
                          if self._decomposition_context else [])
         self._lbl     = title_label
+        self._origin = origin
 
         self._build_ui()
         self._refresh_preview()
@@ -68,6 +67,8 @@ class ExportDialog(tk.Toplevel):
             ttk.Checkbutton(opt, text=text, variable=var,
                              command=self._refresh_preview).grid(
                 row=i//3, column=i%3, sticky="w", padx=10, pady=2)
+        self._notice = ttk.Label(opt, wraplength=780, justify="left")
+        self._notice.grid(row=2, column=0, columnspan=3, sticky="w", padx=10, pady=4)
 
         nb = ttk.Notebook(self)
         nb.grid(row=1, column=0, sticky="nsew", padx=10, pady=4)
@@ -104,6 +105,10 @@ class ExportDialog(tk.Toplevel):
     # ─── Preview ─────────────────────────────────────────────────────────────
 
     def _refresh_preview(self):
+        notices = self._export_limits()
+        if self._origin:
+            notices.insert(0, tr("ux2.export.source", source=self._origin))
+        self._notice.configure(text="\n".join(notices))
         p, iv, lb = self._perm, self._inv, self._lbl
         self._fill("latex_perm",   self._latex_perm(p, iv, lb))
         self._fill("latex_cycles", self._latex_cycles(p, lb))
@@ -299,49 +304,39 @@ class ExportDialog(tk.Toplevel):
     # ─── Export ───────────────────────────────────────────────────────────────
 
     def _export_all(self):
+        # Genera l'intero piano prima di scegliere/confermare la destinazione.
+        p, iv = self._perm, self._inv
+        lb = self._lbl.replace("^", "").replace("{", "").replace("}", "")
+        # L'etichetta e' un'espressione: non puo' creare sottocartelle.
+        for char in '<>:"/\\|?*':
+            lb = lb.replace(char, "_")
+        contents, omissions = [], self._export_limits()
+        for selected, name, generator in (
+            (self._opt_perm.get(), f"{lb}_permutazione.tex", lambda: self._latex_perm(p, iv, self._lbl)),
+            (self._opt_cycles.get(), f"{lb}_cicli.tex", lambda: self._latex_cycles(p, self._lbl)),
+            (self._opt_svg.get(), f"{lb}_frecce.svg", lambda: self._svg_arrows(p, self._lbl)),
+            (self._opt_decomp.get() and bool(self._decomps), f"{lb}_decomposizioni.tex", lambda: self._latex_decomp(self._lbl)),
+            (self._opt_txt.get(), f"{lb}_analisi.txt", lambda: self._txt_summary(p, iv, self._lbl)),
+        ):
+            if selected:
+                try:
+                    contents.append((name, generator()))
+                except Exception as exc:
+                    omissions.append(f"{name}: {tr('export.generation_error', detail=str(exc))}")
         folder = filedialog.askdirectory(parent=self,
                                           title=tr("export.choose_folder"))
         if not folder:
             return
-        lb  = self._lbl.replace("^","").replace("{","").replace("}","")
-        p, iv = self._perm, self._inv
-        done = []
+        esporta_cartella(self, folder, contents, omissions)
 
-        def pubblica(nome, testo):
-            """Scrive un file dell'export e lo aggiunge all'elenco.
-
-            G2: pubblicazione atomica (temporaneo + os.replace, la primitiva
-            comune di `core.parallel`). Prima erano `open(...).write(...)`
-            senza nemmeno un `with`: un guasto a meta' — disco pieno, errore
-            del generatore — lasciava al posto del file precedente un .tex o
-            un .svg troncato, che LaTeX e i visualizzatori poi rifiutano. La
-            stessa forma usata dall'export delle tabelle di gruppo (B12).
-            """
-            percorso = os.path.join(folder, nome)
-            with atomic_write(percorso, "w", encoding="utf-8") as fh:
-                fh.write(testo)
-            done.append(percorso)
-
-        try:
-            if self._opt_perm.get():
-                pubblica(f"{lb}_permutazione.tex",
-                         self._latex_perm(p, iv, self._lbl))
-            if self._opt_cycles.get():
-                pubblica(f"{lb}_cicli.tex", self._latex_cycles(p, self._lbl))
-            if self._opt_svg.get():
-                pubblica(f"{lb}_frecce.svg", self._svg_arrows(p, self._lbl))
-            if self._opt_decomp.get() and self._decomps:
-                pubblica(f"{lb}_decomposizioni.tex",
-                         self._latex_decomp(self._lbl))
-            if self._opt_txt.get():
-                pubblica(f"{lb}_analisi.txt",
-                         self._txt_summary(p, iv, self._lbl))
-            messagebox.showinfo(
-                tr("export.completed_title"),
-                tr("export.completed", count=len(done), folder=folder,
-                   files="\n".join(os.path.basename(x) for x in done)),
-                parent=self)
-        except OSError as e:
-            messagebox.showerror(
-                *per_file(e, "", titolo=tr("export.error_title")),
-                parent=self)
+    def _export_limits(self):
+        notices = []
+        n = len(self._decomps)
+        if self._opt_decomp.get():
+            if not n:
+                notices.append(tr("ux2.export.no_decomp"))
+            elif n > 200:
+                notices.append(tr("ux2.export.limit", format="LaTeX", count=200, total=n))
+        if self._opt_txt.get() and n > 10:
+            notices.append(tr("ux2.export.limit", format="TXT", count=10, total=n))
+        return notices

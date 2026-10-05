@@ -101,6 +101,10 @@ class PresentationWindow(tk.Toplevel):
         """Chiamata da App._notify_T_changed con {'perm': list[int], ...}."""
         perm = T_data.get("perm")
         self._steps = self._costruisci_passi(perm) if perm else []
+        origin = T_data.get("origin")
+        if origin:
+            for step in self._steps:
+                step["math"] = tr("ux2.origin", source=origin) + " — " + step["math"]
         self._idx = 0
         self._render()
 

@@ -25,6 +25,7 @@ class CayleyDialog(tk.Toplevel):
         self.geometry("900x600")
         self.resizable(True, True)
         self._gd = None
+        self._calculated_pair = None
         self._names: list = []
         self._build_ui()
         # H2: si comincia dall'elemento A, che è la prima cosa da scegliere.
@@ -65,11 +66,13 @@ class CayleyDialog(tk.Toplevel):
 
         ttk.Label(row1, text="A =", font=("Segoe UI", 10, "bold")).pack(side="left")
         self._combo_a = ttk.Combobox(row1, state="readonly", width=32)
+        self._combo_a.bind("<<ComboboxSelected>>", self._input_changed)
         self._combo_a.pack(side="left", padx=(4, 20))
         _tip(self._combo_a, tr("cayley.tooltip.a"))
 
         ttk.Label(row1, text="B =", font=("Segoe UI", 10, "bold")).pack(side="left")
         self._combo_b = ttk.Combobox(row1, state="readonly", width=32)
+        self._combo_b.bind("<<ComboboxSelected>>", self._input_changed)
         self._combo_b.pack(side="left", padx=(4, 20))
         _tip(self._combo_b, tr("cayley.tooltip.b"))
 
@@ -118,7 +121,8 @@ class CayleyDialog(tk.Toplevel):
         self._exp_mb["menu"] = exp_menu
         rendi_menu_apribile(self._exp_mb)
         self._exp_mb.pack(side="left", padx=(0, 8))
-        _tip(self._exp_mb, tr("cayley.tooltip.export"))
+        _tip(self._exp_mb, tr("ux2.cayley.export"))
+        ttk.Label(bf, text=tr("ux2.cayley.export"), wraplength=650).pack(side="right", padx=6)
         ttk.Button(bf, text=tr("button.close"), command=self.destroy).pack(side="left")
 
         # Sottogruppo generato
@@ -162,7 +166,7 @@ class CayleyDialog(tk.Toplevel):
         self._combo_a.current(0)
         self._combo_b.current(1)
         self._status.set(tr("cayley.status.ready",
-                            count=len(self._gd.kron_arr)))
+                            count=len(self._gd.kron_arr)) + " — " + tr("ux2.result.absent"))
         self._exp_mb.configure(state="normal")
 
     # ------------------------------------------------------------ calc ------
@@ -226,6 +230,17 @@ class CayleyDialog(tk.Toplevel):
 
         # Sottogruppo generato da A e B
         self._compute_subgroup(ia, ib)
+        self._calculated_pair = (ia, ib)
+        self._input_changed()
+
+    def _input_changed(self, _event=None):
+        pair = self._calculated_pair
+        if pair is None:
+            self._status.set(tr("ux2.result.absent"))
+            return
+        stale = pair != (self._combo_a.current(), self._combo_b.current())
+        self._status.set(tr("ux2.result.stale" if stale else "ux2.result.current") +
+                         f" — A: {self._names[pair[0]]}; B: {self._names[pair[1]]}")
 
     def _swap(self):
         a, b = self._combo_a.current(), self._combo_b.current()
@@ -299,18 +314,18 @@ class CayleyDialog(tk.Toplevel):
                                 parent=self)
         except Exception as exc:
             messagebox.showerror(*per_file(exc, path), parent=self)
+        finally:
+            self._input_changed()
 
     def _export_latex_svg(self):
-        """Apre il dialog di export LaTeX/SVG con A,B correnti."""
+        """Esporta la tavola e la coppia dell'ultimo calcolo, mai input non calcolati."""
         gd = getattr(self, "_gd", None)
         if gd is None:
             return
         from .export_group_dialog import CayleyExportDialog
-        ia = self._combo_a.current()
-        ib = self._combo_b.current()
-        CayleyExportDialog(self, gd,
-                           ia if ia >= 0 else 0,
-                           ib if ib >= 0 else 1)
+        ia, ib = self._calculated_pair or (None, None)
+        dialog = CayleyExportDialog(self, gd, ia, ib)
+        dialog.title(tr("ux2.export.source", source="Cayley"))
 
     def _export_html(self):
         """Esporta la tavola di Cayley in HTML."""
@@ -352,4 +367,5 @@ th{{background:#f0f4f0;font-weight:bold}}</style></head>
         except Exception as exc:
             __import__("tkinter.messagebox", fromlist=["showerror"]).showerror(
                 *per_file(exc, path), parent=self)
-            self._status.set("")
+        finally:
+            self._input_changed()

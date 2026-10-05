@@ -7,6 +7,7 @@ Estratto da app.py (v2.8.0) senza modifiche funzionali.
 """
 import os
 import pathlib
+from copy import deepcopy
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
 
@@ -100,8 +101,13 @@ class AnalysisTabMixin:
         ttk.Button(cmd, text=f"🔬  {tr('analysis.open_explorer')}",
                    style="Preset.TButton",
                    command=self._analisi_to_explorer).pack(side="left", padx=10)
+        self._analisi_cancel = ttk.Button(cmd, text=tr("button.cancel"), state="disabled",
+                                         command=self._analisi_cancel_work)
+        self._analisi_cancel.pack(side="left", padx=4)
+        self._analisi_progress = ttk.Progressbar(cmd, length=100, mode="determinate")
+        self._analisi_progress.pack(side="left", padx=4)
         self._analisi_status = tk.StringVar(
-            value=tr("analysis.status.prompt"))
+            value=tr("ux2.result.absent") + " — " + tr("analysis.status.prompt"))
         ttk.Label(cmd, textvariable=self._analisi_status,
                   font=("Segoe UI", 10, "italic"), foreground="#555",
                   wraplength=500).pack(side="left", padx=8)
@@ -243,6 +249,7 @@ class AnalysisTabMixin:
         if not self._analisi_e_corrente(revisione):
             return False
         self._analisi_corrente = risultato
+        self._analisi_calculated_filters = self.__dict__.get("_analisi_sources", {}).get(revisione)
         self._analisi_risultati = list(risultato.aggregati)
         self._analisi_righe_raw = list(risultato.grezzi)
         self._analisi_populate(self._analisi_risultati, risultato.totale)
@@ -257,7 +264,53 @@ class AnalysisTabMixin:
         if diagnostica:
             self._analisi_status.set(
                 f"{self._analisi_status.get()}   —   {diagnostica}")
+        self._analisi_result_status = self._analisi_status.get()
+        cancel = self.__dict__.get("_analisi_cancel")
+        if cancel is not None:
+            cancel.configure(state="disabled")
+        self._analisi_input_changed()
         return True
+
+    def _analisi_input_changed(self):
+        if not self.__dict__.get("_analisi_corrente"):
+            return
+        filters = self.__dict__.get("_analisi_calculated_filters")
+        stale = filters is not None and filters != self._get_filters()
+        base = self.__dict__.get("_analisi_result_status", "")
+        self._analisi_status.set(tr("ux2.result.stale" if stale else "ux2.result.current") + " — " + base)
+        mb = self.__dict__.get("_analisi_exp_mb")
+        if mb is not None:
+            mb.configure(text=tr("ux2.export.last"))
+
+    def _analisi_progressbar(self):
+        return self.__dict__.get("_analisi_progress", self.progress)
+
+    def _analisi_begin_work(self, revisione, filters=None):
+        self._analisi_sources = {revisione: deepcopy(filters)}
+        cancel = self.__dict__.get("_analisi_cancel")
+        if cancel is not None:
+            # L'import CSV non espone arresto durante la lettura: non prometterlo.
+            cancel.configure(state="normal" if filters is not None else "disabled")
+
+    def _analisi_cancel_work(self):
+        self._analisi_nuova_revisione()
+        self._analisi_cancel.configure(state="disabled")
+        self._analisi_status.set(tr("ux2.cancelled") + " — " +
+                                (tr("ux2.export.last") if self._analisi_corrente else tr("ux2.result.absent")))
+
+    def _analisi_failed(self, revisione):
+        if not self._analisi_e_corrente(revisione):
+            return
+        cancel = self.__dict__.get("_analisi_cancel")
+        if cancel is not None:
+            cancel.configure(state="disabled")
+        self._analisi_input_changed()
+        state = self._analisi_status.get() if self._analisi_corrente else tr("ux2.result.absent")
+        self._analisi_status.set(tr("analysis.status.error") + " — " + state)
+
+    def _analisi_export_done(self, message):
+        self._analisi_input_changed()
+        self._analisi_status.set(self._analisi_status.get() + " — ✓ " + message)
 
     def _analisi_aggiorna_export(self):
         """Abilita l'export, e le voci dei grezzi solo se i grezzi esistono."""
@@ -284,6 +337,10 @@ class AnalysisTabMixin:
         suo risultato non potra' piu' pubblicarsi (B03).
         """
         self._analisi_nuova_revisione()
+        cancel = self.__dict__.get("_analisi_cancel")
+        if cancel is not None:
+            cancel.configure(state="disabled")
+        self._analisi_calculated_filters = None
         self._analisi_corrente = None
         self._analisi_risultati = []
         self._analisi_righe_raw = []
@@ -297,7 +354,7 @@ class AnalysisTabMixin:
             txt.insert("1.0", f"  {tr('analysis.detail.hint')}", "hint")
             txt.configure(state="disabled")
         self._analisi_aggiorna_export()
-        self._analisi_status.set(tr("analysis.status.prompt"))
+        self._analisi_status.set(tr("ux2.result.absent") + " — " + tr("analysis.status.prompt"))
 
     def _run_analisi(self):
         """Raccoglie i filtri, chiede il lavoro al servizio, pubblica il risultato.
@@ -334,17 +391,18 @@ class AnalysisTabMixin:
                 return
         self._analisi_status.set(
             tr("analysis.status.generating", count=format_integer(n)))
-        self.progress["maximum"] = n
-        self.progress["value"]   = 0
+        self._analisi_progressbar()["maximum"] = n
+        self._analisi_progressbar()["value"]   = 0
         self.update_idletasks()
         revisione = self._analisi_nuova_revisione()
+        self._analisi_begin_work(revisione, filters)
 
         def job():
             _eta = EtaEstimator()
 
             def avanzamento(fatte, totale):
                 self._ui(lambda v=fatte: self._analisi_e_corrente(revisione) and (
-                    self.progress.__setitem__("value", v),
+                    self._analisi_progressbar().__setitem__("value", v),
                     self._analisi_status.set(tr(
                         "analysis.status.generation_progress",
                         done=format_integer(v), total=format_integer(totale),
@@ -361,8 +419,7 @@ class AnalysisTabMixin:
             self._ui(lambda: self._analisi_pubblica(risultato, revisione))
 
         run_in_thread(self, job, error_title=tr("analysis.error_title"),
-                      on_error=lambda e: self._analisi_status.set(
-                          tr("analysis.status.error")))
+                      on_error=lambda e: self._analisi_failed(revisione))
 
     def _analisi_load_csv(self):
         """Carica un CSV COMBINAZIONI esterno e avvia l'analisi Stage-level."""
@@ -376,6 +433,7 @@ class AnalysisTabMixin:
             "analysis.status.reading_csv", filename=os.path.basename(path)))
         self.update_idletasks()
         revisione = self._analisi_nuova_revisione()
+        self._analisi_begin_work(revisione)
 
         def job():
             risultato = SERVIZIO.da_csv(path)
@@ -384,8 +442,7 @@ class AnalysisTabMixin:
             self._ui(lambda: self._analisi_pubblica(risultato, revisione))
 
         run_in_thread(self, job, error_title=tr("analysis.csv_read_error_title"),
-                      on_error=lambda e: self._analisi_status.set(
-                          tr("analysis.status.error")))
+                      on_error=lambda e: self._analisi_failed(revisione))
 
     def _analisi_csv_pipeline(self):
         """Pipeline completa: carica COMBINAZIONI CSV → analisi → salva CSV + Excel.
@@ -410,6 +467,7 @@ class AnalysisTabMixin:
         self._analisi_status.set(tr("analysis.status.running"))
         self.update_idletasks()
         revisione = self._analisi_nuova_revisione()
+        self._analisi_begin_work(revisione)
 
         def job():
             risultato = SERVIZIO.pipeline_csv(
@@ -428,11 +486,10 @@ class AnalysisTabMixin:
                 tr("analysis.completed_title"), m))
 
         run_in_thread(self, job, error_title=tr("error.generic"),
-                      on_error=lambda e: self._analisi_status.set(
-                          tr("analysis.status.error")))
+                      on_error=lambda e: self._analisi_failed(revisione))
 
     def _analisi_populate(self, risultati, n_tot):
-        self.progress["value"] = n_tot
+        self._analisi_progressbar()["value"] = n_tot
         tv = self._analisi_tv
         tv.delete(*tv.get_children())
         max_m = risultati[0]["n_sim"] if risultati else 0
@@ -586,7 +643,7 @@ class AnalysisTabMixin:
             return
         try:
             scrivi_output(self._analisi_risultati, path)
-            self._analisi_status.set("✓  " + tr(
+            self._analisi_export_done(tr(
                 "analysis.status.exported", format="CSV",
                 filename=os.path.basename(path)))
         except Exception as e:
@@ -604,7 +661,7 @@ class AnalysisTabMixin:
             return
         try:
             scrivi_excel(self._analisi_risultati, path)
-            self._analisi_status.set("✓  " + tr(
+            self._analisi_export_done(tr(
                 "analysis.status.exported", format="Excel",
                 filename=os.path.basename(path)))
         except Exception as e:
@@ -669,7 +726,7 @@ class AnalysisTabMixin:
             )
             with atomic_write(path, "w", encoding="utf-8") as f:
                 f.write(html_str)
-            self._analisi_status.set("✓  " + tr(
+            self._analisi_export_done(tr(
                 "analysis.status.exported", format="HTML",
                 filename=os.path.basename(path)))
             import webbrowser
@@ -705,7 +762,7 @@ class AnalysisTabMixin:
                         r.get("A0", ""),     r.get("A1", ""),     r.get("A2", ""),
                         r.get("T_simbolica", ""), r.get("T_permutazione", ""),
                     ])
-            self._analisi_status.set("✓  " + tr(
+            self._analisi_export_done(tr(
                 "analysis.status.raw_exported", format="CSV",
                 filename=os.path.basename(path)))
         except Exception as e:
@@ -816,7 +873,7 @@ class AnalysisTabMixin:
             # Pubblicazione atomica (R02).
             with atomic_write(path, "wb") as f:
                 wb.save(f)
-            self._analisi_status.set("✓  " + tr(
+            self._analisi_export_done(tr(
                 "analysis.status.raw_exported", format="Excel",
                 filename=os.path.basename(path)))
         except Exception as e:

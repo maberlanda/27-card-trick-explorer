@@ -19,6 +19,7 @@ from .help_banner import HelpBanner
 from .errori import per_file
 from .i18n import tr
 from .i18n import format_integer, get_language
+from .calcolo_locale import CalcoloAnnullato, verifica_annullamento
 import queue
 import threading
 from collections import defaultdict
@@ -110,6 +111,9 @@ class DecompositionDialog(tk.Toplevel):
             prog_fr, text=tr("explorer.decomposition.progress", done=0, found=0),
             font=("Courier New", 9), foreground="#444", width=30)
         self._progress_lbl.pack(side="left")
+        self._cancel_btn = ttk.Button(prog_fr, text=tr("button.cancel"),
+                                      command=self._cancel_search, state="disabled")
+        self._cancel_btn.pack(side="left", padx=6)
 
         ctrl_fr = ttk.Frame(self, padding=(10, 2, 10, 2))
         ctrl_fr.pack(fill="x")
@@ -203,6 +207,10 @@ class DecompositionDialog(tk.Toplevel):
         self._export_mb["menu"] = exp_menu
         rendi_menu_apribile(self._export_mb)
         self._export_mb.pack(side="left", padx=(0, 8))
+        self._export_scope = ttk.Combobox(bf, state="readonly", width=36,
+            values=(tr("ux2.export.all_decomp"), tr("ux2.export.visible")))
+        self._export_scope.current(0)
+        self._export_scope.pack(side="left", padx=8)
         ttk.Button(bf, text=tr("button.close"), command=self.destroy).pack(side="left")
 
     # -------------------------------------------------- target / search -----
@@ -225,6 +233,14 @@ class DecompositionDialog(tk.Toplevel):
         self._start_search()
 
     def _start_search(self):
+        old_stop = self.__dict__.get("_stop_search")
+        if old_stop is not None:
+            old_stop.set()
+        stop = self._stop_search = threading.Event()
+        self._visible_results = []
+        cancel_btn = self.__dict__.get("_cancel_btn")
+        if cancel_btn is not None:
+            cancel_btn.configure(state="normal")
         search_id = self._ricerche.nuova()
         target = tuple(self._current_target())
         inverse = bool(self._target_inv.get())
@@ -237,6 +253,8 @@ class DecompositionDialog(tk.Toplevel):
         # Prova cache
         cached = load_decompositions(target)
         if cached is not None:
+            if cancel_btn is not None:
+                cancel_btn.configure(state="disabled")
             self._accept_results(target, inverse, cached)
             n = len(cached)
             self._progress_bar["value"] = 216
@@ -252,7 +270,7 @@ class DecompositionDialog(tk.Toplevel):
             return
 
         threading.Thread(target=self._search_thread,
-                         args=(target, progress_q), daemon=True).start()
+                         args=(target, progress_q, stop), daemon=True).start()
         self.after(60, lambda: self._poll_progress(search_id, target, inverse, progress_q))
 
     def _accept_results(self, target, inverse, results):
@@ -263,13 +281,16 @@ class DecompositionDialog(tk.Toplevel):
         if self._on_results is not None:
             self._on_results(self._result_context)
 
-    def _search_thread(self, target, progress_q):
+    def _search_thread(self, target, progress_q, stop=None):
+        stop = stop if stop is not None else threading.Event()
         try:
+            verifica_annullamento(stop)
             use_par = self._cfg.get("use_parallel", True)
             n_workers = self._cfg.effective_n_workers
 
             def _cb(done, found):
-                progress_q.put((done, found))
+                verifica_annullamento(stop)
+                progress_q.put((done + 1, found))
 
             if use_par and n_workers > 1:
                 results = find_all_kron_decompositions_parallel(
@@ -277,9 +298,14 @@ class DecompositionDialog(tk.Toplevel):
             else:
                 results = find_all_kron_decompositions(target, progress_cb=_cb)
 
+            verifica_annullamento(stop)
             results = validate_decompositions(target, results)
+            verifica_annullamento(stop)
             save_decompositions(target, results)
+            verifica_annullamento(stop)
             progress_q.put(("DONE", results))
+        except CalcoloAnnullato:
+            progress_q.put(("CANCEL", None))
         except Exception as exc:
             progress_q.put(("ERR", str(exc)))
 
@@ -292,6 +318,14 @@ class DecompositionDialog(tk.Toplevel):
         try:
             for _ in range(50):
                 item = progress_q.get_nowait()
+                if item[0] in ("DONE", "ERR", "CANCEL"):
+                    cancel_btn = self.__dict__.get("_cancel_btn")
+                    if cancel_btn is not None:
+                        cancel_btn.configure(state="disabled")
+                stop = self.__dict__.get("_stop_search")
+                if item[0] == "CANCEL" or (item[0] in ("DONE", "ERR") and stop is not None and stop.is_set()):
+                    self._status_var.set(tr("ux2.cancelled"))
+                    return
                 if isinstance(item, tuple) and item[0] == "DONE":
                     self._accept_results(target, inverse, item[1])
                     done_flag = True; break
@@ -339,13 +373,13 @@ class DecompositionDialog(tk.Toplevel):
             self._flat_job = None
 
     def _redisplay(self):
-        if not self._results:
-            return
         self._cancel_flat_job()
         results = self._results
         flt = self._filter_var.get().strip().upper()
         if flt:
-            results = [r for r in results if flt in str(r[0]).upper()]
+            results = [r for r in results if flt in str(r[1]).upper()]
+        # Tutte le righe corrispondenti alla vista, anche se il caricamento e' a lotti.
+        self._visible_results = list(results)
         for item in self._tree.get_children():
             self._tree.delete(item)
         self._node_expr.clear(); self._node_data.clear()
@@ -487,8 +521,35 @@ class DecompositionDialog(tk.Toplevel):
 
     # ---- export -------------------------------------------------------------
 
-    def _export_txt(self):
+    def _cancel_search(self):
+        stop = self.__dict__.get("_stop_search")
+        if stop is not None:
+            stop.set()
+        self._cancel_btn.configure(state="disabled")
+        self._status_var.set(tr("ux2.cancel.requested"))
+
+    def destroy(self):
+        stop = self.__dict__.get("_stop_search")
+        if stop is not None:
+            stop.set()
+        self._ricerche.nuova()
+        self._cancel_flat_job()
+        super().destroy()
+
+    def _export_context(self):
         context = self._result_context
+        if not context:
+            return None
+        scope = self.__dict__.get("_export_scope")
+        results = (self._visible_results if scope is not None and scope.current() == 1
+                   else context["results"])
+        if not results:
+            messagebox.showwarning(tr("ux2.export.report"), tr("ux2.export.empty"), parent=self)
+            return None
+        return {**context, "results": list(results)}
+
+    def _export_txt(self):
+        context = self._export_context()
         if not context or not context["results"]:
             return
         results = context["results"]
@@ -497,7 +558,7 @@ class DecompositionDialog(tk.Toplevel):
             parent=self, defaultextension=".txt",
             filetypes=[(tr("explorer.decomposition.filetype_text"), "*.txt"),
                        (tr("explorer.decomposition.filetype_all"), "*.*")],
-            title=tr("explorer.decomposition.save_title", target=lbl))
+            title=tr("explorer.decomposition.save_title", target=lbl) + " — " + tr("ux2.export.rows", count=len(results)))
         if not path:
             return
         W = 28
@@ -527,7 +588,7 @@ class DecompositionDialog(tk.Toplevel):
 
     def _export_csv(self):
         """Esporta le decomposizioni in CSV con separatore ;."""
-        context = self._result_context
+        context = self._export_context()
         if not context or not context["results"]:
             return
         results = context["results"]
@@ -537,7 +598,7 @@ class DecompositionDialog(tk.Toplevel):
             parent=self, defaultextension=".csv",
             filetypes=[("CSV", "*.csv"),
                        (tr("explorer.decomposition.filetype_all"), "*.*")],
-            title=tr("explorer.decomposition.save_title", target=f"{lbl} — CSV"))
+            title=tr("explorer.decomposition.save_title", target=f"{lbl} — CSV") + " — " + tr("ux2.export.rows", count=len(results)))
         if not path:
             return
         try:
@@ -559,7 +620,7 @@ class DecompositionDialog(tk.Toplevel):
 
     def _export_html(self):
         """Esporta le decomposizioni in HTML."""
-        context = self._result_context
+        context = self._export_context()
         if not context or not context["results"]:
             return
         results = context["results"]
@@ -569,7 +630,7 @@ class DecompositionDialog(tk.Toplevel):
             parent=self, defaultextension=".html",
             filetypes=[("HTML", "*.html"),
                        (tr("explorer.decomposition.filetype_all"), "*.*")],
-            title=tr("explorer.decomposition.save_title", target=f"{lbl} — HTML"))
+            title=tr("explorer.decomposition.save_title", target=f"{lbl} — HTML") + " — " + tr("ux2.export.rows", count=len(results)))
         if not path:
             return
         target = context["target"]
@@ -599,6 +660,8 @@ code{{font-family:'Courier New',monospace;font-size:0.9em}}</style></head>
             # Scrittura atomica (R02) e URI corretto per spazi, accenti e '#' (M05).
             with atomic_write(path, "w", encoding="utf-8") as f:
                 f.write(html_str)
+            messagebox.showinfo(tr("ux2.export.report"),
+                                tr("explorer.decomposition.exported", count=len(results), path=path), parent=self)
             import webbrowser
             webbrowser.open(pathlib.Path(path).resolve().as_uri())
         except OSError as exc:

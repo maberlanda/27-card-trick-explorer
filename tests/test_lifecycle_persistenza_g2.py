@@ -1055,7 +1055,7 @@ def test_l_export_multiplo_pubblica_ogni_file_atomicamente(tmp_path,
     Prima di G2 erano `open(...).write(...)` senza nemmeno un `with`: un
     guasto sul terzo lasciava i primi due buoni e il terzo troncato.
     """
-    from gioco27.gui import export_dialog
+    from gioco27.gui import export_dialog, export_contract
 
     class _Opzione:
         def __init__(self, v=True):
@@ -1066,6 +1066,7 @@ def test_l_export_multiplo_pubblica_ogni_file_atomicamente(tmp_path,
 
     class Dialogo:
         _export_all = export_dialog.ExportDialog._export_all
+        _export_limits = export_dialog.ExportDialog._export_limits
 
         def __init__(self, esplode_su=None):
             self._lbl = "T"
@@ -1099,9 +1100,10 @@ def test_l_export_multiplo_pubblica_ogni_file_atomicamente(tmp_path,
     monkeypatch.setattr(export_dialog.filedialog, "askdirectory",
                         lambda **kw: str(tmp_path))
     mostrati = []
-    monkeypatch.setattr(export_dialog, "messagebox", SimpleNamespace(
+    monkeypatch.setattr(export_contract, "_scegli", lambda *a: True)
+    monkeypatch.setattr(export_contract, "messagebox", SimpleNamespace(
         showinfo=lambda *a, **k: mostrati.append("info"),
-        showerror=lambda *a, **k: mostrati.append("errore")))
+        showwarning=lambda *a, **k: mostrati.append("parziale")))
 
     Dialogo()._export_all()
     assert {p.name for p in tmp_path.iterdir()} == {
@@ -1110,11 +1112,10 @@ def test_l_export_multiplo_pubblica_ogni_file_atomicamente(tmp_path,
     contenuti = {p.name: p.read_text(encoding="utf-8")
                  for p in tmp_path.iterdir()}
 
-    # Ora il terzo generatore fallisce: i due gia' pubblicati restano com'erano
-    # e non compare un .svg troncato.
+    # Il piano omette il generatore fallito; nessun .svg troncato o falso successo.
     mostrati.clear()
     Dialogo(esplode_su="svg")._export_all()
-    assert mostrati == ["errore"]
+    assert mostrati == ["parziale"]
     assert set(p.name for p in tmp_path.iterdir()) == set(contenuti)
     assert {p.name: p.read_text(encoding="utf-8")
             for p in tmp_path.iterdir()} == contenuti

@@ -98,6 +98,10 @@ class TavolaFrame(ttk.Frame):
 
         ttk.Button(top, text=f"⬇  {tr('table.export_csv')}",
                    command=self._esporta_csv).pack(side="right", padx=4)
+        self._export_scope = ttk.Combobox(top, state="readonly", width=18,
+            values=(tr("ux2.export.all_table"), tr("ux2.export.visible")))
+        self._export_scope.current(0)
+        self._export_scope.pack(side="right", padx=4)
 
         # ── ricostruzione dagli assi ──
         rec = ttk.LabelFrame(
@@ -163,7 +167,7 @@ class TavolaFrame(ttk.Frame):
         self._btn_usa_T.pack(side="left")
         self._btn_pratica.pack(side="left", padx=(6, 0))
         self._esito_navigazione = ttk.Label(nav, text=tr("nav.select_row"),
-                                            foreground="#555", wraplength=360)
+                                            foreground="#555", wraplength=180)
         self._nav = nav
         self.aggiorna_navigazione()
         tv.tag_configure("pari", background="#f4f9f4")
@@ -333,7 +337,12 @@ class TavolaFrame(ttk.Frame):
         txt.configure(state="disabled")
 
     def _esporta_csv(self):
+        rows = self._righe_export()
+        if not rows:
+            messagebox.showwarning(tr("table.export_title"), tr("ux2.export.empty"), parent=self)
+            return
         path = filedialog.asksaveasfilename(
+            parent=self, title=tr("ux2.export.rows", count=len(rows)),
             defaultextension=".csv", initialfile="tavola_216.csv",
             filetypes=[("CSV", "*.csv")])
         if not path:
@@ -348,7 +357,7 @@ class TavolaFrame(ttk.Frame):
                             "periodo", "punti_fissi", "tipo_ciclico",
                             "parita", "autoinversa"] +
                            [f"T_{i}" for i in range(27)])
-                for r in self._righe:
+                for r in rows:
                     w.writerow([r["numero"], *r["mescolamenti"],
                                 *r["impilamenti"], *r["assi"],
                                 r["periodo"], r["punti_fissi"],
@@ -360,4 +369,11 @@ class TavolaFrame(ttk.Frame):
                                  tr("table.export_error", detail=e))
             return
         messagebox.showinfo(tr("table.export_title"),
-                            tr("table.export_success", path=path))
+                            tr("ux2.export.rows", count=len(rows)) + "\n" +
+                            tr("table.export_success", path=path), parent=self)
+
+    def _righe_export(self):
+        if self._export_scope.current() == 0:
+            return list(self._righe)
+        by_number = {str(r["numero"]): r for r in self._righe}
+        return [by_number[iid] for iid in self._tv.get_children()]

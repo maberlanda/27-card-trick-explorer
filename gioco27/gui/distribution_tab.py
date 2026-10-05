@@ -14,6 +14,7 @@ import threading, queue
 
 from .common import EtaEstimator
 from .i18n import format_integer, tr
+from .calcolo_locale import CalcoloAnnullato, verifica_annullamento
 
 
 class DistributionFrame(ttk.Frame):
@@ -27,7 +28,11 @@ class DistributionFrame(ttk.Frame):
         self._build_ui()
 
     def reset(self):
-        # Il calcolo può terminare, ma non ripopolare il workspace azzerato.
+        stop = self.__dict__.get("_stop_compute")
+        if stop is not None:
+            stop.set()
+        self._cancel_btn.configure(state="disabled")
+        # Nessun risultato tardivo puo' ripopolare il workspace azzerato.
         self._scarta_risultato = self._computing
         self._result = None
         self._prog_bar["value"] = 0
@@ -58,12 +63,15 @@ class DistributionFrame(ttk.Frame):
         self._btn = ttk.Button(ctrl, text=f"▶  {tr('distribution.calculate')}",
                                command=self._start_compute)
         self._btn.pack(side="left")
+        self._cancel_btn = ttk.Button(ctrl, text=tr("button.cancel"),
+                                     command=self._cancel_compute, state="disabled")
+        self._cancel_btn.pack(side="left", padx=6)
         self._prog_bar = ttk.Progressbar(ctrl, orient="horizontal",
                                           mode="determinate", maximum=216,
                                           value=0, length=300)
         self._prog_bar.pack(side="left", padx=(12, 6))
         self._prog_lbl = ttk.Label(ctrl, text="",
-                                    font=("Courier New", 9), foreground="#555", width=30)
+                                    font=("Courier New", 9), foreground="#555", wraplength=440)
         self._prog_lbl.pack(side="left")
 
         # Notebook: Istogramma | Tabella
@@ -132,7 +140,14 @@ class DistributionFrame(ttk.Frame):
         if self._computing:
             return
         self._computing = True
+        self._stop_compute = threading.Event()
+        self._cancel_btn.configure(state="normal")
         self._scarta_risultato = False
+        self._result = None
+        running = tr("ux2.distribution.running")
+        self._riassunto.configure(text=running)
+        self._placeholder(self._canvas, running)
+        self._placeholder_txt(running)
         self._btn.configure(state="disabled",
                             text=f"⏳  {tr('status.running')}…")
         self._prog_bar["value"] = 0
@@ -144,29 +159,56 @@ class DistributionFrame(ttk.Frame):
 
     def _compute_worker(self):
         try:
+            verifica_annullamento(self._stop_compute)
             from ..core.config import get_config
             cfg = get_config()
             nw = cfg.effective_n_workers if cfg.get("use_parallel", True) else 1
-            result = _compute_distribution_fast(
-                n_workers=nw,
-                progress_cb=lambda done, n: self._q.put(("P", done - 1, n)))
+            def progress(done, n):
+                verifica_annullamento(self._stop_compute)
+                self._q.put(("P", done - 1, n))
+            result = _compute_distribution_fast(n_workers=nw, progress_cb=progress)
+            verifica_annullamento(self._stop_compute)
             self._q.put(("DONE", result))
+        except CalcoloAnnullato:
+            self._q.put(("CANCEL", None))
         except Exception as exc:
             self._q.put(("ERR", str(exc)))
 
     def _poll_queue(self):
         try:
             item = self._q.get_nowait()
+            # Accorpa gli avanzamenti gia' disponibili: niente animazione arretrata
+            # quando il lavoro reale e' gia' terminato.
+            while item[0] == "P":
+                try:
+                    item = self._q.get_nowait()
+                except queue.Empty:
+                    break
             if getattr(self, "_scarta_risultato", False):
-                if item[0] in ("DONE", "ERR"):
+                if item[0] in ("DONE", "ERR", "CANCEL"):
                     self._computing = False
                     self._scarta_risultato = False
                     self._btn.configure(state="normal")
+                    self._cancel_btn.configure(state="disabled")
                     return
                 if self._computing:
                     self.after(50, self._poll_queue)
                 return
-            if item[0] == "P":
+            stop = self.__dict__.get("_stop_compute")
+            if stop is not None and stop.is_set() and item[0] in ("DONE", "ERR"):
+                item = ("CANCEL", None)
+            if item[0] in ("DONE", "ERR", "CANCEL"):
+                self._cancel_btn.configure(state="disabled")
+            if item[0] == "CANCEL":
+                self._computing = False
+                self._btn.configure(state="normal", text=f"▶  {tr('distribution.calculate')}")
+                cancelled = tr("ux2.cancelled")
+                self._prog_lbl.configure(text=cancelled)
+                self._riassunto.configure(text=cancelled)
+                self._placeholder(self._canvas, cancelled)
+                self._placeholder_txt(cancelled)
+                return
+            if item[0] == "P" and not (stop is not None and stop.is_set()):
                 _, i, n = item
                 self._prog_bar["value"] = i + 1
                 self._prog_lbl.configure(
@@ -187,12 +229,30 @@ class DistributionFrame(ttk.Frame):
                 self._computing = False
                 self._btn.configure(
                     state="normal", text=f"▶  {tr('distribution.retry')}")
-                self._prog_lbl.configure(text=f"✗  {item[1][:50]}")
+                error = tr("ux2.distribution.error", detail=item[1])
+                self._prog_lbl.configure(text=error[:70])
+                self._riassunto.configure(text=error)
+                self._placeholder(self._canvas, error)
+                self._placeholder_txt(error)
                 return
-        except Exception:
+        except queue.Empty:
             pass
         if self._computing:
             self.after(50, self._poll_queue)
+
+    def _cancel_compute(self):
+        if not self._computing:
+            return
+        self._stop_compute.set()
+        self._cancel_btn.configure(state="disabled")
+        self._prog_lbl.configure(text=tr("ux2.cancel.requested"))
+        self._riassunto.configure(text=tr("ux2.cancel.requested"))
+
+    def destroy(self):
+        stop = self.__dict__.get("_stop_compute")
+        if stop is not None:
+            stop.set()
+        super().destroy()
 
     # ─── Visualizzazione risultati ────────────────────────────────────────────
 
