@@ -430,7 +430,10 @@ def test_azioni_rapide_di_inizia_qui_documentate(guida_norm):
     src = (ROOT / "gioco27" / "gui" / "onboarding_tab.py").read_text(encoding="utf-8")
     chiavi = re.findall(r"ttk\.Button\(qa, text=f\"[^\"]*\{tr\('([\w.]+)'\)\}", src)
     etichette = [tr(k) for k in chiavi]
-    assert len(etichette) >= 3, "azioni rapide non individuate"
+    assert len(etichette) == 1  # The remaining quick action opens Guide.
+    percorsi = re.findall(r'"(ux3.start.(?:trick|recognize|study))"', src)
+    assert set(percorsi) == {"ux3.start.trick", "ux3.start.recognize", "ux3.start.study"}
+    etichette += [tr(k) for k in percorsi]
     for e in etichette:
         assert _norm(e) in guida_norm, \
             f"azione rapida «{e}» di «Inizia qui» non documentata nella Guida"
@@ -438,9 +441,8 @@ def test_azioni_rapide_di_inizia_qui_documentate(guida_norm):
 
 def test_passi_di_onboarding_documentati(guida_norm):
     """I titoli dei tre passi della scheda «Inizia qui»."""
-    from gioco27.gui.glossary import ONBOARD_STEPS
     from gioco27.gui.i18n import tr
-    for _icona, chiave, _desc in ONBOARD_STEPS:
+    for chiave in ("ux3.start.trick", "ux3.start.recognize", "ux3.start.study"):
         titolo = tr(chiave)
         assert _norm(titolo) in guida_norm, \
             f"passo «{titolo}» di «Inizia qui» non documentato nella Guida"

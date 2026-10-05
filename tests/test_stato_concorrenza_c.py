@@ -53,8 +53,9 @@ class _MenuButton:
     def __init__(self):
         self.stato = "disabled"
 
-    def configure(self, state):
-        self.stato = state
+    def configure(self, **options):
+        self.stato = options.get("state", self.stato)
+        self.testo = options.get("text", getattr(self, "testo", ""))
 
     def __getitem__(self, _k):
         return None
@@ -482,6 +483,10 @@ def test_b04_reset_dimentica_la_sessione():
     sim._status_lbl = SimpleNamespace(configure=lambda **kw: None)
     sim._istr_txt = sim._deck_log = _Testo()
     sim._write_placeholder_istr = lambda: fatto.append("placeholder")
+    sim._p_piano_lbl = SimpleNamespace(configure=lambda **kw: None)
+    sim._p_recovery_fr = SimpleNamespace(grid_remove=lambda: None)
+    sim._p_latest_feedback = SimpleNamespace(configure=lambda **kw: None)
+    sim._scrivi_confronto = lambda text: None
     sim._phase_var = _Var(0)
     sim._phase_lbl = SimpleNamespace(configure=lambda **kw: None)
     sim._p_set_state = lambda stato: fatto.append(stato)
@@ -615,6 +620,7 @@ def test_r05_lo_stato_non_resta_in_corso(app_selftest, monkeypatch):
 class _VistaSpia:
     def __init__(self):
         self.chiamate = []
+        self._hint = SimpleNamespace(configure=lambda **kw: None)
 
     def __getattr__(self, nome):
         def registra(*a, **k):
@@ -625,6 +631,7 @@ class _VistaSpia:
 def test_m03_la_distribuzione_non_riceve_la_T():
     """Contratto: la Distribuzione e' globale, non rappresenta la T corrente."""
     app = object.__new__(app_module.App)
+    app._T_origin = "test"
     cicli, distrib = _VistaSpia(), _VistaSpia()
     app._cycles_frame = cicli
     app._distrib_frame = distrib
@@ -646,6 +653,7 @@ def test_m03_la_distribuzione_non_espone_set_permutation():
 
 def test_m03_la_presentazione_riceve_la_T():
     app = object.__new__(app_module.App)
+    app._T_origin = "test"
     app._cycles_frame = _VistaSpia()
     presentazione = _VistaSpia()
     app._presentation_win = presentazione

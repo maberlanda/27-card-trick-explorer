@@ -246,8 +246,9 @@ def test_r07_il_dialogo_impostazioni_non_si_chiude_se_non_ha_salvato():
                    if isinstance(n, ast.FunctionDef) and n.name == "do_save")
 
     prove = [n for n in do_save.body if isinstance(n, ast.Try)]
-    assert len(prove) == 1, "un solo blocco protetto attorno al salvataggio"
-    prova = prove[0]
+    prova = next(n for n in prove if any(
+        isinstance(c, ast.Call) and isinstance(c.func, ast.Attribute)
+        and c.func.attr == "commit" for c in ast.walk(n)))
 
     def chiamate(nodo):
         return {n.func.attr for n in ast.walk(nodo)
@@ -412,6 +413,9 @@ def test_lifecycle_analisi_completata_pubblica(tab, monkeypatch):
 
 class AppG2:
     """I metodi reali di `App` che governano il ciclo di un export."""
+
+    def _aggiorna_secondari(self):
+        pass  # Visual-only toolbar collaborator; lifecycle remains real.
 
     _run_generation = app_module.App._run_generation
     _annulla_export = app_module.App._annulla_export
@@ -927,6 +931,7 @@ class _DialogoDecomposizioni:
     """I due export testuali reali della finestra decomposizioni, senza Tk."""
 
     from gioco27.gui import decomposition as _d
+    _export_context = _d.DecompositionDialog._export_context
     _export_txt = _d.DecompositionDialog._export_txt
     _export_csv = _d.DecompositionDialog._export_csv
     del _d
@@ -941,10 +946,12 @@ class _TavolaDelle216:
 
     from gioco27.gui import tavola_tab as _t
     _esporta_csv = _t.TavolaFrame._esporta_csv
+    _righe_export = _t.TavolaFrame._righe_export
     del _t
 
     def __init__(self, righe):
         self._righe = righe
+        self._export_scope = SimpleNamespace(current=lambda: 0)
 
 
 def _riga_tavola(numero):

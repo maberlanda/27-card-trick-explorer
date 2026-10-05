@@ -10,6 +10,7 @@ from tkinter import ttk
 from ..i18n import _UX4_TIPS
 from .i18n import tr, CATALOGS, get_language
 from .tooltip import attach
+from .common import rimuovi_binding
 
 
 def normalise(text):
@@ -84,7 +85,7 @@ def _regions(widget, tips, notebook=False):
     if body:
         fallback = body
     for sequence, binding in getattr(widget, "_guidance_bindings", []):
-        widget.unbind(sequence, binding)
+        rimuovi_binding(widget, sequence, binding)
     widget._guidance_bindings = []
     current = {"text": fallback}
     tooltip = attach(widget, lambda: current["text"])

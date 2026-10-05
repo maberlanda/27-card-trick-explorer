@@ -37,7 +37,7 @@ def _lang(language):
 def test_cataloghi_simmetrici_e_placeholder_coerenti():
     it, en = i18n.CATALOGS["it"], i18n.CATALOGS["en"]
     assert set(it) == set(en)
-    assert len(it) == 2126  # UX-1: +8 stringhe per i contratti di stato
+    assert len(it) == 2514  # UX-1: +8 stringhe per i contratti di stato
     fields = lambda s: sorted(n for _, n, _, _ in Formatter().parse(s) if n)
     for key in it:
         assert fields(it[key]) == fields(en[key]), key
@@ -234,6 +234,7 @@ def _export_harness(monkeypatch, *, n=10, busy=False, confirm=True, outcome="ok"
         _get_filters=lambda: [], update_idletasks=lambda: None,
         _ui=lambda fn: fn(),
     )
+    fake._aggiorna_secondari = lambda: None
     fake._fine_export = lambda: setattr(fake, "_export_busy", False)
     fake._run_generation = lambda **kw: app_module.App._run_generation(
         fake, **{**kw, "gen_func": gen})
@@ -522,14 +523,14 @@ def test_filtri_p_j(language):
     if language == "it":
         for italian in ("  Stadio 1  ", "Permutazioni  P", "Permutazioni  J", "Fissa",
                         "oppure seleziona uno o più valori:", "Valori:",
-                        "J UNIFORMI  —  J0 = J1 = J2", "2 combinazioni J invece di 8"):
+                        "J UNIFORMI  —  J0 = J1 = J2", "J1 e J2 seguono J0 in questo stadio; 2 scelte invece di 8"):
             assert italian in texts, italian
     else:
         for italian in ("Stadio", "Permutazioni", "Fissa", "seleziona", "Valori",
                         "UNIFORMI", "combinazioni"):
             assert italian not in texts, italian
         for english in ("  Stage 1  ", "Permutations  P", "Fix", "or select one or more values:",
-                        "Values:", "UNIFORM J  —  J0 = J1 = J2", "2 J combinations instead of 8"):
+                        "Values:", "UNIFORM J  —  J0 = J1 = J2", "J1 and J2 follow J0 in this stage; 2 choices instead of 8"):
             assert english in texts, english
 
 

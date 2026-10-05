@@ -173,11 +173,11 @@ def test_third_block_short_tooltips_and_banner_labels_are_localized():
     from gioco27.gui.i18n import set_language, tr
 
     assert tr("tooltip.count") == \
-        "Conta le combinazioni che soddisfano i filtri correnti."
+        "Conta le configurazioni ammesse dai tre filtri, non le trasformazioni distinte."
     assert tr("banner.what_this_tab_does") == "Cosa fa questa scheda?"
     set_language("en")
     assert tr("tooltip.count") == \
-        "Count the combinations matching the current filters."
+        "Count configurations allowed by three filters, not distinct transformations."
     assert tr("banner.what_this_tab_does") == "What does this tab do?"
     assert tr("banner.show_more") == "Show more ▾"
 
@@ -236,12 +236,12 @@ def test_fourth_block_tab_labels_are_localized_without_real_windows():
     from gioco27.gui.i18n import set_language, tr
 
     assert tr("distribution.title") == \
-        "Distribuzione delle decomposizioni su tutti i T raggiungibili"
+        "Distribuzione su tutti i 216 T raggiungibili — indipendente dai filtri"
     assert tr("cycles.title") == "Analisi ciclica della permutazione T"
     assert tr("table.filter") == "Filtro:"
     set_language("en")
     assert tr("distribution.title") == \
-        "Decomposition distribution across all reachable T"
+        "Distribution across all 216 reachable T — independent of filters"
     assert tr("cycles.title") == "Cyclic analysis of permutation T"
     assert tr("table.filter") == "Filter:"
 
@@ -389,7 +389,9 @@ def test_sixth_block_export_ui_uses_i18n_without_real_windows():
         assert "from .i18n import tr" in source
         assert "export.content" in source
         assert "export.export_all" in source
-        assert "export.completed" in source
+        assert "esporta_cartella(self, folder, contents, omissions)" in source
+    contract = (root / "gioco27" / "gui" / "export_contract.py").read_text(encoding="utf-8")
+    assert "ux2.export.report" in contract and "ux2.export.omitted" in contract
 
 
 def test_sixth_block_export_catalogs_have_matching_keys():
@@ -645,13 +647,13 @@ def test_ninth_block_analysis_controls_and_columns_are_localized():
 
     assert tr("analysis.title") == "Analisi della molteplicità delle permutazioni"
     assert tr("analysis.generate") == "Genera & Analizza"
-    assert tr("analysis.column.multiplicity") == "Molt."
+    assert tr("analysis.column.multiplicity") == "Molteplicità"
     assert tr("analysis.open_explorer") == "Apri in Explorer"
 
     set_language("en")
     assert tr("analysis.title") == "Permutation multiplicity analysis"
     assert tr("analysis.generate") == "Generate & Analyze"
-    assert tr("analysis.column.multiplicity") == "Mult."
+    assert tr("analysis.column.multiplicity") == "Multiplicity"
     assert tr("analysis.open_explorer") == "Open in Explorer"
 
 
@@ -695,7 +697,7 @@ def test_ninth_block_analysis_preserves_exposed_identifiers_and_formats():
         tr("analysis.detail.subtitle"),
         tr("analysis.detail.footer_hint"),
     ))
-    for identifier in ("T_permutazione", "T_simbolica", "Stage",
+    for identifier in ("T destinations (0–26)", "First distinct symbolic form", "Stage",
                        "P₂×P₁×P₀", "J₂×J₁×J₀", "P ∘ MSC ∘ J"):
         assert identifier in values
     for format_name in ("CSV", "Excel", "HTML"):
@@ -1129,12 +1131,12 @@ def test_twelfth_block_filter_explanations_use_named_placeholders():
 
     assert filter_frame._LEVEL_DESC["P0"] == "filter.level.P0"
     assert tr("filter.combo.tooltip", name="P0") == \
-        "Fissa P0 a un valore preciso (oppure * = considera tutte le opzioni)."
+        "Fissa P0 a un valore obbligatorio; con ANY (*) valgono le caselle spuntate. Il valore fisso prevale sulle caselle."
     assert "S→S" in tr("filter.option.tooltip", option="SCD_U",
                          description=tr("filter.option.SCD_U"))
     set_language("en")
     assert tr("filter.combo.tooltip", name="P0") == \
-        "Fix P0 to one precise value (or * = consider all options)."
+        "Fix P0 to a mandatory value; ANY (*) uses checked boxes. Fixed values override boxes."
     assert "S→S" in tr("filter.option.tooltip", option="SCD_U",
                          description=tr("filter.option.SCD_U"))
 
@@ -1164,7 +1166,7 @@ def test_twelfth_block_long_text_sources_are_no_longer_hardcoded():
     assert 'text=tr("conjugacy.help.intro"' in sources["conjugacy_dialog.py"]
     assert 'text=tr("filter.intro")' in sources["filter_frame.py"]
     assert 'long=tr("onboarding.help.long")' in sources["onboarding_tab.py"]
-    assert 'long=tr("settings.help.long")' in sources["app.py"]
+    assert 'tr("settings.help.long")' in sources["app.py"]
     for text, source_name in (
         ("A ∘ B significa: esegui PRIMA", "cayley_dialog.py"),
         ("Due elementi x, y sono CONIUGATI", "conjugacy_dialog.py"),
@@ -1181,7 +1183,7 @@ def test_twelfth_block_catalog_additions_are_symmetric_and_counted():
     assert len([k for k in i18n.CATALOGS["it"] if k.startswith("glossary.long.")]) == 63
     assert len([k for k in i18n.CATALOGS["it"] if k.startswith("help.tab.")]) == 16
     assert len([k for k in i18n.CATALOGS["it"] if k.startswith("filter.")]) == 26  # +7 audit finale, +1 H1 (filter.never_empty)
-    assert len(i18n.CATALOGS["it"]) == 2126  # UX-1: +8 stringhe per i contratti di stato
+    assert len(i18n.CATALOGS["it"]) == 2514  # Current catalog after UX-4.
 
 
 def _use_config_file(monkeypatch, tmp_path):

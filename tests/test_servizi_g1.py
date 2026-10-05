@@ -459,6 +459,12 @@ class _Var:
 class TabG1:
     """Il mixin reale con una coda esplicita al posto del thread Tk."""
 
+    from gioco27.gui import analysis_tab
+    _analisi_begin_work = analysis_tab.AnalysisTabMixin._analisi_begin_work
+    _analisi_progressbar = analysis_tab.AnalysisTabMixin._analisi_progressbar
+    _analisi_input_changed = analysis_tab.AnalysisTabMixin._analisi_input_changed
+    _analisi_failed = analysis_tab.AnalysisTabMixin._analisi_failed
+
     def __init__(self, filtri):
         from gioco27.gui import analysis_tab
         for nome in ("_analisi_nuova_revisione", "_analisi_e_corrente",

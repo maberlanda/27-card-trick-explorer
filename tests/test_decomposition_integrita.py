@@ -241,6 +241,10 @@ def make_export(monkeypatch, data):
     monkeypatch.setattr(export_dialog.tk.Toplevel, "__init__", lambda *a: None)
     for name in ("title", "geometry", "resizable", "_build_ui", "_refresh_preview"):
         monkeypatch.setattr(export_dialog.ExportDialog, name, lambda *a: None)
+    monkeypatch.setattr(export_dialog.context_help, "banner",
+                        lambda *a, **k: SimpleNamespace(grid=lambda **kw: None))
+    monkeypatch.setattr(export_dialog.guidance, "install", lambda *a: None)
+    monkeypatch.setattr(export_dialog.ExportDialog, "winfo_children", lambda *a: [])
     return export_dialog.ExportDialog(None, evaluate(D), evaluate(DI), data)
 
 

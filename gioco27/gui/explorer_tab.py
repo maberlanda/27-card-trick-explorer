@@ -452,8 +452,10 @@ class ExplorerTabMixin:
             # corpo alto quanto la griglia: il pannello puo' allungarsi, il
             # contenuto no (il box di testo si ferma al fondo della griglia)
             corpo = ttk.Frame(panel)
-            corpo.grid(row=1, column=0, sticky="new", padx=(6, 8), pady=(0, 6))
-            corpo.columnconfigure(1, weight=1)
+            # Keep the textual alternative readable at 1280 px: use the
+            # available width for content instead of the former side margins.
+            corpo.grid(row=1, column=0, sticky="new", pady=(0, 6))
+            corpo.columnconfigure(1, weight=1, minsize=240)
             corpo.rowconfigure(2, weight=1)
 
             cv = tk.Canvas(corpo, width=cv_size+26, height=cv_size+26,

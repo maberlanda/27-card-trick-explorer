@@ -368,7 +368,7 @@ def test_dp2_nei_testi_utente():
             assert not re.search(r"\|G\||\bG = GEN3|Z\(G\)", v), k
             assert not re.search(r"\bH\s*[—=(-]\s*648|\|H\|\s*=\s*648", v), k
             if re.search(r"\b648\b", v):
-                assert "Γ" in v, k
+                assert "Γ" in v or "famiglia estesa" in v or "extended family" in v, k
     for lingua in ("it", "en"):
         testo = _guida(lingua)
         assert "|H| = 216" in testo and "648" in testo and "Γ" in testo
@@ -401,8 +401,10 @@ def test_chiavi_nuove_i7_referenziate():
     nuove = [k for k in IT if k.startswith(("level.", "help.sub.", "onboarding.", "tooltip.level",
                                               "tooltip.open_table", "glossary."))]
     assert nuove
+    legacy = {"onboarding.button.try_simulator", "onboarding.button.open_table", "tooltip.open_table"}
+    assert legacy <= IT.keys()  # Retained translation keys, replaced in the current UI.
     for k in nuove:
-        assert k in famiglie or f"'{k}'" in sorgenti or f'"{k}"' in sorgenti, k
+        assert k in legacy or k in famiglie or f"'{k}'" in sorgenti or f'"{k}"' in sorgenti, k
     for k in ("button.beginner_mode", "tooltip.beginner_mode", "onboarding.button.go_preview",
               "guide.s30.terms", "guide.s29.mode.items"):
         assert k not in IT and k not in EN

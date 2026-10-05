@@ -59,8 +59,8 @@ def test_vettore_forma_canonica_e_firma_di_blocco_sono_distinti():
     "guide.s33.a3",
 ])
 def test_dominio_gioco_reale_e_1728_procedure(key):
-    assert "Procedure" in IT[key]
-    assert "Procedure" in EN[key]
+    assert "procedure" in IT[key].lower()
+    assert "procedures" in EN[key].lower()
 
 
 def test_ordine_e_il_termine_principale_periodo_solo_alias_dichiarato():

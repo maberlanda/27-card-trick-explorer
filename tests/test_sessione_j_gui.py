@@ -234,6 +234,7 @@ def test_h2_tastiera_e_livelli(app, pulita):
     d._schede.select(2)
     d.update()
     attesi = [*d._sigle, d._btn["add"], d._btn["remove"], d._btn["up"], d._btn["down"]]
+    attesi = [w for w in attesi if not w.instate(["disabled"])]
     attesi[0].focus_set()
     d.update()
     visti, w = [], attesi[0]

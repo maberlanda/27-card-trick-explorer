@@ -71,6 +71,9 @@ class ExplorerHarness(ExplorerTabMixin):
     _open_presentation = app_module.App._open_presentation
 
     def __init__(self):
+        self._prev_inputs = PreviewTabMixin._prev_inputs.__get__(self)
+        self._prev_state = Widget()
+        self._prev_export_btn = Widget()
         self._explorer_ctrl = Controller()
         self._explorer_entry = Widget(IDENTITY)
         self._explorer_status = Widget()

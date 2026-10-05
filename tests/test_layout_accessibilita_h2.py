@@ -67,8 +67,7 @@ def applicazione():
     from gioco27.gui import app as app_module
 
     app = app_module.App()
-    app._livello = "esperto"            # tutte le schede visibili
-    app._apply_livello()
+    app._imposta_livello("laboratorio")  # tutte le schede visibili
     app.update_idletasks()
     try:
         yield app
@@ -236,6 +235,7 @@ def test_la_disposizione_delle_barre_non_innesca_un_ciclo(applicazione):
     """H2: un `<Configure>` che non cambia nulla non tocca nessun widget."""
     eventi = {"n": 0}
     barra = applicazione._barra_azioni
+    precedente = barra.bind("<Configure>")
     identificatore = barra.bind(
         "<Configure>", lambda _e: eventi.__setitem__("n", eventi["n"] + 1),
         add="+")
@@ -244,11 +244,14 @@ def test_la_disposizione_delle_barre_non_innesca_un_ciclo(applicazione):
             _dimensiona(applicazione, geometria)
         assert eventi["n"] <= 8, eventi["n"]
     finally:
-        barra.unbind("<Configure>", identificatore)
+        from gioco27.gui.common import rimuovi_binding
+        rimuovi_binding(barra, "<Configure>", identificatore)
+        assert barra.bind("<Configure>").strip() == precedente.strip()
 
 
 def test_con_una_finestra_larga_le_azioni_tornano_su_una_riga(applicazione):
     """Il gruppo di destra resta a destra finché tutto ci sta."""
+    applicazione._imposta_livello("laboratorio")
     larghezza, _ = _dimensiona(applicazione, "2200x900")
     barra = applicazione._barra_azioni
     assert barra.numero_di_righe() == 1
@@ -912,8 +915,6 @@ def test_nessuna_rotta_mostra_piu_un_errore_di_sistema_nudo():
         "cayley_dialog.py": 2,
         "conjugacy_dialog.py": 2,
         "decomposition.py": 3,
-        "export_dialog.py": 1,       # export multiplo
-        "export_group_dialog.py": 1,  # export in cartella
         "sessione_tab.py": 1,        # UX-1: salvataggio prima di abbandonare
     }
 
@@ -1222,7 +1223,7 @@ def test_tutti_i_menu_a_tendina_passano_dall_aiuto():
                 tutti[percorso.name] = tutti.get(percorso.name, 0) + 1
             if nome == "rendi_menu_apribile":
                 usano[percorso.name] = usano.get(percorso.name, 0) + 1
-    assert sum(tutti.values()) == 5, tutti
+    assert sum(tutti.values()) == 6, tutti
     assert usano == tutti, {"senza tastiera": sorted(set(tutti) - set(usano))}
 
 
@@ -1370,14 +1371,23 @@ def test_i2_le_barre_del_pannello_solo_quando_servono(applicazione):
     pannello = _pannello(applicazione, "1920x1080")
     pannello._schede.select(2)
     applicazione.update()
-    assert pannello._area_posizioni.barre_visibili() == (False, False)
+    # UX-4: the positions table retains its fixed columns. Scrolling is
+    # required when they exceed the pane, even in a wide main window.
     for geometria in TARGET:
         pannello = _pannello(applicazione, geometria)
         for i, area in enumerate((pannello._area_tabellone, pannello._area_carta,
                                   pannello._area_posizioni)):
             pannello._schede.select(i)
             applicazione.update()
-            assert area.barre_visibili()[1] is False, (geometria, i)
+            width, height = area.tela.winfo_width(), area.tela.winfo_height()
+            expected = (area.contenuto.winfo_reqheight() > height + area.TOLLERANZA,
+                        area.contenuto.winfo_reqwidth() > width + area.TOLLERANZA)
+            assert area.barre_visibili() == expected, (geometria, i)
+            if expected[1]:
+                area.tela.xview_moveto(1)
+                applicazione.update()
+                assert area.tela.xview()[1] == 1.0  # The far edge is reachable.
+                area.tela.xview_moveto(0)
 
 
 def test_i2_il_divisore_si_sposta_senza_cicli(applicazione):
@@ -2125,7 +2135,8 @@ def test_i6_la_vista_sta_in_1280_anche_in_inglese(lingua):
         vista = LaboratorioFrame(radice)
         vista.pack(fill="both", expand=True)
         radice.update()
-        assert "Groups:" in vista.winfo_children()[0].cget("text")
+        assert "Which property" in " ".join(
+            str(w.cget("text")) for w in _discendenti(vista, (tk.Label, ttk.Label)))
         assert vista.winfo_reqwidth() <= 1200, vista.winfo_reqwidth()
         assert vista.winfo_reqheight() <= 640, vista.winfo_reqheight()
     finally:

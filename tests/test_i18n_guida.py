@@ -257,7 +257,10 @@ def test_navigazione_reale_con_widget_tk():
     try:
         for language, first in (("it", "Gioco delle 27 carte"), ("en", "27-card trick")):
             i18n.set_language(language)
-            fake = SimpleNamespace()
+            fake = SimpleNamespace(_guide_search=lambda: None,
+                                   _guide_back=lambda: None,
+                                   _guide_index=lambda: None,
+                                   _open_guide=lambda *a: None)
             frame = App._build_guide_tab(fake, root)
             assert sorted(fake._guide_marks, key=int) == \
                 [str(n) for n in range(1, N_SECTIONS + 1)]
@@ -337,9 +340,8 @@ def test_etichette_ui_inglesi_citate_nella_guida_inglese():
         "explorer.button.decompositions_inverse", "explorer.button.export",
         "export.export_all", "shuffle.card_by_card", "shuffle.play",
         "banner.what_this_tab_does", "banner.open_guide",
-        "onboarding.step1.title", "onboarding.step2.title", "onboarding.step3.title",
-        "onboarding.button.try_simulator",
-        "onboarding.button.open_table", "onboarding.button.open_guide",
+        "ux3.start.trick", "ux3.start.recognize", "ux3.start.study",
+        "onboarding.button.open_guide",
         "export.document.pdf.ace_position", "export.document.pdf.transpose_list",
         "export.document.pdf.undefined_indices",
     ]

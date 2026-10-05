@@ -50,6 +50,14 @@ class Widget:
 
 
 class AppHarness:
+    def _aggiorna_secondari(self):
+        pass  # Visual-only toolbar collaborator; lifecycle remains real.
+
+    _analisi_begin_work = analysis_tab.AnalysisTabMixin._analisi_begin_work
+    _analisi_progressbar = analysis_tab.AnalysisTabMixin._analisi_progressbar
+    _analisi_input_changed = analysis_tab.AnalysisTabMixin._analisi_input_changed
+    _analisi_failed = analysis_tab.AnalysisTabMixin._analisi_failed
+
     _on_close = app_module.App._on_close
     _sessione_conferma_sostituzione = lambda self: True
     _quit_app = app_module.App._quit_app

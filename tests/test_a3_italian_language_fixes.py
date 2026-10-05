@@ -16,7 +16,7 @@ def test_reggenza_istruzioni_e_titolo_dell_analisi_sono_naturali():
     assert IT["analysis.open_explorer"] == "Apri in Explorer"
     assert IT["analysis.title"] == "Analisi della molteplicità delle permutazioni"
     assert "Fai doppio clic" in IT["analysis.status.summary"]
-    assert "Fai clic" in IT["distribution.placeholder_chart"]
+    assert "Premi Calcola" in IT["distribution.placeholder_chart"]
     italiano = "\n".join(IT.values())
     for residuo in ("Apri nel Explorer", "doppio-click", "Clicca", "Clic su",
                     "Si preme", "Analisi Molteplicità"):

@@ -97,7 +97,7 @@ def test_b01_centinaia_di_sequenze_sono_tutte_nel_file(tmp_path, monkeypatch,
     tab = _esporta_excel_grezzo([_risultato(sequenze)], path, monkeypatch)
 
     assert senza_dialoghi == [], "l'export non deve segnalare errori"
-    assert tab._analisi_status.get().startswith("✓")
+    assert " — ✓ Excel grezzi:" in tab._analisi_status.get()
     wb = _apri(path)
     try:
         assert wb.sheetnames == FOGLI_GREZZI

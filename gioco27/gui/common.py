@@ -14,6 +14,16 @@ from .i18n import tr
 _log = get_logger(__name__)
 
 
+def rimuovi_binding(widget, sequence, identifier):
+    """Remove only this callback, including on Tkinter before Python 3.11."""
+    script = widget.bind(sequence)
+    prefix = f'if {{"[{identifier} '
+    remaining = "\n".join(line for line in script.splitlines()
+                          if not line.startswith(prefix))
+    widget.tk.call("bind", widget._w, sequence, remaining)
+    widget.deletecommand(identifier)
+
+
 def run_in_thread(widget, job, error_title=None, on_error=None):
     """
     Esegue `job()` in un thread demone, con gestione errori standard.

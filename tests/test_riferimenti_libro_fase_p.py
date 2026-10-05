@@ -102,7 +102,7 @@ def test_citazioni_dell_articolo_originale_dichiarano_la_versione(lingua, oss, e
     assert oss in cat["guide.i5.directions"]
     assert ("settembre 2026" if lingua == "it" else "September 2026") in cat["guide.i5.directions"]
     assert ("settembre 2026" if lingua == "it" else "September 2026") in cat["guide.i1.reversals"]
-    assert es in cat["recognition.example.es71"] and "App. D" in cat["recognition.example.es71"]
+    assert ("Es. 7.1" if lingua == "it" else "Ex. 7.1") in cat["recognition.example.es71"] and "App. D" in cat["recognition.example.es71"]
     assert riferimenti.risolvi_riferimenti("⟦art:statistiche_fibra⟧", lingua).endswith("5.1")
 
 

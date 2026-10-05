@@ -251,6 +251,38 @@ def test_t13_localised_catalog():
         assert label.startswith("@") or label in i18n.CATALOGS["it"], (scope, label)
 
 
+def test_selective_unbind_clears_last_callback(app):
+    from gioco27.gui.common import rimuovi_binding
+    widget = ttk.Frame(app)
+    try:
+        binding = widget.bind("<<OnlyCallback>>", lambda e: None, add="+")
+        rimuovi_binding(widget, "<<OnlyCallback>>", binding)
+        assert widget.bind("<<OnlyCallback>>") == ""
+        assert not widget.tk.call("info", "commands", binding)
+    finally:
+        widget.destroy()
+
+
+def test_guidance_reinstall_preserves_notebook_behavior(app):
+    app._imposta_livello("avanzato")
+    app._seleziona_scheda("explorer")
+    notebook = app._explorer_nb
+    calls = []
+    binding = notebook.bind("<<NotebookTabChanged>>", lambda e: calls.append(e.widget), add="+")
+    try:
+        for _ in range(2):
+            guidance.install(notebook, "explorer")
+        notebook.select(app._mat_scheda)
+        notebook.event_generate("<<NotebookTabChanged>>")
+        app.update()
+        assert calls and all(w is notebook for w in calls)
+        assert int(notebook.cget("height")) == app._mat_scheda.winfo_reqheight()
+        assert notebook.master.grid_rowconfigure(2)["weight"] == 0
+    finally:
+        from gioco27.gui.common import rimuovi_binding
+        rimuovi_binding(notebook, "<<NotebookTabChanged>>", binding)
+
+
 @pytest.mark.parametrize("topic", context_help.TOPICS)
 def test_t14_topics(app, topic):
     banner = context_help.banner(app, topic, app._open_guide)
