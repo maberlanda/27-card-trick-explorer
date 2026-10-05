@@ -217,7 +217,7 @@ def test_r07_ogni_salvataggio_nella_gui_e_gestito():
 
     salvataggi = [n for n in ast.walk(albero)
                   if isinstance(n, ast.Call)
-                  and isinstance(n.func, ast.Attribute) and n.func.attr == "save"
+                  and isinstance(n.func, ast.Attribute) and n.func.attr in ("save", "commit")
                   and isinstance(n.func.value, ast.Attribute)
                   and n.func.value.attr == "_cfg"]
     assert len(salvataggi) == 4, f"punti di salvataggio: {len(salvataggi)}"
@@ -253,7 +253,7 @@ def test_r07_il_dialogo_impostazioni_non_si_chiude_se_non_ha_salvato():
         return {n.func.attr for n in ast.walk(nodo)
                 if isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute)}
 
-    assert "save" in chiamate(prova)
+    assert "commit" in chiamate(prova)
     assert "destroy" not in chiamate(prova), "chiudere non fa parte del tentativo"
     assert any(isinstance(n, ast.Return) for h in prova.handlers
                for n in ast.walk(h)), "il fallimento interrompe il flusso"

@@ -149,7 +149,7 @@ def test_conferma_prima_di_sostituire_una_sessione_modificata(app, pulita, monke
     _explorer(app, B)
     assert app._sessione.modificata
     from gioco27.gui import sessione_tab
-    monkeypatch.setattr(sessione_tab.messagebox, "askyesno", lambda *a, **k: False)
+    monkeypatch.setattr(sessione_tab, "conferma_abbandono", lambda *a, **k: None)
     id_prima = app._sessione.id
     assert pulita.apri(tmp_path / "x.json") is None
     pulita.nuova()

@@ -81,6 +81,24 @@ class RiconoscimentoFrame(ttk.Frame):
         self._costruisci_schede()
         self._su_modo()
 
+    def reset(self):
+        self._pi = self._mazzi = None
+        self._modo_var.set(MODO_PERM)
+        self._verso_var.set(rc.AVANTI)
+        self._pos_var.set(0)
+        self._q0_var.set(2)
+        self._q2_var.set(22)
+        self._su_modo()
+        self._esempio_cb.set("")
+        for campo in (self._campo1, self._campo2, self._diretto_txt,
+                      self._somme_txt, self._estesa_txt, self._guide_txt,
+                      self._a1_txt, self._vw_txt):
+            self._imposta(campo, "")
+        for campo in self._a1_campi:
+            campo.delete(0, "end")
+        self._errore_lbl.configure(text="")
+        self._esito_lbl.configure(text=tr("recognition.idle"))
+
     # ── costruzione ──────────────────────────────────────────────────────────
     def _costruisci_ingresso(self):
         fr = ttk.LabelFrame(self, text=f" {tr('recognition.input')} ", padding=(8, 2))

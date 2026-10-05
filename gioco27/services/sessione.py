@@ -34,6 +34,7 @@ class SessioneLavoro:
         self.presentazione = None
         self.percorso = None
         self.cronologia = Cronologia(stato_vuoto())
+        self._bozza_annotazioni = None
 
     # ── lettura ─────────────────────────────────────────────────────────────
     @property
@@ -46,7 +47,22 @@ class SessioneLavoro:
 
     @property
     def modificata(self) -> bool:
-        return self.cronologia.modificata
+        return self.cronologia.modificata or (
+            self._bozza_annotazioni is not None
+            and self._bozza_annotazioni != self.annotazioni)
+
+    @property
+    def annotazioni_visibili(self) -> dict:
+        """Bozza dell'editor, conservata anche quando la finestra viene chiusa."""
+        return copy.deepcopy(self._bozza_annotazioni or self.annotazioni)
+
+    def imposta_bozza_annotazioni(self, titolo, nota):
+        ann = {"titolo": str(titolo), "nota": str(nota)}
+        self._bozza_annotazioni = None if ann == self.annotazioni else ann
+
+    def sincronizza_annotazioni(self):
+        ann = self.annotazioni_visibili
+        return self.imposta_annotazioni(ann["titolo"], ann["nota"])
 
     def input_di(self, strumento) -> Optional[dict]:
         return copy.deepcopy(self.stato_scientifico.get(strumento))
@@ -66,7 +82,9 @@ class SessioneLavoro:
     def imposta_annotazioni(self, titolo: str, nota: str):
         stato = self.cronologia.stato
         stato["annotazioni"] = {"titolo": str(titolo), "nota": str(nota)}
-        return self.cronologia.registra("annotazione", "sessione", stato)
+        evento = self.cronologia.registra("annotazione", "sessione", stato)
+        self._bozza_annotazioni = None
+        return evento
 
     def imposta_presentazione(self, livello, scheda=None, sottoscheda=None):
         self.presentazione = {"livello": livello, "scheda": scheda, "sottoscheda": sottoscheda}
@@ -85,6 +103,7 @@ class SessioneLavoro:
             fonti=fonti, esperimento_id=self.id, creato=self.creato)
 
     def salva(self, percorso, fonti=()) -> str:
+        self.sincronizza_annotazioni()
         doc = self.documento(fonti)
         digest = archivio.salva_documento(doc, percorso)
         self.percorso = str(percorso)

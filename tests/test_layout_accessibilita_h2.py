@@ -630,6 +630,16 @@ class _CfgFinta(dict):
         if self.guasto is not None:
             raise self.guasto
 
+    def commit(self, modifiche):
+        precedente = dict(self)
+        self.update(modifiche)
+        try:
+            self.save()
+        except Exception:
+            self.clear()
+            self.update(precedente)
+            raise
+
 
 @pytest.fixture
 def impostazioni(applicazione, monkeypatch):
@@ -793,7 +803,7 @@ def test_la_scelta_della_lingua_si_riscontra_nel_dialogo(impostazioni, lingua):
     combo.event_generate("<<ComboboxSelected>>")
     applicazione.update()
 
-    assert cfg["language"] == "en"
+    assert cfg["language"] == "it"  # UX-1: solo la bozza cambia prima di Salva.
     assert finestre == [], f"una messagebox sopra il dialogo: {finestre}"
     avviso = applicazione._avviso_impostazioni
     assert avviso.winfo_ismapped()
@@ -897,6 +907,7 @@ def test_nessuna_rotta_mostra_piu_un_errore_di_sistema_nudo():
         "decomposition.py": 3,
         "export_dialog.py": 1,       # export multiplo
         "export_group_dialog.py": 1,  # export in cartella
+        "sessione_tab.py": 1,        # UX-1: salvataggio prima di abbandonare
     }
 
 

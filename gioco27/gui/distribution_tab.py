@@ -22,8 +22,21 @@ class DistributionFrame(ttk.Frame):
         super().__init__(parent, **kw)
         self._result   = None
         self._computing = False
+        self._scarta_risultato = False
         self._q        = queue.Queue()
         self._build_ui()
+
+    def reset(self):
+        # Il calcolo può terminare, ma non ripopolare il workspace azzerato.
+        self._scarta_risultato = self._computing
+        self._result = None
+        self._prog_bar["value"] = 0
+        self._prog_lbl.configure(text="")
+        self._btn.configure(state="disabled" if self._computing else "normal",
+                            text=f"▶  {tr('distribution.calculate')}")
+        self._riassunto.configure(text=tr("distribution.summary_empty"))
+        self._placeholder(self._canvas, tr("distribution.placeholder_chart"))
+        self._placeholder_txt(tr("distribution.placeholder_table"))
 
     # ─── UI ──────────────────────────────────────────────────────────────────
 
@@ -119,6 +132,7 @@ class DistributionFrame(ttk.Frame):
         if self._computing:
             return
         self._computing = True
+        self._scarta_risultato = False
         self._btn.configure(state="disabled",
                             text=f"⏳  {tr('status.running')}…")
         self._prog_bar["value"] = 0
@@ -143,6 +157,15 @@ class DistributionFrame(ttk.Frame):
     def _poll_queue(self):
         try:
             item = self._q.get_nowait()
+            if getattr(self, "_scarta_risultato", False):
+                if item[0] in ("DONE", "ERR"):
+                    self._computing = False
+                    self._scarta_risultato = False
+                    self._btn.configure(state="normal")
+                    return
+                if self._computing:
+                    self.after(50, self._poll_queue)
+                return
             if item[0] == "P":
                 _, i, n = item
                 self._prog_bar["value"] = i + 1

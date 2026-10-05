@@ -47,6 +47,16 @@ class SpettatoreFrame(ttk.Frame):
         self._aggiorna_controlli()
         self._mostra()
 
+    def reset(self):
+        self._sessione = self._riavvolgimento = self._facce = None
+        self._modo_var.set(MODO_NOTO)
+        self._bersaglio_var.set(13)
+        self._mescolato_var.set(False)
+        for var, sigla in zip(self._osservati_var, _ESEMPIO_B12):
+            var.set(sigla)
+        self._aggiorna_controlli()
+        self._mostra()
+
     # ── costruzione ──────────────────────────────────────────────────────────
     def _costruisci(self):
         ttk.Label(self, text=tr("spectator.intro"), wraplength=880,

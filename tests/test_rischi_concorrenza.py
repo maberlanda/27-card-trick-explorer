@@ -51,6 +51,7 @@ class Widget:
 
 class AppHarness:
     _on_close = app_module.App._on_close
+    _sessione_conferma_sostituzione = lambda self: True
     _quit_app = app_module.App._quit_app
     _ui = app_module.App._ui
     _fine_export = app_module.App._fine_export

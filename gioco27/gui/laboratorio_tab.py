@@ -57,6 +57,22 @@ class LaboratorioFrame(ttk.Frame):
         self._elenco.selection_set(0)
         self._su_proprieta()
 
+    def reset(self):
+        self._elenco.selection_clear(0, "end")
+        self._elenco.selection_set(0)
+        self._dominio_var.set(Dominio.H.value)
+        self._su_proprieta()
+        self._vista_classi.set("classi")
+        self.mostra_classi()
+        self._risultato_cb.current(1)
+        self._da_cb.current(1)
+        self._a_cb.current(3)
+        self.mostra_locale()
+        self._grafo_var.set("cayley_s3")
+        self._da_var.set(0)
+        self._a_var.set(215)
+        self.mostra_grafo()
+
     # ── utilita' ─────────────────────────────────────────────────────────────
     def _paragrafo_intestazione(self, titolo, nota):
         """Un'etichetta sola: titolo e nota di seguito, su due righe.

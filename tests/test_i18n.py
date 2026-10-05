@@ -1181,7 +1181,7 @@ def test_twelfth_block_catalog_additions_are_symmetric_and_counted():
     assert len([k for k in i18n.CATALOGS["it"] if k.startswith("glossary.long.")]) == 63
     assert len([k for k in i18n.CATALOGS["it"] if k.startswith("help.tab.")]) == 16
     assert len([k for k in i18n.CATALOGS["it"] if k.startswith("filter.")]) == 26  # +7 audit finale, +1 H1 (filter.never_empty)
-    assert len(i18n.CATALOGS["it"]) == 2118  # A4-FIX: +10 etichette localizzate e descrizione CLI
+    assert len(i18n.CATALOGS["it"]) == 2126  # UX-1: +8 stringhe per i contratti di stato
 
 
 def _use_config_file(monkeypatch, tmp_path):

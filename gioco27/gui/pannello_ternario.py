@@ -197,6 +197,30 @@ class PannelloTernario(ttk.Frame):
                   self._vai_realizzata):
             b.state(["disabled"])
 
+    def reset(self):
+        self._numero = self._tabellone = self._flusso = None
+        self._celle_evidenziate = ()
+        self._carta = self._passo = 0
+        self._carta_var.set("0")
+        for var in self._eps_vars:
+            var.set(False)
+        self._tabella.delete(*self._tabella.get_children())
+        for nome in ("_titolo_diretto", "_titolo_inverso", "_piede_diretto",
+                     "_piede_inverso", "_autoinversa", "_realizza", "_ritorno",
+                     "_indirizzo", "_registro", "_dettaglio_passo", "_etichetta_passo",
+                     "_storia_distribuzioni", "_storia_raccolte", "_lettura", "_realizzata"):
+            getattr(self, nome).configure(text="")
+        for lbl in self._fasi:
+            lbl.configure(text="")
+        for lbl in (*self._etichette_righe, *self._etichette_inverse):
+            lbl.configure(text="")
+        for griglia in (self._celle, self._celle_inverse):
+            for riga in griglia:
+                for lbl in riga:
+                    lbl.configure(text="", style="Cella.TLabel")
+        self._vai_ritorno.state(["disabled"])
+        self._mostra_vuoto()
+
     def mostra_disposizione(self, numero):
         """Mostra la disposizione `numero` (0..215) in tutte le schede.
 

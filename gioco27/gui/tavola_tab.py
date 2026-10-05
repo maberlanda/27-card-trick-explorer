@@ -69,6 +69,19 @@ class TavolaFrame(ttk.Frame):
         self._build_ui()
         self._popola()
 
+    def reset(self):
+        self._filtro_var.set("")
+        self._popola()
+        for var in self._asso_vars:
+            var.set("")
+        self._rec_lbl.configure(text="")
+        self._tv.selection_remove(*self._tv.selection())
+        self._tv.focus("")
+        self.pannello.reset()
+        for btn in (self._btn_usa_T, self._btn_explorer, self._btn_cicli, self._btn_pratica):
+            btn.state(["disabled"])
+        self._esito_navigazione.configure(text=tr("nav.select_row"))
+
     # ── UI ────────────────────────────────────────────────────────────────────
 
     def _build_ui(self):

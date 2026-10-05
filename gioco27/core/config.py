@@ -162,6 +162,19 @@ class Config:
             _log.exception("Errore in salvataggio config %s", _CONFIG_FILE)
             raise ConfigNonSalvata(_CONFIG_FILE, causa) from causa
 
+    def commit(self, modifiche: dict) -> None:
+        """Valida tutto e pubblica insieme; un errore conserva anche la memoria."""
+        for chiave, valore in modifiche.items():
+            if chiave not in _VALIDATORS or not _VALIDATORS[chiave](valore):
+                raise ValueError(chiave)
+        precedente = self._data
+        self._data = {**precedente, **modifiche}
+        try:
+            self.save()
+        except Exception:
+            self._data = precedente
+            raise
+
     # ----------------------------------------------------------- accessors ---
 
     def get(self, key: str, default=None):

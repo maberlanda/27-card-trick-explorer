@@ -29,6 +29,9 @@ from ..services.sessione import SessioneLavoro
 from ..services.successione import Successione
 from . import livelli as _livelli
 from .i18n import tr
+from .help_banner import HelpBanner
+from .dialoghi_stato import conferma_abbandono
+from .errori import per_file
 
 _RADICE = Path(__file__).resolve().parents[2]
 
@@ -94,6 +97,7 @@ class SessioneMixin:
     def _sessione_nota(self, strumento, dato=None):
         if getattr(self, "_sessione_applicando", False) or not hasattr(self, "_sessione"):
             return None
+        self._sessione_acquisisci_bozza()
         try:
             inp = self._sessione_leggi(strumento, dato)
         except (tk.TclError, AttributeError, ValueError):
@@ -183,15 +187,50 @@ class SessioneMixin:
         self._sessione.imposta_presentazione(_livelli.normalizza(self._livello), scheda, sotto)
 
     def _sessione_salva(self, percorso):
+        self._sessione_sincronizza_annotazioni()
         self._sessione_presentazione()
         self._sessione.salva(percorso, fonti_disponibili())
         self._sessione_aggiorna_dialog()
 
+    def _sessione_acquisisci_bozza(self):
+        d = getattr(self, "_sessione_dialog", None)
+        if d is not None and d.winfo_exists():
+            d.acquisisci_bozza()
+
+    def _sessione_sincronizza_annotazioni(self):
+        self._sessione_acquisisci_bozza()
+        return self._sessione.sincronizza_annotazioni()
+
+    def _sessione_salva_file(self, percorso=None, *, scegli=False):
+        """Unico flusso di salvataggio per pulsanti e guard di abbandono."""
+        d = getattr(self, "_sessione_dialog", None)
+        parent = d if d is not None and d.winfo_exists() else self
+        if percorso is None and not scegli:
+            percorso = self._sessione.percorso
+        percorso = percorso or filedialog.asksaveasfilename(
+            parent=parent, defaultextension=".json",
+            filetypes=[(tr("session.filetype"), "*.json")])
+        if not percorso:
+            return None
+        try:
+            self._sessione_salva(percorso)
+        except (OSError, ValueError) as e:
+            messagebox.showerror(*per_file(e, percorso), parent=parent)
+            return None
+        if parent is d:
+            d._scrivi(d._esito, [tr("session.saved", path=percorso)])
+        return percorso
+
     def _sessione_conferma_sostituzione(self):
+        self._sessione_acquisisci_bozza()
         if not self._sessione.modificata:
             return True
-        return messagebox.askyesno(tr("session.confirm.title"), tr("session.confirm.discard"),
-                                   parent=self)
+        scelta = conferma_abbandono(self)
+        if scelta == "discard":
+            return True
+        if scelta == "save":
+            return self._sessione_salva_file() is not None
+        return False
 
     def _sessione_adotta(self, nuova):
         """Commit logico unico: nuova sessione + stato nelle viste + presentazione."""
@@ -254,11 +293,25 @@ class SessioneDialog(tk.Toplevel):
         self.bind("<Control-z>", lambda e: self.annulla())
         self.bind("<Control-y>", lambda e: self.ripristina())
         self._passo = 0
+        self._aggiornando_annotazioni = False
+        self._sessione_mostrata = None
+        self._annotazioni_mostrate = None
         self.aggiorna()
+        self._titolo_var.trace_add("write", self._bozza_cambiata)
+        self._nota.bind("<<Modified>>", self._nota_cambiata)
+        self.protocol("WM_DELETE_WINDOW", self._chiudi)
+
+    def _chiudi(self):
+        self.acquisisci_bozza()
+        self.destroy()
 
     # ── esperimento ─────────────────────────────────────────────────────────
     def _costruisci_esperimento(self, nb):
-        fr = ttk.Frame(nb, padding=8)
+        pagina = ttk.Frame(nb)
+        HelpBanner(pagina, tr("session.help.short"),
+                   long=tr("session.help.long")).pack(fill="x")
+        fr = ttk.Frame(pagina, padding=8)
+        fr.pack(fill="both", expand=True)
         fr.columnconfigure(1, weight=1)
         ttk.Label(fr, text=tr("session.field.title")).grid(row=0, column=0, sticky="w")
         self._titolo_var = tk.StringVar()
@@ -284,7 +337,7 @@ class SessioneDialog(tk.Toplevel):
                               background="#FAFCFF", state="disabled", takefocus=True)
         self._esito.grid(row=4, column=0, columnspan=2, sticky="nsew", pady=(8, 0))
         fr.rowconfigure(4, weight=1)
-        nb.add(fr, text=f" {tr('session.tab.experiment')} ")
+        nb.add(pagina, text=f" {tr('session.tab.experiment')} ")
 
     def _scrivi(self, testo, righe):
         testo.configure(state="normal")
@@ -292,7 +345,22 @@ class SessioneDialog(tk.Toplevel):
         testo.insert("1.0", "\n".join(righe))
         testo.configure(state="disabled")
 
-    def aggiorna(self):
+    def acquisisci_bozza(self):
+        if self._sessione_mostrata is self.app._sessione and not self._aggiornando_annotazioni:
+            self.app._sessione.imposta_bozza_annotazioni(
+                self._titolo_var.get(), self._nota.get("1.0", "end-1c"))
+
+    def _bozza_cambiata(self, *_):
+        if not self._aggiornando_annotazioni:
+            self.acquisisci_bozza()
+            self._aggiorna_stato()
+
+    def _nota_cambiata(self, _event=None):
+        if self._nota.edit_modified():
+            self._bozza_cambiata()
+            self._nota.edit_modified(False)
+
+    def _aggiorna_stato(self):
         s = self.app._sessione
         c = s.cronologia
         titolo = s.annotazioni["titolo"] or s.id[:8]
@@ -304,16 +372,33 @@ class SessioneDialog(tk.Toplevel):
             redo=tr("session.yes") if c.puo_ripristinare() else tr("session.no")))
         self._pulsanti["undo"].state(["!disabled"] if c.puo_annullare() else ["disabled"])
         self._pulsanti["redo"].state(["!disabled"] if c.puo_ripristinare() else ["disabled"])
-        if self.focus_get() not in (self._titolo, self._nota):
-            self._titolo_var.set(s.annotazioni["titolo"])
-            self._nota.delete("1.0", "end")
-            self._nota.insert("1.0", s.annotazioni["nota"])
+
+    def aggiorna(self):
+        s = self.app._sessione
+        visibili = {"titolo": self._titolo_var.get(),
+                    "nota": self._nota.get("1.0", "end-1c")}
+        if self._sessione_mostrata is s and visibili != self._annotazioni_mostrate:
+            # Include anche modifiche Text il cui <<Modified>> è ancora in coda.
+            self.acquisisci_bozza()
+        self._aggiorna_stato()
+        self._aggiornando_annotazioni = True
+        try:
+            ann = s.annotazioni_visibili
+            if self._titolo_var.get() != ann["titolo"]:
+                self._titolo_var.set(ann["titolo"])
+            if self._nota.get("1.0", "end-1c") != ann["nota"]:
+                self._nota.delete("1.0", "end")
+                self._nota.insert("1.0", ann["nota"])
+            self._nota.edit_modified(False)
+            self._sessione_mostrata = s
+            self._annotazioni_mostrate = ann
+        finally:
+            self._aggiornando_annotazioni = False
         self._aggiorna_cronologia()
         self._aggiorna_successione()
 
     def applica_annotazioni(self):
-        self.app._sessione.imposta_annotazioni(self._titolo_var.get(),
-                                               self._nota.get("1.0", "end-1c"))
+        self.app._sessione_sincronizza_annotazioni()
         self.aggiorna()
 
     def annulla(self):
@@ -344,24 +429,10 @@ class SessioneDialog(tk.Toplevel):
         return r
 
     def salva(self):
-        if self.app._sessione.percorso:
-            return self.salva_come(self.app._sessione.percorso)
-        return self.salva_come()
+        return self.app._sessione_salva_file()
 
     def salva_come(self, percorso=None):
-        percorso = percorso or filedialog.asksaveasfilename(
-            parent=self, defaultextension=".json",
-            filetypes=[(tr("session.filetype"), "*.json")])
-        if not percorso:
-            return None
-        try:
-            self.app._sessione_salva(percorso)
-        except OSError as e:
-            self._scrivi(self._esito, [tr("session.error.save", error=str(e))])
-            return None
-        self._scrivi(self._esito, [tr("session.saved", path=percorso)])
-        self.aggiorna()
-        return percorso
+        return self.app._sessione_salva_file(percorso, scegli=True)
 
     def verifica(self):
         doc = self.app._sessione.documento(fonti_disponibili())
@@ -548,5 +619,3 @@ class SessioneDialog(tk.Toplevel):
     def esporta_successione(self, percorso=None):
         return self._esporta("successione", *archivio.righe_successione(self.successione()),
                              percorso)
-
-

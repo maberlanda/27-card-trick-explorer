@@ -37,7 +37,7 @@ def _lang(language):
 def test_cataloghi_simmetrici_e_placeholder_coerenti():
     it, en = i18n.CATALOGS["it"], i18n.CATALOGS["en"]
     assert set(it) == set(en)
-    assert len(it) == 2118  # A4-FIX: +10 etichette localizzate per export/CLI
+    assert len(it) == 2126  # UX-1: +8 stringhe per i contratti di stato
     fields = lambda s: sorted(n for _, n, _, _ in Formatter().parse(s) if n)
     for key in it:
         assert fields(it[key]) == fields(en[key]), key
@@ -336,8 +336,10 @@ def test_annullamento_in_corso(monkeypatch):
         assert status.values == [expected]
 
 
-def test_reset_con_errori_mostra_nomi_localizzati():
+def test_reset_con_errori_mostra_nomi_localizzati(monkeypatch):
     from gioco27.gui import app as app_module
+    from gioco27.services.sessione import SessioneLavoro
+    monkeypatch.setattr(app_module, "conferma_reset", lambda _: True)
 
     def boom():
         raise RuntimeError("x")
@@ -353,6 +355,12 @@ def test_reset_con_errori_mostra_nomi_localizzati():
             _cycles_frame=SimpleNamespace(reset=boom),
             _simulator_frame=SimpleNamespace(reset=lambda: None),
             _shuffle_viewer=SimpleNamespace(clear_all=lambda: None),
+            _reset_filtri=lambda: None, _sessione_acquisisci_bozza=lambda: None,
+            _sessione_aggiorna_dialog=lambda: None, _sessione=SessioneLavoro(),
+            _tavola_frame=SimpleNamespace(reset=lambda: None),
+            _distrib_frame=SimpleNamespace(reset=lambda: None),
+            _riconoscimento=SimpleNamespace(reset=lambda: None),
+            _laboratorio=SimpleNamespace(reset=lambda: None),
             status_var=status)
         app_module.App._reset(fake)
         assert status.values[-1] == expected

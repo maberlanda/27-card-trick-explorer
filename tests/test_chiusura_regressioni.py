@@ -18,6 +18,7 @@ class Config(dict):
 
 class AppHarness:
     _quit_app = App._quit_app
+    _sessione_conferma_sostituzione = lambda self: True
 
     def __init__(self):
         self._cfg = Config()

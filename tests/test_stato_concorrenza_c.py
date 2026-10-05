@@ -487,6 +487,14 @@ def test_b04_reset_dimentica_la_sessione():
     sim._p_set_state = lambda stato: fatto.append(stato)
     sim._card_var = _Var(0)
     sim._target_var = _Var(13)
+    sim.togli_disposizione_fissa = lambda: None
+    sim._spettatore = SimpleNamespace(reset=lambda: None)
+    sim._p_modo_var = sim._p_fisico_var = sim._p_recupero_var = _Var("")
+    widget = SimpleNamespace(configure=lambda **kw: None, grid_remove=lambda: None)
+    sim._p_recupero_cb = sim._p_recupero_btn = sim._p_recupero_lbl = widget
+    sim._p_reale_fr = sim._p_reset_btn = sim._p_err_count_lbl = sim._p_col_feedback = widget
+    sim._scrivi_confronto = lambda _: None
+    sim._p_deck_col_labels = []
 
     simulator_tab.SimulatorFrame.reset(sim)
     assert sim._sessione is None and "idle" in fatto

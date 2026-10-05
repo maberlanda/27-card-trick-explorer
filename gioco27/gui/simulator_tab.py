@@ -653,8 +653,24 @@ class SimulatorFrame(PraticaRealeMixin, ttk.Frame):
 
     def reset(self):
         """Riporta il simulatore allo stato iniziale (per «Reset tutto»)."""
+        self.togli_disposizione_fissa()
+        self._spettatore.reset()
         self._sessione = None
         self._pstate = "idle"
+        self._pstep = self._p_errors = 0
+        self._p_err_log = []
+        self._p_deck = self._p_cols = None
+        self._p_modo_var.set("valutazione")
+        self._p_fisico_var.set("nessuno")
+        self._p_stato = self._p_prevista = self._p_esito = None
+        self._p_opzioni_recupero = ()
+        self._p_col_indicata = None
+        self._p_recupero_var.set("")
+        self._p_recupero_cb.configure(state="disabled", values=())
+        self._p_recupero_btn.configure(state="disabled")
+        self._p_recupero_lbl.configure(text="")
+        self._p_reale_fr.grid_remove()
+        self._scrivi_confronto("")
         self._card_var.set(0)
         self._target_var.set(13)
         self._status_lbl.configure(text="")
@@ -672,6 +688,12 @@ class SimulatorFrame(PraticaRealeMixin, ttk.Frame):
         except tk.TclError:
             pass
         self._p_set_state("idle")
+        self._p_reset_btn.configure(state="disabled")
+        self._p_err_count_lbl.configure(text="0")
+        self._p_col_feedback.configure(text="")
+        for colonna in self._p_deck_col_labels:
+            for lbl in colonna:
+                lbl.configure(text="", bg=_C_NORMAL)
 
     def _p_render_cols(self, show_target=True):
         if self._p_cols is None:

@@ -25,6 +25,7 @@ from .errori import per_file, per_utente
 from .filter_frame import FilterFrame
 from .cycles_tab import CyclesFrame
 from .distribution_tab import DistributionFrame
+from .dialoghi_stato import conferma_reset
 from .simulator_tab import SimulatorFrame
 from .tavola_tab import TavolaFrame
 from .export_dialog import ExportDialog
@@ -399,7 +400,7 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
 
         _b = pinner.aggiungi(ttk.Button(
             pinner, text=f"↺  {tr('button.quick_reset')}",
-            style="Preset.TButton", command=self._reset))
+            style="Preset.TButton", command=self._reset_filtri))
         _tooltip.attach(_b, tr("tooltip.quick_reset"))
 
         # ── Progress bar + Annulla ────────────────────────────────────────────
@@ -720,13 +721,19 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
         self.count_var.set(format_integer(n))
         self.status_var.set(tr("status.count_summary", count=format_integer(n)))
 
-    def _reset(self):
-        """«Reset tutto»: azzera i filtri E ogni form in ogni tab."""
+    def _reset_filtri(self):
+        """Ripristina soltanto i tre filtri e il loro conteggio."""
         for ff in self.filter_frames:
             ff.reset()
-        self.count_var.set("—")
+        self._count()
+
+    def _reset(self):
+        """Reimposta il workspace conservando il documento e gli effetti esterni."""
+        if not conferma_reset(self):
+            return
+        self._sessione_acquisisci_bozza()
+        self._reset_filtri()
         self.progress["value"] = 0
-        self._update_count()
 
         # ogni tab torna allo stato iniziale; ogni reset è indipendente:
         # un errore in uno non deve bloccare gli altri
@@ -738,14 +745,28 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
             ("Cicli",        "tab.cycles",           lambda: self._cycles_frame.reset()),
             ("Simulatore",   "tab.simulator",        lambda: self._simulator_frame.reset()),
             ("Mescolamento", "explorer.tab.shuffle", lambda: self._shuffle_viewer.clear_all()),
+            ("Tavola", "tab.table", self._tavola_frame.reset),
+            ("Distribuzione", "tab.distribution", self._distrib_frame.reset),
+            ("Riconoscimento", "recognition.tab.direct", self._riconoscimento.reset),
+            ("Laboratorio", "lab.tab.properties", self._laboratorio.reset),
         ]
         falliti = []
+        self._sessione_applicando = True
         for nome, label_key, fn in resets:
             try:
                 fn()
             except Exception:
                 _log.exception("Reset del tab %s fallito", nome)
                 falliti.append(tr(label_key))
+        self._sessione_applicando = False
+        for strumento in ("explorer", "simulatore", "tavola", "riconoscimento", "laboratorio"):
+            # Solo un reset riuscito può cambiare lo stato del documento.
+            nomi = {"explorer": "tab.explorer", "simulatore": "tab.simulator",
+                    "tavola": "tab.table", "riconoscimento": "recognition.tab.direct",
+                    "laboratorio": "lab.tab.properties"}
+            if tr(nomi[strumento]) not in falliti:
+                self._sessione.registra(strumento, None, tipo="reset")
+        self._sessione_aggiorna_dialog()
 
         # anche lo stato "ultima T" viene dimenticato
         self._last_T_perm = None
@@ -1269,7 +1290,7 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
                   font=("Segoe UI", 10)).grid(row=0, column=0, sticky="w", pady=4)
         n_cpu = multiprocessing.cpu_count()
         cur_w  = self._cfg.get("n_workers") or max(1, n_cpu - 1)
-        w_var  = tk.IntVar(value=cur_w)
+        w_var  = tk.StringVar(value=str(cur_w))
         worker_box = ttk.Spinbox(fr, from_=1, to=n_cpu, textvariable=w_var,
                                  width=5)
         worker_box.grid(row=0, column=1, padx=10, sticky="w")
@@ -1335,8 +1356,7 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
                      state="readonly", width=20).grid(
                          row=5, column=1, columnspan=2, sticky="w", padx=10)
 
-        # La lingua viene salvata subito; la GUI corrente resta invariata e
-        # la nuova lingua viene applicata al successivo avvio.
+        # Tutte le scelte restano locali fino a Salva; lingua al prossimo avvio.
         ttk.Label(fr, text=tr("settings.language"),
                   font=("Segoe UI", 10)).grid(
                       row=6, column=0, sticky="w", pady=4)
@@ -1358,7 +1378,7 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
             code = language_codes.get(language_var.get())
             if code is None or code == self._cfg.get("language", "it"):
                 return
-            self._save_language_preference(code, dlg, avviso=mostra_avviso)
+            mostra_avviso(tr("status.language_restart"), errore=False)
 
         language_combo.bind("<<ComboboxSelected>>", on_language_change)
 
@@ -1394,30 +1414,36 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
 
         def do_save():
             nascondi_avviso()
-            self._cfg["n_workers"]    = int(w_var.get())
-            self._cfg["use_parallel"] = bool(par_var.get())
-            scale = _scale_map.get(hs_var.get(), 1.0)
-            self._cfg["help_font_scale"] = scale
-            uifont.apply_scale(scale, root=self)
             try:
-                self._cfg.save()
+                scale = _scale_map[hs_var.get()]
+                code = language_codes[language_var.get()]
+                self._cfg.commit({"n_workers": int(w_var.get()),
+                                  "use_parallel": bool(par_var.get()),
+                                  "help_font_scale": scale, "language": code})
+            except (ValueError, KeyError, tk.TclError):
+                mostra_avviso(tr("settings.invalid"))
+                return
             except ConfigNonSalvata as exc:
                 # R07: chiudere il dialogo significa «fatto». Se il file non
                 # e' stato scritto non e' fatto: l'errore si legge qui, il
                 # dialogo resta aperto e «Salva» e' ancora premibile.
                 mostra_avviso(per_utente(exc)[1])
                 return
+            uifont.apply_scale(scale, root=self)
             dlg.destroy()
 
         salva.configure(command=do_save)
         # Il fuoco iniziale va sul primo controllo modificabile, non su
         # «Salva»: chi apre le impostazioni vuole cambiare qualcosa.
         prepara_dialogo(dlg, worker_box)
+        return dlg
 
     # ── Chiusura applicazione ─────────────────────────────────────────────────
     def _on_close(self):
         """Salva config, libera memoria e chiude."""
         if getattr(self, "_closing", False):
+            return
+        if not self._sessione_conferma_sostituzione():
             return
         self._closing = True
         stop = getattr(self, "_export_stop", None)
