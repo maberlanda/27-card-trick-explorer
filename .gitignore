@@ -181,3 +181,17 @@ cython_debug/
 #  refer to https://docs.cursor.com/context/ignore-files
 .cursorignore
 .cursorindexingignore
+
+# Output locali del redesign PDF; documentazione ufficiale e fixture escluse.
+/Audit_generatore_PDF_stile_C_v4.0.1.md
+/Audit_generatore_PDF_stile_C_v4.0.1.pdf
+/Campione_A_gioco.pdf
+/Campione_B_generale.pdf
+/Campione_C_filtro_ampio.pdf
+/Confronto_tabella_configurazione.pdf
+/Preview_A.pdf
+/Preview_A_due_configurazioni.pdf
+/Preview_B.pdf
+/Preview_B_due_configurazioni.pdf
+/Rapporto_confronto.md
+/Rapporto_preview.md
