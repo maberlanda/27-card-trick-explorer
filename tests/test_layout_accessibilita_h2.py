@@ -1958,6 +1958,16 @@ def _riconoscimento(app, geometria, esempio="recognition.example.es71", modo=Non
 
 @pytest.mark.parametrize("geometria", TARGET)
 def test_i5_riconoscimento_si_raggiunge(applicazione, geometria):
+    # A previous multiline status must not reserve its old toolbar height.
+    # This reproduces the suite-dependent loss of space without other files.
+    precedente = applicazione.status_var.get()
+    try:
+        applicazione.status_var.set("Elaborazione\nRisultato disponibile\nApri dettagli")
+        _dimensiona(applicazione, "1366x768")
+        _dimensiona(applicazione, geometria)
+    finally:
+        applicazione.status_var.set(precedente)
+        applicazione.update()
     vista, area = _riconoscimento(applicazione, geometria)
     controlli = _discendenti(applicazione._schede["explorer"])
     assert [_etichetta(w) for w in _perduti(controlli)] == []

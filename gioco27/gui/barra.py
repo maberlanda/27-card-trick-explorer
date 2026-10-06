@@ -88,6 +88,7 @@ class BarraAdattiva(ttk.Frame):
         griglia prende lo spazio che avanza.
         """
         self._voci.append((widget, padx, a_destra))
+        widget.bind("<Configure>", self._su_configure, add="+")
         self._elastici.add(str(widget))
         if not elastico:
             self._elastici.discard(str(widget))
@@ -158,7 +159,9 @@ class BarraAdattiva(ttk.Frame):
         righe = self._righe(larghezza)
         # Nessun widget viene toccato se la disposizione non è cambiata: è
         # questo che impedisce il ciclo configure → geometry → configure.
-        firma = (larghezza, tuple(tuple(str(w) for w, _, _ in riga) for riga in righe))
+        firma = (larghezza, tuple(tuple(
+            (str(w), w.winfo_reqwidth(), w.winfo_reqheight())
+            for w, _, _ in riga) for riga in righe))
         if firma == self._disposizione:
             return
         self._disposizione = firma
@@ -193,11 +196,15 @@ class BarraAdattiva(ttk.Frame):
                 if str(widget) in self._elastici:
                     width += quota + resto
                     resto = 0
+                left_pad = padx if isinstance(padx, int) else padx[0]
                 height = (altezza - 2 if isinstance(widget, ttk.Separator)
                           else widget.winfo_reqheight())
-                left_pad = padx if isinstance(padx, int) else padx[0]
+                # Let controls follow their requested height: text/font changes
+                # then emit Configure and invalidate the cached row dimensions.
+                height_options = ({"height": altezza - 2}
+                                  if isinstance(widget, ttk.Separator) else {})
                 widget.place(x=x + left_pad, y=y + 1 + (altezza - 2 - height) // 2,
-                             width=width, height=height)
+                             width=width, **height_options)
                 x += width + pad
             y += altezza
         self.configure(height=y + self._verticale // 2)
