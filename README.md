@@ -1,4 +1,4 @@
-# Gioco delle 27 carte — 4.0.0
+# Gioco delle 27 carte — 4.0.1
 
 Programma didattico e di ricerca sul trucco delle 27 carte: simula il gioco
 fisico carta per carta, ne descrive la matematica (base 3, prodotti di
@@ -6,10 +6,11 @@ Kronecker, il mescolamento MSC) e permette di verificarla, esplorarla e
 riprodurla. Interfaccia grafica in italiano e inglese, con una **Guida
 integrata** organizzata come percorso (scheda «Inizia qui»).
 
-> **Stato:** release stabile 4.0.0. Gli audit finali A1–A5
-> (matematico, terminologico, linguistico, verifica incrociata) sono conclusi;
-> dopo la RC2 la Fase P ha riallineato nomenclatura e riferimenti al libro.
-> Vedi `docs/release/NOTE_VERSIONE_4.0.0.md`.
+> **Stato:** release stabile 4.0.1, consolidamento UX della 4.0.0: stato e
+> sessioni protetti, percorsi iniziali più chiari, export e aiuti contestuali
+> coerenti, barra adattiva e layout corretti. Restano acquisiti gli audit
+> A1–A5 e il riallineamento al libro della Fase P.
+> Vedi `docs/release/NOTE_VERSIONE_4.0.1.md`.
 
 ## Nomenclatura
 
@@ -163,28 +164,28 @@ Configurazione, cache e log sono in `~/.gioco27/`
 
 ## Limiti noti
 
-* La 4.0.0 è la **release stabile**, con gli audit A1–A5
-  conclusi e il riallineamento al libro della Fase P applicato.
+* La 4.0.1 è la **release stabile**, con il consolidamento UX della 4.0.0,
+  gli audit A1–A5 conclusi e il riallineamento al libro della Fase P applicato.
 * Alcuni identificatori interni conservano il nome storico G per il gruppo di
   216 (l'alias `appartiene_a_G`) o il nome tecnico `classe_estesa` per Γ
   (anche come chiave JSON degli esperimenti, per compatibilità); i testi per
   l'utente e gli export usano H e Γ.
-* L'eseguibile Windows è costruito dalla CI; la build locale verificata è
-  quella Linux.
+* L'eseguibile Windows distribuibile è nella GitHub Release, costruito dal
+  commit definitivo e verificato con il selftest del programma.
 
 ## Sviluppi futuri
 
 Le visualizzazioni strutturali a grafo (orbite, cicli, grafo di Cayley di H,
 classi laterali di H in Γ, fibre, transizioni fra trasformazioni complete e
-intermedie) sono pianificate per una release successiva alla 4.0.0: vedi
-`docs/release/ROADMAP_4.x.md`. Non fanno parte della 4.0.0.
+intermedie) sono pianificate per la serie successiva alla 4.0.1: vedi
+`docs/release/ROADMAP_4.x.md`. Non fanno parte della 4.0.1.
 
 ## Documentazione
 
 La Guida completa è integrata nel programma. La documentazione di progetto
 (audit, decisioni, chiusure dei compartimenti, note di versione) è in
-`docs/` — vedi `docs/README.md`; le note della 4.0.0 sono in
-`docs/release/NOTE_VERSIONE_4.0.0.md`. Autore e assistenza al progetto sono
+`docs/` — vedi `docs/README.md`; le note correnti sono in
+`docs/release/NOTE_VERSIONE_4.0.1.md`. Autore e assistenza al progetto sono
 indicati in `CONTRIBUTORS.md`.
 
 ## Licenza

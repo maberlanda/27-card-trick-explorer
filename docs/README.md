@@ -6,10 +6,10 @@ Questa cartella raccoglie la documentazione **di progetto e di sviluppo**.
 
 | cartella | stato | contenuto |
 |---|---|---|
-| `audits/` | **corrente** | audit di copertura matematico-didattica V4 e la sua matrice (`V4_COVERAGE_MATRIX.csv`, letta dai test di I7); inventario dei file K0 |
+| `audits/` | **riferimento** | audit di copertura matematico-didattica V4 e la sua matrice (`V4_COVERAGE_MATRIX.csv`, letta dai test di I7); inventario dei file K0; audit progettuale della roadmap (`AUDIT_ROADMAP_4x.md`), da valutare senza applicazione automatica |
 | `decisions/` | **corrente come riferimento** | decisioni approvate prima dei compartimenti (`V4_PRE_I1`, `V4_PRE_I2`, `V4_PRE_I5`) e la baseline di riconciliazione Git (`GIT_BASELINE_AND_RECONCILIATION.md`), citate da codice e test |
 | `history/` | **storico, chiuso** | documenti di chiusura dei compartimenti A … J e K0, in ordine di esecuzione |
-| `release/` | **storico**, tranne la 4.0.0 e la roadmap | note delle versioni 3, 3.1.1, 3.1.3 e della **4.0.0** (`NOTE_VERSIONE_4.0.0.md`, corrente); chiusura del compartimento K (`K_RELEASE_CANDIDATE_CLOSED.md`); sviluppi futuri dopo la 4.0.0 (`ROADMAP_4.x.md`, corrente) |
+| `release/` | **storico**, tranne la 4.0.1 e la roadmap | note della **4.0.1** (`NOTE_VERSIONE_4.0.1.md`, corrente); note storiche delle versioni 3, 3.1.1, 3.1.3 e 4.0.0; chiusura del compartimento K (`K_RELEASE_CANDIDATE_CLOSED.md`); sviluppi futuri (`ROADMAP_4.x.md`, corrente) |
 
 ## Regole
 
