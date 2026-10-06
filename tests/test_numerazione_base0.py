@@ -116,11 +116,12 @@ def test_mescolamenti_e_flag_M_hanno_la_stessa_base(tmp_path):
     _generate_sequential(str(out), params, labels, transposes)
     testo = PdfReader(str(out)).pages[0].extract_text()
 
-    mescolamenti = sorted(re.findall(r"Mescolamento (\d)", testo))
-    flag = sorted(re.findall(r"M(\d) = ", testo))
+    mescolamenti = sorted(set(re.findall(r"Stadio (\d)", testo)))
+    flag = sorted(set(re.findall(r"J([₀₁₂])", testo)))
+    flag = [str("₀₁₂".index(value)) for value in flag]
     assert mescolamenti == ["0", "1", "2"], f"trovati: {mescolamenti}"
     assert flag == ["0", "1", "2"], f"trovati: {flag}"
-    assert mescolamenti == flag, "stessa base per mescolamenti e flag M"
+    assert mescolamenti == flag, "stessa base per stadi e livelli J"
 
 
 # ──────────── la Guida descrive il preset come lo fa il codice ─────────────

@@ -152,13 +152,13 @@ def test_b6_oltre_limite_non_consuma_input():
                             parallel_worker=None, consume=None)
 
 
-@pytest.mark.parametrize("minimum", [1, detail_pdf.COMBOS_PER_PAGE, 1024])
+@pytest.mark.parametrize("minimum", [1, 2, 1024])
 def test_b6_minimo_compatibile_e_allineamento_dettagliato(minimum):
     nw, size = parallel.plan_workers(parallel.MAX_EXPORT_ITEMS, 2,
                                      min_chunk=minimum)
     assert nw == 2
     assert minimum <= size <= parallel.MAX_CHUNK_ITEMS
-    assert size + size % detail_pdf.COMBOS_PER_PAGE <= parallel.MAX_CHUNK_ITEMS
+    assert size <= parallel.MAX_CHUNK_ITEMS
 
 
 def test_b6_minimo_incompatibile_rifiutato():

@@ -429,7 +429,7 @@ def test_m05_il_fallimento_del_browser_viene_riportato(protocollo,
 
 # ══════════════════ M06 — il testo dinamico del PDF dettagliato ═════════════
 
-MASSIMO_TRASPOSTE = 20 * 3      # ROWS * N_COLS in render_detail_pages
+MASSIMO_TRASPOSTE = 8           # detailed layout print limit
 
 
 def _testo_pdf_dettagliato(percorso, n_trasposte):
@@ -510,12 +510,8 @@ _PAROLA_NATURALE = re.compile(r"[a-zàèéìòù]{3,}")
 
 def test_m06_nessun_testo_naturale_resta_scritto_a_mano_nel_pdf():
     """Nel PDF dettagliato non restano frasi in chiaro: solo etichette."""
-    sorgente = (PACCHETTO / "core" / "detail_pdf.py").read_text(encoding="utf-8")
+    sorgente = (PACCHETTO / "core" / "detail_layout.py").read_text(encoding="utf-8")
     albero = ast.parse(sorgente)
-    render = next(n for n in ast.walk(albero)
-                  if isinstance(n, ast.FunctionDef)
-                  and n.name == "render_detail_pages")
-
     def letterali(nodo):
         if isinstance(nodo, ast.Constant) and isinstance(nodo.value, str):
             return [nodo.value]
@@ -525,9 +521,9 @@ def test_m06_nessun_testo_naturale_resta_scritto_a_mano_nel_pdf():
         return []
 
     sospette = []
-    for n in ast.walk(render):
+    for n in ast.walk(albero):
         if not (isinstance(n, ast.Call) and isinstance(n.func, ast.Name)
-                and n.func.id in ("Tt", "Tt_fit")):
+                and n.func.id in ("text", "add")):
             continue
         for testo in letterali(n.args[0] if n.args else None):
             if _PAROLA_NATURALE.search(testo):

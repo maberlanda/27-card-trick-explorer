@@ -135,7 +135,7 @@ def test_riga_non_valida_lasciata_invariata():
 
 # ─────────────── etichette di riga M_2 / M_1 / M_0 del secondo tabellone ────
 
-def test_etichette_riga_dal_basso_M0():
+def test_etichette_riga_dal_basso_M0(tmp_path):
     """
     Il secondo tabellone si legge in orizzontale, quindi al posto delle
     intestazioni di colonna A_1/A_2/A_3 (che hanno senso solo per i settori
@@ -146,11 +146,18 @@ def test_etichette_riga_dal_basso_M0():
     Invertire quest'ordine renderebbe la tabella silenziosamente sbagliata,
     quindi lo si verifica sul sorgente.
     """
-    import pathlib
-    src = (pathlib.Path(__file__).resolve().parent.parent
-           / "gioco27" / "core" / "detail_pdf.py").read_text(encoding="utf-8")
-    assert 'etichette_riga=("M_2", "M_1", "M_0")' in src, \
-        "l'ordine delle etichette di riga non è M_2/M_1/M_0 dall'alto"
+    from gioco27.core.detail_layout import LAYOUT
+    from gioco27.core.detail_pdf import _generate_sequential, annotate_like_c
+    from pypdf import PdfReader
+    params = [[("SCD_U", "SCD_U", "CDS_U", "I_3", "I_3", "I_3")] * 3]
+    labels, references = annotate_like_c(params)
+    path = tmp_path / "boards.pdf"
+    _generate_sequential(path, params, labels, references)
+    # Row labels are drawn in chronological reverse order, adjacent to T^-1.
+    import re
+    text = PdfReader(path).pages[0].extract_text()
+    assert re.findall(r"\bM([012])\b", text) == ['2', '1', '0']
+    assert LAYOUT.board_cell_height == 15
 
 
 def test_riga_M0_e_il_primo_impilamento(sequenze):
@@ -227,16 +234,9 @@ def test_didascalie_non_promettono_i_mescolamenti():
     Le didascalie devono parlare di T e T⁻¹, non di MESCOLAMENTI/IMPILAMENTI:
     quelle parole sono vere solo in 216 casi su 1728.
     """
-    import pathlib
-    src = (pathlib.Path(__file__).resolve().parent.parent
-           / "gioco27" / "core" / "detail_pdf.py").read_text(encoding="utf-8")
-    blocco = src.split("def griglia(", 1)[1].split("# Matrice 27x27", 1)[0]
-    assert 'tr("export.document.pdf.board")' in blocco
-    assert 'tr("export.document.pdf.of_t")' in blocco
-    assert 'tr("export.document.pdf.of_t_inverse")' in blocco
-    for parola in ('"MESCOLAMENTI"', '"(IMPILAMENTI)"'):
-        assert parola not in blocco, \
-            f"didascalia {parola}: vera solo senza rovesciamenti"
+    from gioco27.i18n import tr
+    assert tr('export.document.detail.board_t') == 'Tabellone T'
+    assert tr('export.document.detail.board_inverse') == 'Tabellone T⁻¹'
 
 
 # ═══════════════════════════════════════════════════════════════════════════

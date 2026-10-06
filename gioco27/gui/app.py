@@ -973,8 +973,7 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
                            title=tr("export.save.pdf")))
 
     def _gen_pdf_detail(self):
-        """Export PDF dettagliato: due combinazioni per pagina con disposizioni
-        del mazzo, posizioni dei marcatori, settori, periodo e matrici."""
+        """Detailed A3 export: measured whole configurations, normally two per page."""
         self._run_generation(
             gen_func=generate_detail_pdf_parallel,
             kind=tr("export.kind.pdf_detailed"),

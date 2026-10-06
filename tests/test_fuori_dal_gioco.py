@@ -1,15 +1,8 @@
-"""
-Il PDF dettagliato deve restare leggibile anche fuori dalle 1728 del gioco.
+"""General detailed-PDF configurations use explicit P/J and fixed-size text.
 
-Quando P1 o P2 non sono l'identità, o J non è uniforme, lo stadio non è una
-raccolta singola ma un prodotto di Kronecker: l'etichetta passa da «CDS» a
-«SCD×CSD×SDC», tre volte più lunga. A dimensione fissa le intestazioni dei
-mazzi si sovrapponevano fra loro e la riga sotto la matrice sconfinava
-nell'elenco delle trasposte.
-
-C'era anche un difetto di merito: il PDF scriveva «M[SCD×CSD×SDC]». Nel
-programma C `M[k]` è un INDICE nella tabella dei mescolamenti — un numero — e
-per queste combinazioni quell'indice non esiste.
+The old fitter remains covered as a compatibility utility; the renderer uses
+measured wrapping and never invokes it. Classical indices remain historical
+aliases, while general configurations have no invented M/P/R identifiers.
 """
 import os
 import re
@@ -101,28 +94,25 @@ def test_nessun_M_con_argomento_non_numerico():
 
 def test_fuori_dal_gioco_lo_dichiara():
     testo = _testo_pagina([FUORI])
-    assert "raccolte (P₂×P₁×P₀)" in testo
-    assert "non definiti" in testo, \
-        "va detto perché mancano gli indici M[]"
-    assert "SCD×CSD×SDC" in testo, "l'etichetta vera dev'esserci"
+    from gioco27.core.permutations import R_label
+    assert R_label(FUORI) in testo
+    assert "Configurazione generale" not in testo
+    assert "Gioco: P[" not in testo and "R[" not in testo
+    assert "SCD⊗CSD⊗SDC" in testo.replace("\n", "").replace(" ", "")
 
 
 def test_le_combinazioni_di_gioco_mantengono_gli_indici():
     """La correzione non deve togliere gli indici dove esistono davvero."""
     testo = _testo_pagina([GIOCO])
     assert re.search(r"M\[\s*\d+\]", testo), "gli indici M[k] devono restare"
-    assert "mescolamenti [" in testo
-    assert "impilamenti [" in testo
+    assert "Raccolte:" in testo
+    assert "Impil.:" in testo
     assert "non definiti" not in testo
 
 
-def test_intestazioni_dei_mazzi_su_due_righe():
-    """
-    Il titolo è ora separato dall'etichetta: «Mescolamento 1 =» su una riga e
-    il prodotto di Kronecker sulla successiva, adattato alla colonna. Prima
-    erano un'unica stringa che sconfinava sul mazzo accanto.
-    """
+def test_intestazioni_degli_stadi_non_contengono_prodotti_lunghi():
+    """Stage headings stay readable; full factors belong to the global table."""
     testo = _testo_pagina([FUORI])
-    assert "Mescolamento 1 =" in testo
-    assert "Mescolamento 1 = SCD×CSD×SDC" not in testo, \
+    assert "Stadio 1" in testo and "Configurazione completa" in testo
+    assert "Stadio 1 = SCD×CSD×SDC" not in testo, \
         "titolo ed etichetta devono stare su righe distinte"

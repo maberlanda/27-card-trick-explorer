@@ -37,7 +37,8 @@ def _reference(kind, filters):
         params, labels, transposes = detail_pdf._prepare(filters)
         c, painter = detail_pdf._new_detail_canvas(buffer)
         detail_pdf.render_detail_pages(c, params, labels=labels,
-                                       transposes=transposes, painter=painter)
+                                       transposes=transposes, painter=painter,
+                                       filter_summary=detail_pdf._filter_summary(filters))
     else:
         extended = kind == "extended"
         c, painter = combinations._new_canvas(buffer, ex=extended)
@@ -78,7 +79,7 @@ def test_pdf_scrive_su_file_senza_buffer_completo(
     actual = path.read_bytes()
     assert actual == reference  # stesso ordine, annotazioni, pagine e risorse
     reader = pypdf.PdfReader(io.BytesIO(actual))
-    assert len(reader.pages) == (total // 2 if kind == "detail" else total)
+    assert len(reader.pages) == len(pypdf.PdfReader(io.BytesIO(reference)).pages)
     assert set(tmp_path.iterdir()) == {path}
 
 

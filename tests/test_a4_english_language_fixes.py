@@ -156,7 +156,7 @@ def test_pdf_dettagliato_inglese_non_contiene_etichette_italiane(tmp_path):
     text = "\n".join(
         page.extract_text() or "" for page in pypdf.PdfReader(str(path)).pages
     )
-    for expected in ("Shuffle 0", "stacking", "BOARD", "OF T"):
+    for expected in ("Stage 0", "Stacking", "Board T", "Board T⁻¹"):
         assert expected in text
     for forbidden in ("Mescolamento", "impilamento", "TABELLONE"):
         assert forbidden not in text
