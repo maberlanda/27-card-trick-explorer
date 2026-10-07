@@ -42,9 +42,11 @@ def _reference(kind, filters):
     else:
         extended = kind == "extended"
         c, painter = combinations._new_canvas(buffer, ex=extended)
-        generate = combinations.iter_combinations_ex if extended else combinations.iter_combinations
+        from gioco27.core.matrix_pdf import ordered_configurations
+        generate = ordered_configurations if extended else combinations.iter_combinations
         render = combinations._render_combinations_ex if extended else combinations._render_combinations
-        render(c, generate(filters), painter=painter)
+        options = {'total': combinations.count_combinations_ex(filters)} if extended else {}
+        render(c, generate(filters), painter=painter, **options)
     c.save()
     return buffer.getvalue()
 

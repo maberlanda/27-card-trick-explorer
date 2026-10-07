@@ -269,8 +269,8 @@ def test_export_conferma_salvataggio_e_stato(monkeypatch, language):
 
 
 @pytest.mark.parametrize("language, title_pdf, title_detail, detail_kind", [
-    ("it", "Salva PDF", "Salva PDF dettagliato", "PDF dettagliato"),
-    ("en", "Save PDF", "Save detailed PDF", "Detailed PDF"),
+    ("it", "Salva PDF matriciale", "Salva PDF dettagliato delle configurazioni", "PDF dettagliato delle configurazioni"),
+    ("en", "Save matrix PDF", "Save detailed configuration PDF", "Detailed configuration PDF"),
 ])
 def test_export_pdf_e_pdf_dettagliato(monkeypatch, language, title_pdf, title_detail,
                                       detail_kind):

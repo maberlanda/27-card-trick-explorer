@@ -62,7 +62,10 @@ def _content(kind, path):
     pages = PdfReader(io.BytesIO(path.read_bytes())).pages
     assert len(pages) == 2
     texts = [page.extract_text() for page in pages]
-    assert "#1" in texts[0] and "#2" in texts[1]
+    if kind.startswith('pdf_ex'):
+        assert 'D#0' in texts[0] and 'D#1' in texts[1]
+    else:
+        assert "#1" in texts[0] and "#2" in texts[1]
     assert texts[0] != texts[1]
     return texts
 

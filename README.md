@@ -50,8 +50,10 @@ integrata** organizzata come percorso (scheda «Inizia qui»).
   annulla/ripristina; successioni di procedure con cumulativo e ritorno.
 * **Riga di comando** — `validate`, `replay`, `recognize`, `property`,
   `sequence`, `export`, `compare`, `selftest`, senza interfaccia grafica.
-* **Export** — CSV, PDF (standard, esteso, dettagliato), Excel, LaTeX, SVG,
+* **Export** — CSV, PDF matriciale, PDF dettagliato delle configurazioni, Excel, LaTeX, SVG,
   HTML (protocollo), TXT, JSON.
+
+Il menu Genera offre **PDF matriciale** (tre stadi affiancati, matrici, riepilogo di T, assi, mappa e cicli) e **PDF dettagliato delle configurazioni** (carte e matrici). In inglese: **Matrix PDF** e **Detailed configuration PDF**. Entrambi usano D# a base 0 nell’insieme filtrato ordinato come l’elenco delle disposizioni; il progressivo è a base 1. Solo nel gioco classico compaiono gli alias P[...] e R[m] core. L’ordine di T è il mcm delle lunghezze dei cicli.
 
 ## Requisiti
 

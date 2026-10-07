@@ -312,7 +312,7 @@ def test_pdf_parallel_matches_sequential():
         ts, tp = doc_text(rs), doc_text(rp)
         assert ts == tp
         labels = sorted(int(m) for m in re.findall(r"#(\d+)", ts))
-        assert labels == list(range(1, n1 + 1))
+        assert labels == list(range(n1))
     finally:
         shutil.rmtree(d, ignore_errors=True)
 

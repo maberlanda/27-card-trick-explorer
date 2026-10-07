@@ -304,7 +304,7 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
         gen_mb = tk.Menubutton(inner, text=f"⬇  {tr('button.generate')}",
                                relief="raised")
         gen_menu = tk.Menu(gen_mb, tearoff=0)
-        gen_menu.add_command(label="📄  PDF",    command=self._gen_pdf)
+        gen_menu.add_command(label=f"📄  {tr('menu.pdf_matrix')}",    command=self._gen_pdf)
         gen_menu.add_command(label=f"📄  {tr('menu.pdf_detailed')}", command=self._gen_pdf_detail)
         gen_menu.add_command(label="📊  CSV (;)", command=self._gen_csv)
         gen_mb["menu"] = gen_menu
@@ -964,7 +964,7 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
     def _gen_pdf(self):
         self._run_generation(
             gen_func=generate_pdf_ex_parallel,
-            kind="PDF", unit=tr("export.unit.page"),
+            kind=tr("menu.pdf_matrix"), unit=tr("export.unit.page"),
             unit_plural=tr("export.unit.pages"), step=10,
             confirm_threshold=500,
             confirm_msg="export.confirm.pdf",

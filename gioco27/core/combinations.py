@@ -274,10 +274,10 @@ def _new_canvas(target, ex=False):
     from reportlab.pdfgen import canvas as rl_canvas
     from reportlab.lib.pagesizes import A3, landscape
     c = rl_canvas.Canvas(target, pagesize=landscape(A3))
-    c.setTitle(tr("presentation.title"))
+    c.setTitle(tr("menu.pdf_matrix" if ex else "presentation.title"))
     if ex:
-        painter = _make_painter(c, 7.5, 4.4, thin3=0.25, thin27=0.12,
-                               thick27=0.75)
+        from .matrix_pdf import painter_for
+        painter = painter_for(c)
     else:
         painter = _make_painter(c, 9.5, 5.2, thin3=0.3, thin27=0.15,
                                thick27=0.9)
@@ -561,167 +561,37 @@ def count_combinations_ex(filters):
 # ─────────────────────────────────────────────────────────────────────────────
 
 def _render_combinations_ex(c, params_list, start_index=1, progress_cb=None,
-                           painter=None, annullato=None):
-    """Come _render_combinations ma col layout esteso usato dalla GUI."""
-    from reportlab.lib.pagesizes import A3, landscape
-    from reportlab.lib import colors
-
-    PAGE_W, PAGE_H = landscape(A3)
-
-    BLUE   = colors.Color(0.10, 0.25, 0.60)
-    RED    = colors.Color(0.60, 0.08, 0.08)
-    GREEN2 = colors.Color(0.00, 0.38, 0.08)
-    GRAY   = colors.Color(0.40, 0.40, 0.40)
-
-    C3   = 7.5
-    C27  = 4.4
-    W3   = 3 * C3
-    GAP3 = 5
-    W27  = 27 * C27
-    H27  = 27 * C27
-
-    ML = 12
-    MT = PAGE_H - 16
-
-    SX_W = 3 * W3 + 2 * GAP3
-    x_sx = ML
-
-    x_sep = x_sx + SX_W + 22
-    x_P27 = x_sep + 10
-    x_J27 = x_P27 + W27 + 6
-    x_S27 = x_J27 + W27 + 6
-
-    if painter is None:
-        painter = _make_painter(c, C3, C27, thin3=0.25, thin27=0.12,
-                                thick27=0.75)
-
-    def draw3(M, x0, y0):
-        painter.draw("m3", M, x0, y0)
-
-    def draw27(M, x0, y0):
-        painter.draw("m27", M, x0, y0)
-
-    def txt(s, x, y, size=6, bold=False, col=None):
-        c.setFillColor(col or GRAY)
-        c.setFont("Helvetica-Bold" if bold else "Helvetica", size)
-        c.drawString(x, y, s)
-
-    SX_STAGE_H = 8 + 4 + 3*C3 + 5 + 4 + 3*C3 + 11
-    DX_STAGE_H = 8 + 8 + H27
-    INTER      = 14
-    STAGE_H    = max(SX_STAGE_H, DX_STAGE_H) + INTER
-
-    idx = start_index - 1
-    for params in params_list:
-        idx += 1
-        stages = [compute_stage(*p) for p in params]
-        R = compute_R(stages)
-
-        y = MT
-
-        txt(f"#{idx}", ML, y, size=7, bold=True,
-            col=colors.Color(0.28, 0.28, 0.28))
-        txt("P_i  (27×27)",       x_P27, y, size=5.5, bold=True, col=BLUE)
-        txt("J_i  (27×27)",       x_J27, y, size=5.5, bold=True, col=BLUE)
-        txt(tr("export.document.pdf.stage", number="i", label="(27×27)"),
-            x_S27, y, size=5.5, bold=True, col=BLUE)
-        y -= 12
-
-        sep_top = y + 8
-        sep_bot = y - 3 * STAGE_H - H27 - 30
-        c.setStrokeColor(colors.Color(0.70, 0.70, 0.70))
-        c.setLineWidth(0.5)
-        c.line(x_sep, sep_top, x_sep, sep_bot)
-
-        for i, ((p1, p2, p3, j1, j2, j3), (P27, J27, S27)) in enumerate(
-                zip(params, stages)):
-
-            y_stage = y
-
-            lp = kron_label(p3, p2, p1)
-            lj = kron_label(j3, j2, j1)
-
-            sl = stage_label(i, p1, p2, p3, j1, j2, j3).split(" = ", 1)[1]
-            txt(tr("export.document.pdf.stage", number=i, label=sl), x_sx, y_stage, size=5.6,
-                bold=True, col=RED)
-
-            y_pnames = y_stage - 8
-            for k, nm in enumerate([p1, p2, p3]):
-                txt(nm, x_sx + k * (W3 + GAP3), y_pnames, size=4.0, col=BLUE)
-
-            y_pmats = y_pnames - 4
-            for k, nm in enumerate([p1, p2, p3]):
-                draw3(MAT3_P[nm], x_sx + k * (W3 + GAP3), y_pmats)
-
-            y_jnames = y_pmats - 3*C3 - 5
-            for k, nm in enumerate([j1, j2, j3]):
-                txt(nm, x_sx + k * (W3 + GAP3), y_jnames, size=4.0, col=BLUE)
-
-            y_jmats = y_jnames - 4
-            for k, nm in enumerate([j1, j2, j3]):
-                draw3(MAT3_J[nm], x_sx + k * (W3 + GAP3), y_jmats)
-
-            y_klabel = y_jmats - 3*C3 - 2
-            txt(lp, x_sx, y_klabel,     size=3.6, col=GRAY)
-            txt(lj, x_sx, y_klabel - 5, size=3.6, col=GRAY)
-
-            y_27lbl = y_stage - 8
-            txt(lp,                   x_P27, y_27lbl, size=3.8, col=BLUE)
-            txt(lj,                   x_J27, y_27lbl, size=3.8, col=BLUE)
-            txt(f"P{i} o MSC o J{i}", x_S27, y_27lbl, size=3.8, col=BLUE)
-
-            y_27top = y_27lbl - 8
-            draw27(P27, x_P27, y_27top)
-            draw27(J27, x_J27, y_27top)
-            draw27(S27, x_S27, y_27top)
-
-            y -= STAGE_H
-
-        c.setStrokeColor(colors.Color(0.45, 0.45, 0.45))
-        c.setLineWidth(0.6)
-        c.line(ML, y + 6, PAGE_W - ML, y + 6)
-        y -= 4
-
-        rl = R_label(params)
-        txt("T:", ML, y, size=6, bold=True, col=GREEN2)
-        txt(rl, ML + 18, y, size=5, col=GREEN2)
-        y -= 8
-
-        draw27(R, x_S27, y)
-
-        c.showPage()
-        if progress_cb:
-            progress_cb(idx)
-        # Controllo per pagina: e' l'unita' di lavoro piu' piccola, quindi
-        # l'annullamento e' percepito come immediato.
-        if annullato is not None and annullato():
-            raise ExportAnnullato(idx - (start_index - 1), 0)
-
-    return idx - (start_index - 1)
+                           painter=None, annullato=None, total=None):
+    """Matrix report used by the GUI; C/detail identifiers and ordering."""
+    from .matrix_pdf import render
+    return render(c, params_list, start_index, progress_cb, painter,
+                  annullato, total)
 
 
 def generate_pdf_ex(path, filters, progress_cb=None, annullato=None):
     """Genera il PDF esteso in modo sequenziale (un'unica Canvas)."""
     _check_cancelled(annullato)
-    check_export_size(count_combinations_ex(filters))
+    total = count_combinations_ex(filters)
+    check_export_size(total)
     from .parallel import atomic_write
     with atomic_write(path, annullato=annullato) as f:
         c, painter = _new_canvas(f, ex=True)
-        n = _render_combinations_ex(c, iter_combinations_ex(filters), 1,
+        from .matrix_pdf import ordered_configurations
+        n = _render_combinations_ex(c, ordered_configurations(filters), 1,
                                     progress_cb, painter=painter,
-                                    annullato=annullato)
+                                    annullato=annullato, total=total)
         c.save()
     return n
 
 
-def _render_chunk_ex_to_bytes(start_index, params_chunk, language=None):
+def _render_chunk_ex_to_bytes(start_index, params_chunk, language=None, total=None):
     """Worker top-level (picklable): rende un blocco esteso su PDF in memoria."""
     import io
     if language is not None:
         set_language(language)
     buf = io.BytesIO()
     c, painter = _new_canvas(buf, ex=True)
-    _render_combinations_ex(c, params_chunk, start_index, painter=painter)
+    _render_combinations_ex(c, params_chunk, start_index, painter=painter, total=total)
     c.save()
     return buf.getvalue()
 
@@ -740,14 +610,16 @@ def generate_pdf_ex_parallel(path, filters, n_workers=None, progress_cb=None,
     carico effettivo (almeno 80 pagine ciascuno).
     """
     from functools import partial
+    from .matrix_pdf import ordered_configurations
     return _pdf_parallel(path, filters,
                          total=count_combinations_ex(filters),
-                         items_iter=iter_combinations_ex(filters),
+                         items_iter=ordered_configurations(filters),
                          sequential=lambda: generate_pdf_ex(path, filters,
                                                             progress_cb,
                                                             annullato),
                          worker=partial(_render_chunk_ex_to_bytes,
-                                        language=get_language()),
+                                        language=get_language(),
+                                        total=count_combinations_ex(filters)),
                          n_workers=n_workers, progress_cb=progress_cb,
                          annullato=annullato,
                          what="Export PDF esteso",

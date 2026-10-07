@@ -131,7 +131,7 @@ def test_d4_paginazione_dettagliata_non_contraddittoria(guide):
     from gioco27.core.detail_layout import LAYOUT, paginate_heights
     assert len(paginate_heights([LAYOUT.normal_height] * 2,
                                LAYOUT.available_height(842))) == 1
-    section = guide.split("Export PDF dettagliato (carte, marcatori, ordine)", 1)[1]
+    section = guide.split("Export PDF dettagliato delle configurazioni (carte, marcatori, ordine)", 1)[1]
     assert section.count("due combinazioni per pagina") == 2
     assert "una pagina ricca per combinazione" not in section
 

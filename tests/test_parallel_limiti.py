@@ -232,8 +232,12 @@ def test_b7_pdf_sotto_soglia_conserva_contenuto(name, tmp_path):
     assert getattr(combinations, name)(dest, filters, **options) == 2
     pages = PdfReader(dest).pages
     assert len(pages) == 2
-    assert "#1" in pages[0].extract_text()
-    assert "#2" in pages[1].extract_text()
+    if name in ('generate_pdf_ex', 'generate_pdf_ex_parallel'):
+        assert 'D#0' in pages[0].extract_text() and '1 / 2' in pages[0].extract_text()
+        assert 'D#1' in pages[1].extract_text() and '2 / 2' in pages[1].extract_text()
+    else:
+        assert "#1" in pages[0].extract_text()
+        assert "#2" in pages[1].extract_text()
 
 
 @pytest.mark.parametrize("outcome", ["successo", "errore", "annullamento"])
