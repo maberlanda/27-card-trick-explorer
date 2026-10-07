@@ -265,6 +265,18 @@ def _make_painter(c, cell3, cell27, thin3, thin27, thick27):
     ])
 
 
+def _matrix_pdf():
+    """Il modulo del PDF matriciale, caricato per nome al momento dell'export.
+
+    `matrix_pdf` dipende da `combinations` (filtri) e da `detail_pdf`: un
+    `from .matrix_pdf import ...` scritto qui, anche dentro una funzione,
+    sarebbe una freccia di ritorno e chiuderebbe un ciclo di import. Stessa
+    scelta di `permutations.__getattr__` per i nomi traslocati.
+    """
+    from importlib import import_module
+    return import_module(".matrix_pdf", __package__)
+
+
 def _new_canvas(target, ex=False):
     """
     Canvas A3 orizzontale + GridPainter pronto (griglie già registrate).
@@ -276,8 +288,7 @@ def _new_canvas(target, ex=False):
     c = rl_canvas.Canvas(target, pagesize=landscape(A3))
     c.setTitle(tr("menu.pdf_matrix" if ex else "presentation.title"))
     if ex:
-        from .matrix_pdf import painter_for
-        painter = painter_for(c)
+        painter = _matrix_pdf().painter_for(c)
     else:
         painter = _make_painter(c, 9.5, 5.2, thin3=0.3, thin27=0.15,
                                thick27=0.9)
@@ -563,9 +574,8 @@ def count_combinations_ex(filters):
 def _render_combinations_ex(c, params_list, start_index=1, progress_cb=None,
                            painter=None, annullato=None, total=None):
     """Matrix report used by the GUI; C/detail identifiers and ordering."""
-    from .matrix_pdf import render
-    return render(c, params_list, start_index, progress_cb, painter,
-                  annullato, total)
+    return _matrix_pdf().render(c, params_list, start_index, progress_cb,
+                                painter, annullato, total)
 
 
 def generate_pdf_ex(path, filters, progress_cb=None, annullato=None):
@@ -576,8 +586,7 @@ def generate_pdf_ex(path, filters, progress_cb=None, annullato=None):
     from .parallel import atomic_write
     with atomic_write(path, annullato=annullato) as f:
         c, painter = _new_canvas(f, ex=True)
-        from .matrix_pdf import ordered_configurations
-        n = _render_combinations_ex(c, ordered_configurations(filters), 1,
+        n = _render_combinations_ex(c, _matrix_pdf().ordered_configurations(filters), 1,
                                     progress_cb, painter=painter,
                                     annullato=annullato, total=total)
         c.save()
@@ -610,7 +619,7 @@ def generate_pdf_ex_parallel(path, filters, n_workers=None, progress_cb=None,
     carico effettivo (almeno 80 pagine ciascuno).
     """
     from functools import partial
-    from .matrix_pdf import ordered_configurations
+    ordered_configurations = _matrix_pdf().ordered_configurations
     return _pdf_parallel(path, filters,
                          total=count_combinations_ex(filters),
                          items_iter=ordered_configurations(filters),

@@ -342,8 +342,10 @@ def test_etichette_ui_inglesi_citate_nella_guida_inglese():
         "banner.what_this_tab_does", "banner.open_guide",
         "ux3.start.trick", "ux3.start.recognize", "ux3.start.study",
         "onboarding.button.open_guide",
-        "export.document.pdf.ace_position", "export.document.pdf.transpose_list",
-        "export.document.pdf.undefined_indices",
+        # 4.0.2: etichette del nuovo PDF dettagliato (le vecchie export.document.pdf.*
+        # ace_position, transpose_list e undefined_indices non sono più stampate)
+        "export.document.detail.ace", "export.document.detail.transposes",
+        "export.document.detail.configuration",
     ]
     missing = []
     for key in keys:

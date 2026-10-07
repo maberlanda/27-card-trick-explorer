@@ -1183,7 +1183,7 @@ def test_twelfth_block_catalog_additions_are_symmetric_and_counted():
     assert len([k for k in i18n.CATALOGS["it"] if k.startswith("glossary.long.")]) == 63
     assert len([k for k in i18n.CATALOGS["it"] if k.startswith("help.tab.")]) == 16
     assert len([k for k in i18n.CATALOGS["it"] if k.startswith("filter.")]) == 26  # +7 audit finale, +1 H1 (filter.never_empty)
-    assert len(i18n.CATALOGS["it"]) == 2514  # Current catalog after UX-4.
+    assert len(i18n.CATALOGS["it"]) == 2582  # 4.0.2: +68 chiavi dei due PDF (48 detail, 19 matrix, menu.pdf_matrix).
 
 
 def _use_config_file(monkeypatch, tmp_path):

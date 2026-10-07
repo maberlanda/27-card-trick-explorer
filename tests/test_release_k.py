@@ -16,7 +16,7 @@ import pytest
 import gioco27
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSIONE = "4.0.0"
+VERSIONE = "4.0.2"
 PDF_FONTE = ("LIBRO_MAIN.pdf", "Articolo.pdf")
 FIXTURE_313 = ROOT / "tests" / "fixtures" / "esperimento_j1_programma_3.1.3.json"
 
@@ -80,13 +80,14 @@ def _letterali_di_versione(sorgente):
 
 def test_il_controllo_di_versione_distingue_codice_e_commenti():
     """Il controllo vieta le definizioni, non le citazioni."""
-    assert _letterali_di_versione('# Fino alla 4.0.0 RC2 ...\nx = 1\n') == []
-    assert _letterali_di_versione('"""Nota: dalla 4.0.0."""\n') == []
-    assert _letterali_di_versione('def f():\n    """4.0.0"""\n') == []
+    v = VERSIONE
+    assert _letterali_di_versione('# Fino alla %s RC2 ...\nx = 1\n' % v) == []
+    assert _letterali_di_versione('"""Nota: dalla %s."""\n' % v) == []
+    assert _letterali_di_versione('def f():\n    """%s"""\n' % v) == []
     assert _letterali_di_versione('__version__ = "x"\n')
-    assert _letterali_di_versione('VERSIONE = "4.0.0"\n')
-    assert _letterali_di_versione('d = {"versione": "4.0.0"}\n')
-    assert _letterali_di_versione('print(f"gioco27 4.0.0")\n')
+    assert _letterali_di_versione('VERSIONE = "%s"\n' % v)
+    assert _letterali_di_versione('d = {"versione": "%s"}\n' % v)
+    assert _letterali_di_versione('print(f"gioco27 %s")\n' % v)
 
 
 def test_superfici_della_versione():

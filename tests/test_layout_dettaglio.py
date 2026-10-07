@@ -305,7 +305,7 @@ def test_real_pdf_a3_header_footer_legend_and_two_per_page():
         assert text.count('Ordine ') == 2
         assert 'PDF dettagliato' in text and '4 configurazioni totali' in text
         assert f'Pagina {number} / 2' in text
-        assert 'Versione 4.0.1' in text
+        assert 'Versione 4.0.2' in text
         assert 'report' not in text.lower()
 
 

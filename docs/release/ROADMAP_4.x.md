@@ -1,8 +1,8 @@
 # Roadmap della serie 4.x
 
-Questo documento raccoglie gli sviluppi pianificati **successivi alla release stabile 4.0.1** di *Gioco delle 27 carte*.
+Questo documento raccoglie gli sviluppi pianificati **successivi alla release stabile 4.0.2** di *Gioco delle 27 carte*.
 
-La 4.0.1 consolida l'interfaccia della 4.0.0 e costituisce la base stabile corrente. Le nuove funzionalità elencate qui non fanno parte della 4.0.1.
+La 4.0.2 affina i PDF di export della 4.0.1 e costituisce la base stabile corrente. Le nuove funzionalità elencate qui non fanno parte della 4.0.2.
 
 ## Principio di evoluzione delle versioni
 
@@ -11,7 +11,7 @@ Lo sviluppo è **lineare e cumulativo**: ogni `4.n+1` deriva dall'ultima stabile
 motivati. Non è previsto un ramo parallelo ordinario di manutenzione.
 Una serie `4.n.x` chiusa non viene riaperta: le nuove correzioni confluiscono
 nella versione corrente. Il cambio del numero minore segnala un nuovo nucleo
-funzionale significativo; la prossima serie 4.1 parte quindi dalla 4.0.1.
+funzionale significativo; la prossima serie 4.1 parte quindi dalla 4.0.2.
 
 L'audit `docs/audits/AUDIT_ROADMAP_4x.md` documenta la valutazione progettuale
 del 5 ottobre 2026. Le sue ulteriori proposte restano da discutere e non sono
@@ -905,6 +905,7 @@ Alla pubblicazione della 4.0.0:
 - la 4.0.0 è pubblicata come release stabile;
 - i grafi veri e propri sono intenzionalmente rinviati alla serie successiva.
 
-La 4.0.0 ha avviato questa roadmap; la base corrente è ora la 4.0.1, che ne
-consolida l'interfaccia senza cambiare il nucleo matematico. Lo sviluppo futuro
-aggiunge capacità alla versione corrente senza riaprire le serie già chiuse.
+La 4.0.0 ha avviato questa roadmap; la base corrente è ora la 4.0.2, che
+consolida l'interfaccia (4.0.1) e i PDF di export (4.0.2) senza cambiare il
+nucleo matematico. Lo sviluppo futuro aggiunge capacità alla versione corrente
+senza riaprire le serie già chiuse.

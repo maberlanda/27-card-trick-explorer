@@ -48,7 +48,7 @@ def test_nuove_chiavi_simmetriche_con_placeholder_coerenti():
 
     it, en = CATALOGS["it"], CATALOGS["en"]
     assert set(it) == set(en)
-    assert len(it) == 2514  # UX-1: +8 stringhe per i contratti di stato
+    assert len(it) == 2582  # UX-1: +8 stringhe per i contratti di stato; 4.0.2: +68 dei due PDF
     new = {k for k in it if k.startswith(NEW_KEYS_PREFIXES)}
     assert len(new) == 32
     fields = lambda s: sorted(n for _, n, _, _ in Formatter().parse(s) if n)

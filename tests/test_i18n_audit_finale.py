@@ -37,7 +37,7 @@ def _lang(language):
 def test_cataloghi_simmetrici_e_placeholder_coerenti():
     it, en = i18n.CATALOGS["it"], i18n.CATALOGS["en"]
     assert set(it) == set(en)
-    assert len(it) == 2514  # UX-1: +8 stringhe per i contratti di stato
+    assert len(it) == 2582  # UX-1: +8 stringhe per i contratti di stato; 4.0.2: +68 dei due PDF
     fields = lambda s: sorted(n for _, n, _, _ in Formatter().parse(s) if n)
     for key in it:
         assert fields(it[key]) == fields(en[key]), key

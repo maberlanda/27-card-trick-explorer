@@ -91,7 +91,11 @@ def test_d3_formule_tecniche_base_zero(text):
     assert "Jᵢ = J2ᵢ ⊗ J1ᵢ ⊗ J0ᵢ" in text
     pairs = re.findall(r"\(P(\d)ᵢ\s*∘\s*J(\d)ᵢ\)", text)
     assert pairs == [("2", "0"), ("1", "2"), ("0", "1")] * 2
-    assert "l'etichetta dello stadio mostra P2×P1×P0" in text
+    # 4.0.2: il PDF dettagliato non stampa più l'etichetta P2×P1×P0; i fattori
+    # restano a base 0 nella tabella Configurazione completa e nei rovesciamenti.
+    assert "Configurazione completa con P₀/P₁/P₂/J₀/J₁/J₂ espliciti" in text
+    assert "i tre rovesciamenti J₀/J₁/J₂" in text
+    assert "P₁/P₂/P₃" not in text and "J₁/J₂/J₃" not in text
     assert "dei tre Assi" in text  # riferimenti alle carte preservati
 
 

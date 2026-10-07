@@ -2,16 +2,12 @@
 from collections import Counter
 from itertools import product
 
-from reportlab.lib import colors
-from reportlab.lib.pagesizes import A3, landscape
-
 from .analysis import cycle_decomposition, order_of
 from .detail import inverse_perm, marker_positions
 from .detail_pdf import _c_indices, _ensure_fonts, _j_key, _p_key
 from .parallel import ExportAnnullato
 from .permutations import (MAT3_J, MAT3_P, R_label, compute_R,
                            compute_stage, mat_to_perm27, stage_label)
-from .pdfgrid import GridPainter, GridSpec
 from .. import __version__
 from ..i18n import tr
 
@@ -31,6 +27,7 @@ def ordered_configurations(filters):
 
 
 def painter_for(c):
+    from .pdfgrid import GridPainter, GridSpec
     return GridPainter(c, [
         GridSpec('m3', 7.5, 3, thin_w=.25),
         GridSpec('m27', 4.4, 27, thin_w=.12, thick_at=(9, 18), thick_w=.75),
@@ -42,6 +39,9 @@ def painter_for(c):
 def render(c, params_list, start_index=1, progress_cb=None, painter=None,
            annullato=None, total=None):
     """Number D# in the filtered C-ordered set, exactly as the detail export."""
+    # ReportLab resta facoltativo: si carica solo quando si disegna il PDF.
+    from reportlab.lib import colors
+    from reportlab.lib.pagesizes import A3, landscape
     w, h = landscape(A3)
     regular, bold = _ensure_fonts()
     painter = painter or painter_for(c)
