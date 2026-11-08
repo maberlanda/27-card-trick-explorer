@@ -1,21 +1,26 @@
 # Roadmap della serie 4.x
 
-Questo documento raccoglie gli sviluppi pianificati **successivi alla release stabile 4.0.2** di *Gioco delle 27 carte*.
+Questo documento raccoglie gli sviluppi pianificati dopo la
+[4.0.3](NOTE_VERSIONE_4.0.3.md) di *Gioco delle 27 carte*.
 
-La 4.0.2 affina i PDF di export della 4.0.1 e costituisce la base stabile corrente. Le nuove funzionalità elencate qui non fanno parte della 4.0.2.
+La 4.0.3 consolida la distribuzione Windows e l'interfaccia sulla base
+dei PDF ridisegnati nella 4.0.2.
 
 ## Principio di evoluzione delle versioni
 
 Lo sviluppo è **lineare e cumulativo**: ogni `4.n+1` deriva dall'ultima stabile
 `4.n.x` e conserva le funzionalità precedenti, salvo cambiamenti esplicitamente
-motivati. Non è previsto un ramo parallelo ordinario di manutenzione.
-Una serie `4.n.x` chiusa non viene riaperta: le nuove correzioni confluiscono
-nella versione corrente. Il cambio del numero minore segnala un nuovo nucleo
-funzionale significativo; la prossima serie 4.1 parte quindi dalla 4.0.2.
+motivati. Le correzioni e la manutenzione confluiscono nella versione di
+sviluppo corrente, senza backport ordinario né riapertura delle linee chiuse.
+La 4.0.3 conclude il ciclo di manutenzione 4.0.x e costituisce la base della
+4.1. Il cambio del numero minore segnala un nuovo nucleo funzionale
+significativo. Le estensioni
+dello stesso nucleo possono confluire nella linea corrente. La numerazione
+delle milestone successive si decide quando il lavoro è pronto per il rilascio.
 
 L'audit `docs/audits/AUDIT_ROADMAP_4x.md` documenta la valutazione progettuale
-del 5 ottobre 2026. Le sue ulteriori proposte restano da discutere e non sono
-applicate automaticamente dalla pubblicazione della 4.0.1.
+del 5 ottobre 2026. Le decisioni recepite sono riportate qui. Le altre
+proposte restano da discutere.
 
 La roadmap è organizzata in quattro aree:
 
@@ -40,16 +45,47 @@ Principio guida:
 
 La GUI non deve duplicare la logica matematica: i grafi devono essere alimentati dai servizi e dagli oggetti del core.
 
-## 1.1 Decomposizione ciclica grafica
+## Perimetro della 4.1.0
 
-Per ogni permutazione \(T\):
+La 4.1.0 comprende **M0, la Vista Posizioni e la Vista Fibre**. Le due viste
+verificano il modello comune su strutture diverse: Posizioni lo applica agli
+archi di una permutazione su 27 posizioni, Fibre al trasporto tra fibre
+raggruppate per livello e alle relazioni con somme e ricostruzione. Insieme
+costituiscono il primo nucleo di visualizzazione strutturale.
+
+La Vista Gruppo è una **milestone successiva della linea 4.1.x**, senza
+numero di patch assegnato. Rimane parte della visualizzazione strutturale e
+dei grafi. I criteri di uscita della 4.1.0 sono al §7.
+
+## M0 — Infrastruttura grafica comune
+
+- Modello condiviso per i vertici, gli archi orientati e le partizioni
+  richiesti da Posizioni e Fibre. I dati matematici provengono dal core e
+  dai servizi esistenti.
+- Componenti condivisi per la visualizzazione, la selezione, il dettaglio,
+  la navigazione da tastiera e la rappresentazione testuale equivalente.
+- Palette, stile e modalità di interazione comuni alle nuove viste, con
+  etichette o altri segnali oltre al colore. Il lavoro riguarda i componenti
+  delle nuove viste.
+- Estendibilità per la Vista Gruppo. Chiusura di sottogruppi arbitrari,
+  grafi di Cayley completi, disposizione su 216 o 648 vertici, metriche di
+  Cayley e confronto fra generatori rientrano nella milestone che li usa.
+
+## 1.1 Vista Posizioni — Decomposizione ciclica grafica
+
+Il caso iniziale è una singola permutazione \(T\) sulle 27 posizioni.
+Il grafo ha 27 vertici e archi orientati \(i\to T(i)\).
 
 - mostrare la decomposizione ciclica;
 - rappresentare ogni ciclo come componente grafica;
 - distinguere punti fissi, 2-cicli, 3-cicli e cicli più lunghi;
 - mostrare ordine della trasformazione, tipo ciclico, numero e lunghezza dei cicli;
-- permettere il passaggio fra forma ciclica, permutazione 0–26, eventuale matrice e grafo;
+- fornire una rappresentazione testuale equivalente del grafo;
+- permettere la selezione e la navigazione anche da tastiera;
 - selezionando un nodo, mostrare origine, immagine e ciclo di appartenenza.
+
+Si può inoltre collegare il grafo alle rappresentazioni esistenti della
+permutazione, compresa la matrice quando disponibile.
 
 La visualizzazione deve rispettare la convenzione:
 
@@ -63,13 +99,11 @@ cioè il contenuto inizialmente nella posizione \(i\) termina nella posizione \(
 
 La decomposizione mostrata graficamente deve coincidere esattamente con quella calcolata dal core per tutte le trasformazioni testate.
 
-## 1.2 Grafi delle orbite
+## 1.2 Vista Posizioni — Orbite di una trasformazione
 
-Aggiungere una rappresentazione grafica delle orbite dell'azione di:
-
-- una trasformazione;
-- un insieme di generatori;
-- un sottogruppo selezionato.
+Per la 4.1.0 la vista mostra le orbite della singola trasformazione \(T\).
+Le orbite determinate da più generatori o da un sottogruppo selezionato
+rientrano nella milestone della Vista Gruppo (§1.6).
 
 Funzioni desiderate:
 
@@ -82,7 +116,16 @@ Funzioni desiderate:
 
 La vista deve distinguere con chiarezza orbite di **posizioni** e traiettorie di **carte**.
 
-## 1.3 Grafo di Cayley di \(H\)
+## Vista Gruppo — milestone successiva della linea 4.1.x
+
+La vista può crescere dal Cayley di \(H\) (216 vertici) al gruppo
+\(\Gamma\) (648 vertici), con generatori selezionabili quando opportuno,
+archi etichettati, classi laterali, prefissi, relazioni nominate ed eventuali
+grafi di Schreier. La disposizione, il budget di prestazione e la
+navigazione accessibile su queste dimensioni si verificano in questa
+milestone, insieme a cammini, distanze e diametro.
+
+### 1.3 Grafo di Cayley di \(H\)
 
 Aggiungere un vero grafo di Cayley per
 
@@ -107,7 +150,7 @@ La Tavola 216 e il grafo di Cayley restano strumenti distinti:
 - la Tavola è enumerativa;
 - il grafo è relazionale.
 
-## 1.4 Le tre classi laterali di \(H\) in \(\Gamma\)
+### 1.4 Le tre classi laterali di \(H\) in \(\Gamma\)
 
 Visualizzare:
 
@@ -127,11 +170,9 @@ con
 |\Gamma|=648,\qquad [\Gamma:H]=3.
 \]
 
-Possibili rappresentazioni:
-
-- tre regioni;
-- tre livelli;
-- tre componenti con passaggi indotti da \(\MSC\).
+Le classi laterali possono essere rappresentate come partizioni
+riconoscibili tramite regioni, livelli, etichette e colore.
+I passaggi indotti da \(\MSC\) possono collegare le tre parti.
 
 Per un elemento selezionato mostrare:
 
@@ -143,7 +184,7 @@ Per un elemento selezionato mostrare:
 
 Questa vista deve rendere evidente la differenza fra \(H\) e \(\Gamma\).
 
-## 1.5 Grafo delle trasformazioni complete e intermedie
+### 1.5 Grafo delle trasformazioni complete e intermedie
 
 Costruire un grafo delle trasformazioni cumulative ottenute durante una procedura.
 
@@ -155,7 +196,7 @@ Scopi:
 - mostrare l'effetto dell'aggiunta di uno stadio;
 - preparare una futura rappresentazione esplicita di \(\mathcal S_F\).
 
-## 1.6 Grafi generati da insiemi di generatori
+### 1.6 Grafi generati da insiemi di generatori
 
 Consentire il confronto fra più insiemi di generatori.
 
@@ -167,9 +208,11 @@ Per ciascuno:
 - mostrare distanze e diametro, se significativi;
 - confrontare il comportamento di generatori diversi.
 
-Questa funzione è esplorativa: non deve introdurre nuove definizioni matematiche del gioco.
+I grafi di Schreier possono mostrare l'azione dei generatori sulle
+posizioni, quando la distinzione dal grafo di Cayley è utile alla lettura.
+La funzione ha carattere esplorativo e usa le definizioni del gioco.
 
-## 1.7 Fibre digitali
+## 1.7 Vista Fibre — Struttura digitale
 
 Aggiungere una vista dedicata alle fibre
 
@@ -193,13 +236,15 @@ Mostrare:
 - immagine sotto \(T\);
 - fibra di arrivo.
 
-Relazione fondamentale:
+Raggruppare le fibre per livello e rappresentare il trasporto con archi
+dalla fibra di origine a quella di arrivo. Per le trasformazioni separabili
+vale la relazione:
 
 \[
 T(F_{i,t})=F_{i,M_i(t)}.
 \]
 
-## 1.8 Trasporto delle fibre e ricostruzione
+## 1.8 Vista Fibre — Trasporto e ricostruzione
 
 Integrare la vista delle fibre con:
 
@@ -231,10 +276,13 @@ Mostrare per ogni asse:
 - fattore locale risultante.
 
 Collegare esplicitamente questa vista al teorema di ricostruzione del libro.
+Mostrare \(\Sigma_{i,t}\) e, per le somme inverse, \(\Lambda_{i,u}\)
+nei casi in cui sono definite, usando i risultati dei servizi esistenti.
 
-## 1.9 Confronto visuale \(T\) / \(T^{-1}\)
+## 1.9 Confronto visuale facoltativo \(T\) / \(T^{-1}\)
 
-Aggiungere una modalità di confronto fra trasformazione diretta e inversa:
+Quando è utile al caso mostrato, affiancare la trasformazione diretta e
+l'inversa:
 
 - grafi affiancati;
 - archi invertiti;
@@ -242,7 +290,7 @@ Aggiungere una modalità di confronto fra trasformazione diretta e inversa:
 - confronto delle fibre;
 - evidenza delle preimmagini.
 
-Preparare l'eventuale uso di
+Per la Vista Fibre, la quantità inversa già definita nei casi applicabili è
 
 \[
 \Lambda_{i,u}
@@ -268,11 +316,11 @@ Una vista grafica può mostrare la successione delle posizioni attraversate da u
 
 ## 1.11 Relazioni fra tabelloni
 
-Aggiungere strumenti per confrontare più tabelloni o rappresentazioni ternarie:
+Nella milestone della Vista Gruppo, valutare relazioni nominate tra
+tabelloni o rappresentazioni ternarie, come inversa, composizione o ritorno:
 
 - corrispondenza fra righe, colonne e fibre;
 - trasformazioni che collegano due tabelloni;
-- tabelloni equivalenti;
 - permutazioni indotte;
 - collegamento con i fattori locali.
 
@@ -294,13 +342,17 @@ Le nuove visualizzazioni devono:
 
 - usare il core esistente come fonte dei risultati;
 - evitare logica matematica duplicata nella GUI;
-- essere navigabili da tastiera;
-- rispettare italiano e inglese;
+- avere un equivalente testuale e usare il colore insieme ad altri segnali informativi;
+- essere navigabili e utilizzabili da tastiera;
+- avere testi completi in italiano e inglese;
 - funzionare alle geometrie minime già supportate;
 - avere export SVG quando sensato;
 - evitare dipendenze pesanti se possibile;
 - degradare chiaramente se manca una dipendenza opzionale;
 - avere test distinti per modello matematico, modello grafico e GUI.
+
+Per i nuovi lavori grafici asincroni riusare il passaggio degli aggiornamenti
+al thread Tk descritto nel §4.1.
 
 ---
 
@@ -355,7 +407,8 @@ Va implementata solo se migliora chiarezza o manutenzione.
 
 ## 2.3 Quantità inverse \(\Lambda_{i,u}\)
 
-Aggiungere, se utile:
+La Vista Fibre della 4.1.0 espone le somme inverse nei casi già gestiti
+dai servizi. Per eventuali estensioni analitiche, valutare altri impieghi di
 
 \[
 \Lambda_{i,u}
@@ -373,13 +426,11 @@ Possibili usi:
 
 ## 2.4 Laboratorio delle fibre
 
-Estendere il Laboratorio per:
+La visualizzazione di fibre, somme e ricostruzione rientra nella 4.1.0.
+Per un eventuale approfondimento analitico nel Laboratorio, valutare:
 
-- elencare le fibre;
-- calcolare le somme;
 - mostrare le firme strutturate;
 - distinguere singola \(\Sigma_{i,t}\) e famiglia delle firme;
-- ricostruire i fattori;
 - confrontare trasformazioni;
 - verificare separabilità e appartenenza a \(H\).
 
@@ -387,7 +438,8 @@ Va preservato il fatto che la singola \(\Sigma_{i,t}\) non è, da sola, un invar
 
 ## 2.5 Forma normale in \(\Gamma\)
 
-Rendere esplorabile:
+Il core calcola la forma normale e l'Explorer la espone già. Il Laboratorio
+ne verifica l'unicità nel dominio \(\Gamma\). La struttura è:
 
 \[
 \Gamma_{3,3}
@@ -397,13 +449,8 @@ S_3^3\rtimes\langle\tau\rangle,
 \langle\tau\rangle\cong C_3.
 \]
 
-Funzioni:
-
-- decomposizione automatica;
-- fattore in \(H\);
-- esponente di \(\tau\);
-- classe laterale;
-- confronto fra decomposizioni equivalenti.
+Eventuali ampliamenti riguardano i collegamenti tra la forma normale,
+la classe laterale e gli strumenti di analisi delle Procedure.
 
 ## 2.6 Procedure equivalenti
 
@@ -523,9 +570,9 @@ Il passaggio a questa area deve avvenire soltanto dopo che il dominio Kronecker 
 
 Aggiungere una rappresentazione esplicita degli elementi del wreath product che permetta di leggere nello stesso oggetto:
 
-- componente esterna che permuta i blocchi;
+- componente esterna \(\sigma\in S_3\) che permuta le tre coordinate ternarie nell'azione prodotto;
 - fattori locali;
-- azione sui blocchi;
+- azione sulle coordinate;
 - permutazione concreta sulle 27 posizioni;
 - composizione;
 - inversa;
@@ -554,7 +601,7 @@ Affiancare all'Explorer un tutor algebrico capace di spiegare l'oggetto corrente
 Il tutor deve poter guidare, a richiesta, su domande come:
 
 - qual è il fattore esterno;
-- quali blocchi vengono permutati;
+- quali coordinate ternarie vengono permutate;
 - come si leggono i fattori locali;
 - perché un elemento appartiene o non appartiene a \(H\);
 - perché un elemento appartiene o non appartiene a \(\Gamma_{3,3}\);
@@ -570,7 +617,7 @@ Il tutor non deve sostituire il libro né presentare spiegazioni monolitiche. De
 Prevedere esercizi contestuali generati dagli oggetti già calcolati dal programma, per esempio:
 
 - riconoscere il fattore esterno;
-- prevedere l'immagine di un blocco;
+- prevedere come vengono riordinate le coordinate ternarie;
 - stabilire l'appartenenza a un sottogruppo;
 - calcolare un'inversa;
 - prevedere una composizione;
@@ -595,16 +642,9 @@ La correzione deve essere motivata e mostrare il passaggio fra i diversi livelli
 
 ## 4.1 Threading Tk e `ui_call`
 
-Con Tcl/Tk 8.6 il comportamento è stabile; con Tcl/Tk 9 sono emerse fragilità nelle chiamate GUI da thread di lavoro.
-
-Possibile soluzione:
-
-- coda dedicata;
-- esecuzione esclusiva nel thread Tk;
-- `after()` o dispatcher;
-- eliminazione della dipendenza dal comportamento interno di Tcl.
-
-È una modifica delicata perché cambia un contratto già coperto dai test.
+I lavori avviati con `run_in_thread` accodano gli aggiornamenti. Il thread
+Tk li consegna tramite `after()` e annulla il controllo della coda quando il
+widget viene distrutto. I nuovi lavori grafici possono usare lo stesso schema.
 
 ## 4.2 `atomic_write` e `fsync`
 
@@ -618,13 +658,8 @@ Obiettivo: aumentare la robustezza del salvataggio in caso di crash o perdita im
 
 ## 4.3 Conferma alla chiusura con sessione modificata
 
-Se la sessione è dirty e non salvata, offrire:
-
-- Salva;
-- Non salvare;
-- Annulla.
-
-Integrare con cronologia, stato dirty/clean e salvataggio esperimenti.
+Completata nella 4.0.1. Alla chiusura di una sessione con modifiche non
+salvate il programma offre **Salva**, **Non salvare** e **Annulla**.
 
 ## 4.4 Alias e nomi legacy
 
@@ -657,15 +692,12 @@ Qualunque soluzione deve mantenere verdi i test della wheel e della sdist.
 
 ## 4.6 Verifica automatica del bundle Windows
 
-Estendere la copertura automatica a:
+Il workflow Windows esegue i selftest sull'eseguibile e verifica l'avvio
+della GUI e la produzione dei due PDF delle configurazioni. Verifica anche
+le licenze del programma e del font e l'assenza dei PDF fonte.
 
-- smoke test GUI Windows;
-- export PDF;
-- export XLSX;
-- multiprocessing;
-- caricamento/salvataggio sessioni;
-- licenze incluse;
-- assenza dei PDF fonte.
+Estendere la copertura a export XLSX, multiprocessing e caricamento e
+salvataggio delle sessioni.
 
 ## 4.7 Script di build e pulizia
 
@@ -796,31 +828,28 @@ Le versioni successive devono, per quanto possibile:
 
 ## 4.1
 
-1. decomposizione ciclica grafica;
-2. grafi delle orbite;
-3. grafo di Cayley di \(H\);
-4. classi laterali di \(H\) in \(\Gamma\);
-5. fibre digitali e loro trasporto;
-6. confronto \(T/T^{-1}\);
-7. relazioni fra tabelloni;
-8. grafi delle transizioni complete/intermedie.
+1. **M0:** infrastruttura comune per Posizioni e Fibre.
+2. **Vista Posizioni:** grafo di una singola trasformazione, cicli e punti fissi.
+3. **Vista Fibre:** livelli, trasporto, somme e ricostruzione. Con questa
+   vista si completa il perimetro della **4.1.0**.
+4. **Vista Gruppo:** milestone successiva della linea 4.1.x, da sviluppare
+   progressivamente a partire dal Cayley di \(H\).
 
 ## 4.2
 
 1. \(\mathcal S_F\) esplicita;
-2. Laboratorio delle fibre;
-3. forma normale in \(\Gamma\);
-4. \(\Lambda_{i,u}\);
-5. forma canonica di \(J\);
-6. equivalenze fra Procedure;
-7. dominio Kronecker esteso su 27 carte;
-8. valutazione di \(b^m\);
-9. valutazione del caso rettangolare.
+2. eventuali approfondimenti analitici nel Laboratorio delle fibre (§2.4);
+3. eventuali usi ulteriori di \(\Lambda_{i,u}\) (§2.3);
+4. forma canonica di \(J\);
+5. equivalenze fra Procedure;
+6. dominio Kronecker esteso su 27 carte;
+7. valutazione di \(b^m\);
+8. valutazione del caso rettangolare.
 
 ## 4.3
 
 1. rappresentazione esplicita degli elementi del wreath product;
-2. sincronizzazione fra fattori locali, azione sui blocchi e permutazione sulle 27 posizioni;
+2. sincronizzazione fra fattori locali, azione sulle coordinate e permutazione sulle 27 posizioni;
 3. appartenenza e confronto con \(H\), \(\Gamma_{3,3}\) e dominio Kronecker esteso;
 4. tutor algebrico contestuale;
 5. modalità didattica con esercizi e correzione motivata.
@@ -830,42 +859,60 @@ Le versioni successive devono, per quanto possibile:
 Priorità alta:
 
 - warning setuptools;
-- automazione build/release;
-- dirty-session close.
+- automazione build/release.
 
 Priorità media:
 
 - `fsync`;
 - test più completi del bundle Windows.
 
-Priorità strutturale, da pianificare con cautela:
-
-- `ui_call` e threading Tk/Tcl 9.
-
 ---
 
-# 7. Criteri per aprire una nuova release
-
-## 4.0.x
-
-Solo:
-
-- correzioni di bug;
-- regressioni;
-- problemi di packaging;
-- compatibilità;
-- sicurezza;
-- documentazione correttiva.
-
-Nessuna nuova funzione sostanziale.
+# 7. Criteri di rilascio
 
 ## 4.1.0
 
-Apertura quando esiste almeno un primo nucleo coerente di visualizzazioni strutturali realmente utilizzabili, preferibilmente:
+La 4.1.0 può essere candidata al rilascio quando **M0, Vista Posizioni e
+Vista Fibre** soddisfano i criteri seguenti.
 
-- cicli;
-- orbite;
-- almeno un grafo di gruppo.
+### M0
+
+- Le due viste usano lo stesso modello grafico per rappresentare vertici,
+  archi e partizioni. I test del modello verificano la corrispondenza fra
+  grafi, rappresentazioni testuali e dati di origine.
+- La GUI legge i risultati dal core o dai servizi. Cicli, punti fissi,
+  somme e ricostruzioni sono calcolati dal livello matematico esistente.
+- In entrambe le viste si può raggiungere e selezionare un elemento da
+  tastiera, leggerne il dettaglio e consultare l'equivalente testuale.
+  Etichette o altri segnali rendono riconoscibili le distinzioni affidate
+  anche al colore.
+
+### Vista Posizioni
+
+- Per i casi verificati, i 27 vertici e gli archi \(i\to T(i)\) rispettano
+  la convenzione \(T(i)=j\). Cicli e punti fissi coincidono con il core.
+- Selezionando un nodo si ottengono origine, immagine e ciclo di
+  appartenenza corretti. Se è disponibile il confronto con \(T^{-1}\),
+  gli archi dell'inversa risultano invertiti rispetto a quelli di \(T\).
+
+### Vista Fibre
+
+- Nei casi verificati, fibre e partizioni per livello, trasporto, somme e
+  ricostruzione coincidono con i risultati dei servizi esistenti.
+- Le etichette \(\Sigma\) e \(\Lambda\) compaiono soltanto nei casi in cui le
+  rispettive quantità sono definite. La GUI presenta i dati e le relazioni
+  forniti dal livello matematico.
+
+### Qualità comune
+
+- IT/EN completi e Guida e documentazione allineate alle viste disponibili.
+- Test pertinenti superati, distinti per dati matematici, modello grafico e
+  GUI. Verifiche di tastiera e accessibilità alle geometrie minime dichiarate.
+- Export SVG verificato dove previsto. Controlli CI e di rilascio della
+  linea corrente soddisfatti.
+
+La verifica della Vista Gruppo appartiene alla relativa milestone della
+linea 4.1.x.
 
 ## 4.2.0
 
@@ -905,7 +952,6 @@ Alla pubblicazione della 4.0.0:
 - la 4.0.0 è pubblicata come release stabile;
 - i grafi veri e propri sono intenzionalmente rinviati alla serie successiva.
 
-La 4.0.0 ha avviato questa roadmap; la base corrente è ora la 4.0.2, che
-consolida l'interfaccia (4.0.1) e i PDF di export (4.0.2) senza cambiare il
-nucleo matematico. Lo sviluppo futuro aggiunge capacità alla versione corrente
-senza riaprire le serie già chiuse.
+La 4.0.0 ha avviato la roadmap. La base della 4.1 integra il consolidamento
+dell'interfaccia della 4.0.1, i PDF ridisegnati della 4.0.2 e le correzioni di
+distribuzione, layout e aggiornamento dell'interfaccia della 4.0.3.

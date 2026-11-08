@@ -106,7 +106,7 @@ class RiconoscimentoFrame(ttk.Frame):
             self._imposta(campo, "")
         for campo in self._a1_campi:
             campo.delete(0, "end")
-        self._errore_lbl.configure(text="")
+        self._mostra_errore()
         self._esito_lbl.configure(text=tr("recognition.idle"))
 
     # ── costruzione ──────────────────────────────────────────────────────────
@@ -159,6 +159,7 @@ class RiconoscimentoFrame(ttk.Frame):
         self._errore_lbl = ttk.Label(fr, text="", foreground="#9B1C1C",
                                      wraplength=1000, justify="left")
         self._errore_lbl.grid(row=4, column=0, columnspan=2, sticky="w")
+        self._errore_lbl.grid_remove()
 
     def _testo(self, padre, altezza=13):
         t = tk.Text(padre, height=altezza, width=100, wrap="word", relief="flat",
@@ -282,7 +283,7 @@ class RiconoscimentoFrame(ttk.Frame):
     def usa_T_explorer(self):
         T = self._fornisci_T()
         if T is None:
-            self._errore_lbl.configure(text=f"⚠ {tr('recognition.error.no_explorer_T')}")
+            self._mostra_errore(tr("recognition.error.no_explorer_T"))
             return
         self._modo_var.set(MODO_PERM)
         self._su_modo()
@@ -312,19 +313,23 @@ class RiconoscimentoFrame(ttk.Frame):
         g2 = _gettoni(self._campo2.get("1.0", "end"))
         return rc.da_mazzi(g1, g2), (g1, g2)
 
-    def _errore(self, e):
-        self._errore_lbl.configure(text=f"⚠ {self._testo_errore(e)}")
+    def _mostra_errore(self, testo=""):
+        self._errore_lbl.configure(text=f"⚠ {testo}" if testo else "")
+        if testo:
+            self._errore_lbl.grid()
+        else:
+            self._errore_lbl.grid_remove()
 
     # ── analisi ──────────────────────────────────────────────────────────────
     def analizza(self):
         try:
             pi, mazzi = self._leggi()
         except (PermutazioneNonValida, rc.IngressoNonValido) as e:
-            self._errore(e)
+            self._mostra_errore(self._testo_errore(e))
             self._pi = self._mazzi = None
             self._esito_lbl.configure(text=tr("recognition.idle"))
             return
-        self._errore_lbl.configure(text="")
+        self._mostra_errore()
         self._pi, self._mazzi = pi, mazzi
         self._diretto = rc.separabile(pi)
         self._estesa = rc.classe_estesa(pi)

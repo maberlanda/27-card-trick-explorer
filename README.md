@@ -1,4 +1,4 @@
-# Gioco delle 27 carte — 4.0.2
+# Gioco delle 27 carte — 4.0.3
 
 Programma didattico e di ricerca sul trucco delle 27 carte: simula il gioco
 fisico carta per carta, ne descrive la matematica (base 3, prodotti di
@@ -6,11 +6,10 @@ Kronecker, il mescolamento MSC) e permette di verificarla, esplorarla e
 riprodurla. Interfaccia grafica in italiano e inglese, con una **Guida
 integrata** organizzata come percorso (scheda «Inizia qui»).
 
-> **Stato:** release stabile 4.0.2, affinamento della serie 4.0.x: PDF
-> matriciale e PDF dettagliato delle configurazioni ridisegnati, con supporto
-> più chiaro ai casi generali P/J. Restano acquisiti il consolidamento UX della
-> 4.0.1, gli audit A1–A5 e il riallineamento al libro della Fase P.
-> Vedi `docs/release/NOTE_VERSIONE_4.0.2.md`.
+> **4.0.3** ripristina il PDF matriciale nell'eseguibile autonomo per
+> Windows, migliora il layout di Explorer → Riconoscimento nelle finestre
+> piccole e rende più affidabili gli aggiornamenti dell'interfaccia durante
+> i lavori in background. Vedi le [note della 4.0.3](docs/release/NOTE_VERSIONE_4.0.3.md).
 
 ## Nomenclatura
 
@@ -142,6 +141,12 @@ La ricetta PyInstaller `gioco27.spec` è versionata; include i font DejaVu con
 la loro licenza e la licenza del programma, mai i PDF delle fonti. Una build
 per Windows va prodotta su Windows.
 
+Il controllo del bundle Windows avvia l'interfaccia e genera un PDF
+matriciale e un PDF dettagliato di prova. Richiede un desktop disponibile
+e le dipendenze di export.
+
+    .\dist\Gioco27\Gioco27.exe --smoke-gui
+
 ## Limiti degli export
 
 Con i filtri su «*» le combinazioni sono 1 728³ = 5 159 780 352: gli export
@@ -166,29 +171,24 @@ Configurazione, cache e log sono in `~/.gioco27/`
 
 ## Limiti noti
 
-* La 4.0.2 è la **release stabile**, con i PDF di export ridisegnati, il
-  consolidamento UX della 4.0.1, gli audit A1–A5 conclusi e il riallineamento
-  al libro della Fase P applicato.
 * Alcuni identificatori interni conservano il nome storico G per il gruppo di
   216 (l'alias `appartiene_a_G`) o il nome tecnico `classe_estesa` per Γ
   (anche come chiave JSON degli esperimenti, per compatibilità); i testi per
   l'utente e gli export usano H e Γ.
-* L'eseguibile Windows distribuibile è nella GitHub Release, costruito dal
-  commit definitivo e verificato con il selftest del programma.
+* L'eseguibile Windows è distribuito con la relativa GitHub Release.
 
 ## Sviluppi futuri
 
-Le visualizzazioni strutturali a grafo (orbite, cicli, grafo di Cayley di H,
-classi laterali di H in Γ, fibre, transizioni fra trasformazioni complete e
-intermedie) sono pianificate per la serie successiva alla 4.0.2: vedi
-`docs/release/ROADMAP_4.x.md`. Non fanno parte della 4.0.2.
+La [roadmap 4.x](docs/release/ROADMAP_4.x.md) prevede per la 4.1.0 un modello
+grafico comune, la Vista Posizioni (cicli e orbite) e la Vista Fibre. La Vista
+Gruppo, con i grafi di Cayley e le classi laterali, segue nella serie 4.1.x.
 
 ## Documentazione
 
 La Guida completa è integrata nel programma. La documentazione di progetto
 (audit, decisioni, chiusure dei compartimenti, note di versione) è in
 `docs/` — vedi `docs/README.md`; le note correnti sono in
-`docs/release/NOTE_VERSIONE_4.0.2.md`. Autore e assistenza al progetto sono
+`docs/release/NOTE_VERSIONE_4.0.3.md`. Autore e assistenza al progetto sono
 indicati in `CONTRIBUTORS.md`.
 
 ## Licenza

@@ -4,6 +4,12 @@
 **Oggetto:** versione *di lavoro, non committata* della roadmap (895 righe), che sostituisce la versione committata `a27ea82` (tabella G1–G12).
 **Data:** 5 ottobre 2026 · **Natura:** sola lettura. Nessun file del repository modificato, nessun commit, nessun push.
 
+**Riferimento corrente:** la [roadmap 4.x](../release/ROADMAP_4.x.md) riporta
+il perimetro della 4.1.0 e le decisioni adottate dopo questo audit. Le
+[note della 4.0.3](../release/NOTE_VERSIONE_4.0.3.md) documentano il collaudo
+del bundle Windows, le correzioni di layout e il passaggio degli aggiornamenti
+al thread Tk. Le valutazioni qui sotto descrivono lo stato del 5 ottobre 2026.
+
 Metodo: lettura di core, servizi, GUI, test, CI, documenti di chiusura (I1–I7, K, RC2), audit V4 e A1; verifiche numeriche con script **esterni** al repository che importano il core senza scrivere bytecode. La suite GUI e la CI remota **non** sono state eseguite.
 
 ---

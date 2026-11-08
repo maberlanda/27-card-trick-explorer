@@ -346,11 +346,14 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
 
         self.status_var = tk.StringVar(value="")
         self._status_display = tk.StringVar()
-        self.status_var.trace_add("write", lambda *_: self._status_display.set(
-            self.status_var.get() if len(self.status_var.get()) <= 48
-            else self.status_var.get()[:45] + "…"))
+
+        def aggiorna_stato_breve(*_):
+            stato = " ".join(self.status_var.get().split())
+            self._status_display.set(stato if len(stato) <= 48 else stato[:45] + "…")
+
+        self.status_var.trace_add("write", aggiorna_stato_breve)
         self._status_lbl = ttk.Label(inner, textvariable=self._status_display,
-                                     style="Status.TLabel", width=26, wraplength=220)
+                                     style="Status.TLabel", width=26)
         _tooltip.attach(self._status_lbl, lambda: self.status_var.get())
         # La riga di stato è l'elemento che cede: è l'unico che può stare
         # stretto senza che si perda un'azione.
@@ -951,14 +954,7 @@ class App(PreviewTabMixin, AnalysisTabMixin, ExplorerTabMixin,
             pass
 
     def _ui(self, fn):
-        """
-        Esegue `fn` sul thread Tk, ignorando l'errore se la finestra e' stata
-        chiusa nel frattempo.
-
-        Chiamare `after()` su un widget distrutto solleva TclError dentro il
-        thread di lavoro: senza questa guardia, chiudere la finestra durante un
-        export produceva un traceback invece di una chiusura pulita.
-        """
+        """Accoda `fn` per il thread Tk."""
         ui_call(self, fn)
 
     def _gen_pdf(self):

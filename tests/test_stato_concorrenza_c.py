@@ -537,6 +537,9 @@ class AppSelftest:
     def after(self, _delay, fn):
         self.coda.append(fn)
 
+    def bind(self, _sequence, _fn, **_kwargs):
+        pass
+
     def winfo_exists(self):
         return True
 

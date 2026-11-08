@@ -25,11 +25,11 @@ def app(tmp_path, monkeypatch):
     from gioco27.core import cache
     monkeypatch.setattr(cache, "_CACHE_DIR", tmp_path / "cache")
     try:
-        prova = tk.Tk()
-    except tk.TclError:
-        pytest.skip("display non disponibile")
-    prova.destroy()
-    a = app_module.App()
+        a = app_module.App()
+    except tk.TclError as exc:
+        if "no display name" in str(exc) or "couldn't connect to display" in str(exc):
+            pytest.skip("display non disponibile")
+        raise
     a.update()
     yield a
     if a.winfo_exists():

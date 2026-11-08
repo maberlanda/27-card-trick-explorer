@@ -62,7 +62,7 @@ def test_t01_keyboard_escape_cleanup(app):
 def test_t02_toolbar_long_count_and_status(app):
     app._imposta_livello("laboratorio")
     app.count_var.set("5 159 780 352")
-    app.status_var.set("A very long status message " * 20)
+    app.status_var.set("A very long status message\n" * 20)
     app.deiconify()
     app.update()
     bar = app._barra_azioni
@@ -76,6 +76,7 @@ def test_t02_toolbar_long_count_and_status(app):
     assert protocol.winfo_rootx() + protocol.winfo_width() <= app.winfo_rootx() + app.winfo_width()
     assert app._status_lbl.winfo_width() >= bar.MINIMO_ELASTICO
     assert len(app._status_display.get()) <= 48
+    assert "\n" not in app._status_display.get()
     assert app._status_lbl._tooltip.text() == app.status_var.get()
     app.withdraw()
 

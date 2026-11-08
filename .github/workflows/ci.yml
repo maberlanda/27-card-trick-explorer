@@ -149,10 +149,16 @@ jobs:
         shell: pwsh
         run: |
           # console=False: l'eseguibile non ha console, si controlla il codice di uscita
-          $p = Start-Process -FilePath dist\Gioco27\Gioco27.exe -ArgumentList "--selftest" -Wait -PassThru
+          $p = Start-Process -FilePath dist\Gioco27\Gioco27.exe -ArgumentList "--selftest" -WindowStyle Hidden -Wait -PassThru
           if ($p.ExitCode -ne 0) { throw "selftest dell'eseguibile: $($p.ExitCode)" }
-          $p = Start-Process -FilePath dist\Gioco27\Gioco27.exe -ArgumentList "selftest" -Wait -PassThru
+          $p = Start-Process -FilePath dist\Gioco27\Gioco27.exe -ArgumentList "selftest" -WindowStyle Hidden -Wait -PassThru
           if ($p.ExitCode -ne 0) { throw "CLI selftest dell'eseguibile: $($p.ExitCode)" }
+          $p = Start-Process -FilePath dist\Gioco27\Gioco27.exe -ArgumentList "--smoke-gui" -WindowStyle Hidden -PassThru
+          if (-not $p.WaitForExit(60000)) {
+            $p.Kill()
+            throw "Avvio GUI o export PDF dell'eseguibile oltre il tempo limite"
+          }
+          if ($p.ExitCode -ne 0) { throw "Avvio GUI o export PDF dell'eseguibile: $($p.ExitCode)" }
           if (-not (Test-Path dist\Gioco27\_internal\gioco27\assets\LICENSE-DejaVu.txt)) { throw "licenza font assente" }
           if (-not (Test-Path dist\Gioco27\_internal\LICENSE)) { throw "LICENSE assente" }
           if (Get-ChildItem -Recurse dist\Gioco27 -Filter *.pdf) { throw "PDF nel bundle" }

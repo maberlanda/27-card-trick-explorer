@@ -74,6 +74,8 @@ class AppHarness:
     def __init__(self):
         self.destroyed = 0
         self.scheduled = []
+        self.bindings = {}
+        self.cancelled = []
         self._closing = False
         self._export_stop = Event()
         self._export_busy = False
@@ -87,12 +89,21 @@ class AppHarness:
         self.destroyed += 1
 
     def winfo_exists(self):
+        assert threading.current_thread() is threading.main_thread()
         return not self.destroyed
 
     def after(self, delay, fn):
+        assert threading.current_thread() is threading.main_thread()
         if self.destroyed:
             raise RuntimeError("main thread is not in main loop")
         self.scheduled.append(fn)
+        return len(self.scheduled)
+
+    def bind(self, sequence, fn, add=None):
+        self.bindings[sequence] = fn
+
+    def after_cancel(self, timer):
+        self.cancelled.append(timer)
 
     def update_idletasks(self):
         pass
@@ -242,6 +253,24 @@ def test_r1_chiusura_durante_accodamento(error):
 
     app.after = after
     app._ui(lambda: pytest.fail("callback dopo la chiusura"))
+
+
+@pytest.mark.parametrize("destroy", [False, True])
+def test_worker_condividono_la_coda_e_il_timer(destroy):
+    app = AppHarness()
+    seen = []
+    workers = [common.run_in_thread(app, lambda i=i: app._ui(lambda: seen.append(i)))
+               for i in range(2)]
+    for worker in workers:
+        worker.join(5)
+        assert not worker.is_alive()
+    assert len(app.scheduled) == 1
+    if destroy:
+        app.bindings["<Destroy>"](SimpleNamespace(widget=app))
+        assert app.cancelled == [1]
+    app.scheduled[0]()
+    assert sorted(seen) == ([] if destroy else [0, 1])
+    assert len(app.scheduled) == 1
 
 
 @pytest.mark.parametrize("pipeline", [False, True])

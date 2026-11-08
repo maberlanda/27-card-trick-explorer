@@ -3,6 +3,7 @@ import threading
 import tkinter as tk
 import time
 from collections import deque
+from queue import Empty, SimpleQueue
 from tkinter import messagebox
 
 from ..core.constants import PERM3_COLORS
@@ -24,28 +25,66 @@ def rimuovi_binding(widget, sequence, identifier):
     widget.deletecommand(identifier)
 
 
+class _UiDispatcher:
+    """Consegna sul thread Tk le notifiche dei lavori di un widget."""
+
+    def __init__(self, widget):
+        self.widget = widget
+        self.queue = SimpleQueue()
+        self.pending = 0
+        self.timer = None
+        self.closed = False
+        widget.bind("<Destroy>", self._destroy, add="+")
+
+    def start_job(self):
+        self.pending += 1
+        if self.pending == 1:
+            self.timer = self.widget.after(20, self._poll)
+
+    def _destroy(self, event):
+        if event.widget is self.widget:
+            self.closed = True
+            if self.timer is not None:
+                self.widget.after_cancel(self.timer)
+                self.timer = None
+            self.queue = SimpleQueue()
+
+    def _poll(self):
+        self.timer = None
+        try:
+            while not self.closed and not getattr(self.widget, "_closing", False):
+                try:
+                    callback = self.queue.get_nowait()
+                except Empty:
+                    break
+                if callback is None:
+                    self.pending -= 1
+                else:
+                    callback()
+        finally:
+            if self.pending and not self.closed and not getattr(self.widget, "_closing", False):
+                self.timer = self.widget.after(20, self._poll)
+
+
 def run_in_thread(widget, job, error_title=None, on_error=None):
-    """
-    Esegue `job()` in un thread demone, con gestione errori standard.
+    """Avvia `job()` dal thread Tk. Il lavoro usa `ui_call` per la GUI.
 
     In caso di eccezione: registra il traceback nel log e mostra un
-    messagebox di errore (marshallato sul thread Tk con widget.after).
-    Se `on_error` e' fornita, viene chiamata (sul thread Tk) dopo il
-    messagebox, con l'eccezione come argomento — utile per ripristinare
-    lo stato della GUI.
-
-    Il job resta responsabile di marshallare i propri aggiornamenti GUI
-    con widget.after(0, ...): Tk non e' thread-safe.
+    messagebox di errore sul thread Tk. Segue `on_error`, se fornita.
     """
     if error_title is None:
         # Risolto alla chiamata, non alla definizione: segue la lingua attiva.
         error_title = tr("error.generic")
 
+    dispatcher = getattr(widget, "_ui_dispatcher", None)
+    if dispatcher is None:
+        dispatcher = widget._ui_dispatcher = _UiDispatcher(widget)
+    dispatcher.start_job()
+
     def runner():
-        if getattr(widget, "_closing", False):
-            return
         try:
-            job()
+            if not getattr(widget, "_closing", False):
+                job()
         except Exception as e:
             _log.exception("Errore nel thread di lavoro (%s)", error_title)
             def report(e=e):
@@ -58,21 +97,26 @@ def run_in_thread(widget, job, error_title=None, on_error=None):
                 if on_error is not None:
                     on_error(e)
             ui_call(widget, report)
+        finally:
+            dispatcher.queue.put(None)
     t = threading.Thread(target=runner, daemon=True)
-    t.start()
+    try:
+        t.start()
+    except RuntimeError:
+        dispatcher.queue.put(None)
+        raise
     return t
 
 
 def ui_call(widget, fn):
-    """
-    Esegue `fn` sul thread Tk, senza esplodere se il widget e' stato distrutto.
-
-    `widget.after(0, ...)` da un thread di lavoro solleva TclError se la
-    finestra e' stata chiusa nel frattempo: e' il caso normale quando l'utente
-    chiude un dialogo mentre il calcolo e' ancora in corso, e non deve
-    produrre un traceback.
-    """
+    """Accoda `fn` senza chiamare Tk dal thread di lavoro."""
     if getattr(widget, "_closing", False):
+        return
+
+    if threading.current_thread() is not threading.main_thread():
+        dispatcher = getattr(widget, "_ui_dispatcher", None)
+        if dispatcher is not None and not dispatcher.closed:
+            dispatcher.queue.put(fn)
         return
 
     def invoke():

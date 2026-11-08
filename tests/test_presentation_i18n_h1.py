@@ -745,11 +745,11 @@ def test_il_worker_mostra_il_messaggio_localizzato(lingua, monkeypatch):
     class Finto:
         _closing = False
 
-        def winfo_exists(self):
-            return True
+        def bind(self, _sequence, _fn, **_kwargs):
+            pass
 
         def after(self, _ms, fn):
-            fn()
+            self.callback = fn
 
     lingua("en")
     exc = SchemaNonRiconosciuto("file vuoto: nessuna intestazione",
@@ -758,7 +758,9 @@ def test_il_worker_mostra_il_messaggio_localizzato(lingua, monkeypatch):
     def job():
         raise exc
 
-    common.run_in_thread(Finto(), job, error_title="Import").join(5)
+    widget = Finto()
+    common.run_in_thread(widget, job, error_title="Import").join(5)
+    widget.callback()
     assert len(mostrati) == 1
     titolo, testo = mostrati[0]
     assert titolo == "Import"

@@ -182,6 +182,9 @@ cython_debug/
 .cursorignore
 .cursorindexingignore
 
+# Istantanea locale dell'albero delle cartelle.
+/tree.txt
+
 # Output locali del redesign PDF; documentazione ufficiale e fixture escluse.
 /Audit_generatore_PDF_stile_C_v4.0.1.md
 /Audit_generatore_PDF_stile_C_v4.0.1.pdf

@@ -16,7 +16,7 @@ import pytest
 import gioco27
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSIONE = "4.0.2"
+VERSIONE = "4.0.3"
 PDF_FONTE = ("LIBRO_MAIN.pdf", "Articolo.pdf")
 FIXTURE_313 = ROOT / "tests" / "fixtures" / "esperimento_j1_programma_3.1.3.json"
 

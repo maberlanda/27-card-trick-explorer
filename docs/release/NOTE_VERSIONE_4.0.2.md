@@ -5,6 +5,9 @@
 > due PDF di export delle configurazioni e pulisce il repository.
 > Punto di partenza: `NOTE_VERSIONE_4.0.1.md`.
 
+> **Aggiornamento:** il PDF matriciale dello ZIP Windows è stato corretto
+> nella [4.0.3](NOTE_VERSIONE_4.0.3.md).
+
 ## PDF dettagliato delle configurazioni
 
 * Layout A3 orizzontale ridisegnato e misurato: normalmente due configurazioni

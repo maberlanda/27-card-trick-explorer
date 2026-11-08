@@ -106,20 +106,11 @@ def test_selftest_restituisce_dati_invariati_in_ogni_lingua():
     assert en["esito"] == "TUTTO OK" and en["ancore_libro"] == "ok (#100, #82)"
 
 
-class _SyncThread:
-    def __init__(self, target, daemon=None):
-        self._target = target
-
-    def start(self):
-        self._target()
-
-
 def _run_verify(monkeypatch, language, break_anchor=False):
     from gioco27.core import gioco_reale
-    from gioco27.gui import app as app_module
+    from gioco27.gui import app as app_module, common
 
     shown = []
-    monkeypatch.setattr(threading, "Thread", _SyncThread)
     monkeypatch.setattr(app_module.messagebox, "showinfo",
                         lambda title, msg, **kw: shown.append(("info", title, msg)))
     monkeypatch.setattr(app_module.messagebox, "showerror",
@@ -135,11 +126,16 @@ def _run_verify(monkeypatch, language, break_anchor=False):
                 row["assi"] = (0, 0, 0)
             return row
         monkeypatch.setattr(gioco_reale, "riga_tavola", broken)
-    statuses = []
+    statuses, callbacks = [], []
     fake = SimpleNamespace(status_var=SimpleNamespace(set=statuses.append),
-                           _ui=lambda fn: fn())
+                           bind=lambda *args, **kwargs: None,
+                           after=lambda delay, fn: callbacks.append(fn),
+                           _ui=lambda fn: common.ui_call(fake, fn))
     _lang(language)
-    app_module.App._run_selftest(fake)
+    worker = app_module.App._run_selftest(fake)
+    worker.join(5)
+    assert not worker.is_alive()
+    callbacks[0]()
     return statuses, shown
 
 
@@ -372,16 +368,17 @@ def test_titolo_errore_nei_thread_segue_la_lingua(monkeypatch):
 
     shown = []
     monkeypatch.setattr(common.messagebox, "showerror", lambda t, m: shown.append(t))
-    monkeypatch.setattr(common.threading, "Thread", _SyncThread)
-    monkeypatch.setattr(common, "ui_call", lambda w, fn: fn())
 
     def job():
         raise ValueError("x")
 
-    _lang("en")
-    common.run_in_thread(SimpleNamespace(), job)
-    _lang("it")
-    common.run_in_thread(SimpleNamespace(), job)
+    for language in ("en", "it"):
+        _lang(language)
+        callbacks = []
+        widget = SimpleNamespace(bind=lambda *args, **kwargs: None,
+                                 after=lambda delay, fn: callbacks.append(fn))
+        common.run_in_thread(widget, job).join(5)
+        callbacks[0]()
     assert shown == ["Error", "Errore"]
 
 

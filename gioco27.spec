@@ -35,7 +35,8 @@ a = Analysis(  # noqa: F821
     # Export facoltativi (extra `export` di pyproject.toml): importati in modo
     # pigro dal codice, quindi vanno dichiarati. Se mancano nell'ambiente di
     # build, PyInstaller avvisa e l'eseguibile li segnala come non disponibili.
-    hiddenimports=["reportlab", "openpyxl", "pypdf", "pikepdf"],
+    # Il renderer del PDF matriciale è caricato dinamicamente da combinations.
+    hiddenimports=["reportlab", "openpyxl", "pypdf", "pikepdf", "gioco27.core.matrix_pdf"],
     excludes=[],
     noarchive=False,
 )
