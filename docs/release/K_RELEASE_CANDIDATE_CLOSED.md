@@ -273,7 +273,7 @@ Classificazione delle occorrenze di G/H/G_ext:
 
 | occorrenza | classe | azione |
 |---|---|---|
-| `export.document.cayley.*`, `export.document.conjugacy.*` (11 chiavi × 2 lingue), `$|G|$`/`$|Z(G)|$` in `export_group_dialog.py` | user-facing | **migrate a H** (`|H| = 216`, `Z(H)`, `[H:…]`, «H ≅ S₃³») |
+| `export.document.cayley.*`, `export.document.conjugacy.*` (11 chiavi × 2 lingue), `$\|G\|$`/`$\|Z(G)\|$` in `export_group_dialog.py` | user-facing | **migrate a H** (`\|H\| = 216`, `Z(H)`, `[H:…]`, «H ≅ S₃³») |
 | `lab.legacy_note`, `glossary.long.group_h`, `glossary.long.gaia`, `guide.s09.extended_group` | user-facing con nota storica esplicita | invariati |
 | `appartiene_a_G`, `DECOMPOSIZIONI_PER_TARGET_IN_G`, `appartiene_a_H` (= Γ) | API interne usate dai test | invariati, registrati |
 | docstring e commenti (`group_theory`, `kronecker`, `cache`, dialoghi) | internal-only | invariati |

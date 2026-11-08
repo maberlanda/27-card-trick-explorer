@@ -797,7 +797,7 @@ non può tornare.
 
 Sistemate anche due incoerenze minori: «fattore di grado 3 / posizione 3»
 erano rimasti a base 1 accanto a fattori a base 0, e l'export LaTeX delle
-decomposizioni aveva ancora le colonne $A_1$/$A_2$/$A_3$.
+decomposizioni aveva ancora le colonne $A_1$ / $A_2$ / $A_3$.
 
 ## Cosa NON è stato cambiato
 
