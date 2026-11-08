@@ -73,8 +73,8 @@ dei grafi. I criteri di uscita della 4.1.0 sono al §7.
 
 ## 1.1 Vista Posizioni — Decomposizione ciclica grafica
 
-Il caso iniziale è una singola permutazione \(T\) sulle 27 posizioni.
-Il grafo ha 27 vertici e archi orientati \(i\to T(i)\).
+Il caso iniziale è una singola permutazione $T$ sulle 27 posizioni.
+Il grafo ha 27 vertici e archi orientati $i\to T(i)$.
 
 - mostrare la decomposizione ciclica;
 - rappresentare ogni ciclo come componente grafica;
@@ -89,11 +89,11 @@ permutazione, compresa la matrice quando disponibile.
 
 La visualizzazione deve rispettare la convenzione:
 
-\[
+```math
 T(i)=j
-\]
+```
 
-cioè il contenuto inizialmente nella posizione \(i\) termina nella posizione \(j\).
+cioè il contenuto inizialmente nella posizione $i$ termina nella posizione $j$.
 
 ### Criterio di accettazione
 
@@ -101,7 +101,7 @@ La decomposizione mostrata graficamente deve coincidere esattamente con quella c
 
 ## 1.2 Vista Posizioni — Orbite di una trasformazione
 
-Per la 4.1.0 la vista mostra le orbite della singola trasformazione \(T\).
+Per la 4.1.0 la vista mostra le orbite della singola trasformazione $T$.
 Le orbite determinate da più generatori o da un sottogruppo selezionato
 rientrano nella milestone della Vista Gruppo (§1.6).
 
@@ -118,20 +118,20 @@ La vista deve distinguere con chiarezza orbite di **posizioni** e traiettorie di
 
 ## Vista Gruppo — milestone successiva della linea 4.1.x
 
-La vista può crescere dal Cayley di \(H\) (216 vertici) al gruppo
-\(\Gamma\) (648 vertici), con generatori selezionabili quando opportuno,
+La vista può crescere dal Cayley di $H$ (216 vertici) al gruppo
+$\Gamma$ (648 vertici), con generatori selezionabili quando opportuno,
 archi etichettati, classi laterali, prefissi, relazioni nominate ed eventuali
 grafi di Schreier. La disposizione, il budget di prestazione e la
 navigazione accessibile su queste dimensioni si verificano in questa
 milestone, insieme a cammini, distanze e diametro.
 
-### 1.3 Grafo di Cayley di \(H\)
+### 1.3 Grafo di Cayley di $H$
 
 Aggiungere un vero grafo di Cayley per
 
-\[
+```math
 H\cong S_3^3,\qquad |H|=216.
-\]
+```
 
 Funzioni:
 
@@ -150,39 +150,39 @@ La Tavola 216 e il grafo di Cayley restano strumenti distinti:
 - la Tavola è enumerativa;
 - il grafo è relazionale.
 
-### 1.4 Le tre classi laterali di \(H\) in \(\Gamma\)
+### 1.4 Le tre classi laterali di $H$ in $\Gamma$
 
 Visualizzare:
 
-\[
+```math
 \Gamma
 =
 H
 \sqcup
-H\circ\MSC
+H\circ\mathrm{MSC}
 \sqcup
-H\circ\MSC^2,
-\]
+H\circ\mathrm{MSC}^2,
+```
 
 con
 
-\[
+```math
 |\Gamma|=648,\qquad [\Gamma:H]=3.
-\]
+```
 
 Le classi laterali possono essere rappresentate come partizioni
 riconoscibili tramite regioni, livelli, etichette e colore.
-I passaggi indotti da \(\MSC\) possono collegare le tre parti.
+I passaggi indotti da $\mathrm{MSC}$ possono collegare le tre parti.
 
 Per un elemento selezionato mostrare:
 
 - appartenenza alla classe laterale;
 - forma normale;
-- fattore appartenente a \(H\);
-- potenza di \(\MSC\);
+- fattore appartenente a $H$;
+- potenza di $\mathrm{MSC}$;
 - classificazione completa/intermedia.
 
-Questa vista deve rendere evidente la differenza fra \(H\) e \(\Gamma\).
+Questa vista deve rendere evidente la differenza fra $H$ e $\Gamma$.
 
 ### 1.5 Grafo delle trasformazioni complete e intermedie
 
@@ -192,9 +192,9 @@ Scopi:
 
 - mostrare i prefissi di procedura;
 - distinguere trasformazioni complete e intermedie;
-- visualizzare il passaggio tra le tre componenti di \(\Gamma\);
+- visualizzare il passaggio tra le tre componenti di $\Gamma$;
 - mostrare l'effetto dell'aggiunta di uno stadio;
-- preparare una futura rappresentazione esplicita di \(\mathcal S_F\).
+- preparare una futura rappresentazione esplicita di $\mathcal S_F$.
 
 ### 1.6 Grafi generati da insiemi di generatori
 
@@ -216,9 +216,9 @@ La funzione ha carattere esplorativo e usa le definizioni del gioco.
 
 Aggiungere una vista dedicata alle fibre
 
-\[
+```math
 F_{i,t}=\pi_i^{-1}(\{t\}).
-\]
+```
 
 Nel caso classico:
 
@@ -233,40 +233,40 @@ Mostrare:
 - coordinate libere;
 - elementi della fibra;
 - somma della fibra;
-- immagine sotto \(T\);
+- immagine sotto $T$;
 - fibra di arrivo.
 
 Raggruppare le fibre per livello e rappresentare il trasporto con archi
 dalla fibra di origine a quella di arrivo. Per le trasformazioni separabili
 vale la relazione:
 
-\[
+```math
 T(F_{i,t})=F_{i,M_i(t)}.
-\]
+```
 
 ## 1.8 Vista Fibre — Trasporto e ricostruzione
 
 Integrare la vista delle fibre con:
 
-\[
+```math
 \Sigma_{i,t}(T)
 =
 C_i+b^{m-1+i}M_i(t)
-\]
+```
 
 e
 
-\[
+```math
 M_i(t)
 =
 \frac{\Sigma_{i,t}(T)-C_i}{b^{m-1+i}}.
-\]
+```
 
 Nel caso classico:
 
-\[
+```math
 C_0=108,\qquad C_1=90,\qquad C_2=36.
-\]
+```
 
 Mostrare per ogni asse:
 
@@ -276,10 +276,10 @@ Mostrare per ogni asse:
 - fattore locale risultante.
 
 Collegare esplicitamente questa vista al teorema di ricostruzione del libro.
-Mostrare \(\Sigma_{i,t}\) e, per le somme inverse, \(\Lambda_{i,u}\)
+Mostrare $\Sigma_{i,t}$ e, per le somme inverse, $\Lambda_{i,u}$
 nei casi in cui sono definite, usando i risultati dei servizi esistenti.
 
-## 1.9 Confronto visuale facoltativo \(T\) / \(T^{-1}\)
+## 1.9 Confronto visuale facoltativo $T$ / $T^{-1}$
 
 Quando è utile al caso mostrato, affiancare la trasformazione diretta e
 l'inversa:
@@ -292,11 +292,11 @@ l'inversa:
 
 Per la Vista Fibre, la quantità inversa già definita nei casi applicabili è
 
-\[
+```math
 \Lambda_{i,u}
 =
 C_i+b^{m-1+i}M_i^{-1}(u).
-\]
+```
 
 ## 1.10 Orbite di carte e posizioni
 
@@ -326,7 +326,7 @@ tabelloni o rappresentazioni ternarie, come inversa, composizione o ritorno:
 
 Obiettivo didattico:
 
-\[
+```math
 \text{gesti fisici}
 \to
 \text{tabellone}
@@ -334,7 +334,7 @@ Obiettivo didattico:
 \text{fibre e somme}
 \to
 \text{fattori locali}.
-\]
+```
 
 ## 1.12 Requisiti comuni della 4.1
 
@@ -358,68 +358,68 @@ al thread Tk descritto nel §4.1.
 
 # 2. Versione 4.2 — estensioni matematiche e strumenti di analisi
 
-## 2.1 Rappresentazione esplicita di \(\mathcal S_F\)
+## 2.1 Rappresentazione esplicita di $\mathcal S_F$
 
 Introdurre un oggetto o servizio dedicato alla famiglia delle trasformazioni cumulative ottenute dopo uno o più stadi di una procedura ammessa.
 
 Vincolo fondamentale:
 
-\[
+```math
 \mathcal S_F
-\]
+```
 
 non va presentata inizialmente come gruppo.
 
 Il gruppo generato è invece:
 
-\[
+```math
 \Gamma_{3,3}
 =
 \langle\mathcal S_F\rangle.
-\]
+```
 
 Funzioni possibili:
 
 - enumerazione dei prefissi;
 - classificazione per lunghezza;
 - distinzione finale/intermedia;
-- appartenenza a \(H\) o alle altre classi di \(\Gamma\);
+- appartenenza a $H$ o alle altre classi di $\Gamma$;
 - generazione del sottogruppo;
 - statistiche;
 - collegamento con il grafo delle transizioni.
 
-## 2.2 Forma canonica del rovesciamento globale \(J\)
+## 2.2 Forma canonica del rovesciamento globale $J$
 
 Valutare una rappresentazione strutturale:
 
-\[
+```math
 J=R\otimes R\otimes R.
-\]
+```
 
 Vincoli:
 
-- \(J\in H\);
+- $J\in H$;
 - nessun ampliamento del gruppo;
 - nessuna modifica semantica per l'utente;
 - compatibilità con dati persistiti e test esistenti.
 
 Va implementata solo se migliora chiarezza o manutenzione.
 
-## 2.3 Quantità inverse \(\Lambda_{i,u}\)
+## 2.3 Quantità inverse $\Lambda_{i,u}$
 
 La Vista Fibre della 4.1.0 espone le somme inverse nei casi già gestiti
 dai servizi. Per eventuali estensioni analitiche, valutare altri impieghi di
 
-\[
+```math
 \Lambda_{i,u}
 =
 C_i+b^{m-1+i}M_i^{-1}(u).
-\]
+```
 
 Possibili usi:
 
 - ricostruzione inversa;
-- confronto \(T\)/\(T^{-1}\);
+- confronto $T$ / $T^{-1}$;
 - fibre di origine;
 - diagnostica;
 - Laboratorio.
@@ -430,24 +430,24 @@ La visualizzazione di fibre, somme e ricostruzione rientra nella 4.1.0.
 Per un eventuale approfondimento analitico nel Laboratorio, valutare:
 
 - mostrare le firme strutturate;
-- distinguere singola \(\Sigma_{i,t}\) e famiglia delle firme;
+- distinguere singola $\Sigma_{i,t}$ e famiglia delle firme;
 - confrontare trasformazioni;
-- verificare separabilità e appartenenza a \(H\).
+- verificare separabilità e appartenenza a $H$.
 
-Va preservato il fatto che la singola \(\Sigma_{i,t}\) non è, da sola, un invariante globale.
+Va preservato il fatto che la singola $\Sigma_{i,t}$ non è, da sola, un invariante globale.
 
-## 2.5 Forma normale in \(\Gamma\)
+## 2.5 Forma normale in $\Gamma$
 
 Il core calcola la forma normale e l'Explorer la espone già. Il Laboratorio
-ne verifica l'unicità nel dominio \(\Gamma\). La struttura è:
+ne verifica l'unicità nel dominio $\Gamma$. La struttura è:
 
-\[
+```math
 \Gamma_{3,3}
 =
 S_3^3\rtimes\langle\tau\rangle,
 \qquad
 \langle\tau\rangle\cong C_3.
-\]
+```
 
 Eventuali ampliamenti riguardano i collegamenti tra la forma normale,
 la classe laterale e gli strumenti di analisi delle Procedure.
@@ -457,7 +457,7 @@ la classe laterale e gli strumenti di analisi delle Procedure.
 Approfondire la distinzione fra:
 
 - 1 728 Procedure fisiche;
-- 216 trasformazioni complete distinte in \(H\).
+- 216 trasformazioni complete distinte in $H$.
 
 Possibili strumenti:
 
@@ -490,8 +490,8 @@ Per ogni trasformazione appartenente a questo dominio mostrare, quando definito:
 
 - fattori locali;
 - eventuali rovesciamenti locali;
-- trasformazione globale \(T\);
-- appartenenza a \(H\), \(\Gamma_{3,3}\) o ad altri insiemi già definiti dal progetto;
+- trasformazione globale $T$;
+- appartenenza a $H$, $\Gamma_{3,3}$ o ad altri insiemi già definiti dal progetto;
 - decomponibilità secondo Kronecker;
 - realizzabilità mediante una Procedura del gioco classico;
 - Procedure equivalenti, quando esistono;
@@ -499,23 +499,23 @@ Per ogni trasformazione appartenente a questo dominio mostrare, quando definito:
 
 L'interfaccia dovrebbe collocare questa capacità nell'area Explorer/Laboratorio, evitando di sovraccaricare il Simulatore del gioco classico.
 
-Questa estensione deve precedere una generalizzazione a \(b^m\): prima si amplia e si chiarisce il dominio strutturale del caso \(3^3=27\), poi si valuta l'estensione del numero di coordinate e della base.
+Questa estensione deve precedere una generalizzazione a $b^m$: prima si amplia e si chiarisce il dominio strutturale del caso $3^3=27$, poi si valuta l'estensione del numero di coordinate e della base.
 
-## 2.8 Generalizzazione a \(b^m\)
+## 2.8 Generalizzazione a $b^m$
 
 Possibile estensione di grande portata.
 
 Dal caso classico
 
-\[
+```math
 3^3=27
-\]
+```
 
 a configurazioni
 
-\[
+```math
 b^m.
-\]
+```
 
 Prima dell'implementazione devono essere definiti con precisione:
 
@@ -537,8 +537,8 @@ Valutare separatamente il supporto operativo al caso rettangolare del libro.
 
 Preservare la distinzione:
 
-- permutazione locale \(P\);
-- trasformazione globale \(T_P\).
+- permutazione locale $P$;
+- trasformazione globale $T_P$.
 
 Prima dell'implementazione definire i casi supportati e quali risultati restano validi.
 
@@ -552,7 +552,7 @@ La 4.3 deve rendere esplorabile la struttura del wreath product che contiene le 
 
 Il riferimento strutturale resta:
 
-\[
+```math
 G
 \xrightarrow{\text{realizzazione}}
 H
@@ -562,7 +562,7 @@ H
 S_3\wr S_3
 \subset
 S_{27}.
-\]
+```
 
 Il passaggio a questa area deve avvenire soltanto dopo che il dominio Kronecker esteso su 27 carte è stato formalizzato e reso stabile.
 
@@ -570,19 +570,19 @@ Il passaggio a questa area deve avvenire soltanto dopo che il dominio Kronecker 
 
 Aggiungere una rappresentazione esplicita degli elementi del wreath product che permetta di leggere nello stesso oggetto:
 
-- componente esterna \(\sigma\in S_3\) che permuta le tre coordinate ternarie nell'azione prodotto;
+- componente esterna $\sigma\in S_3$ che permuta le tre coordinate ternarie nell'azione prodotto;
 - fattori locali;
 - azione sulle coordinate;
 - permutazione concreta sulle 27 posizioni;
 - composizione;
 - inversa;
 - identità;
-- appartenenza a \(H\) e \(\Gamma_{3,3}\);
+- appartenenza a $H$ e $\Gamma_{3,3}$;
 - eventuale appartenenza al dominio Kronecker esteso definito nella 4.2.
 
 L'Explorer deve mantenere sincronizzati almeno quattro livelli di lettura:
 
-\[
+```math
 \text{oggetto concreto / gesto}
 \longleftrightarrow
 \text{permutazione di 27 elementi}
@@ -590,7 +590,7 @@ L'Explorer deve mantenere sincronizzati almeno quattro livelli di lettura:
 \text{fattori locali}
 \longleftrightarrow
 \text{elemento del wreath product}.
-\]
+```
 
 Le conversioni fra questi livelli devono essere fornite dal core o da servizi dedicati, non ricostruite indipendentemente dalla GUI.
 
@@ -603,8 +603,8 @@ Il tutor deve poter guidare, a richiesta, su domande come:
 - qual è il fattore esterno;
 - quali coordinate ternarie vengono permutate;
 - come si leggono i fattori locali;
-- perché un elemento appartiene o non appartiene a \(H\);
-- perché un elemento appartiene o non appartiene a \(\Gamma_{3,3}\);
+- perché un elemento appartiene o non appartiene a $H$;
+- perché un elemento appartiene o non appartiene a $\Gamma_{3,3}$;
 - come si calcola una composizione;
 - come si calcola l'inversa;
 - come si passa dalla notazione astratta alla permutazione sulle 27 posizioni;
@@ -732,31 +732,31 @@ La pubblicazione definitiva deve comunque restare sotto controllo dell'autore.
 
 ## 5.1 Convenzione delle permutazioni
 
-\[
+```math
 T(i)=j
-\]
+```
 
-significa che il contenuto inizialmente nella posizione \(i\) termina nella posizione \(j\).
+significa che il contenuto inizialmente nella posizione $i$ termina nella posizione $j$.
 
 Per la matrice:
 
-\[
+```math
 M[T[i],i]=1.
-\]
+```
 
 Per la composizione:
 
-\[
+```math
 A\circ B
-\]
+```
 
-significa prima \(B\), poi \(A\).
+significa prima $B$, poi $A$.
 
 ## 5.2 Gerarchia strutturale
 
 Preservare:
 
-\[
+```math
 G
 \xrightarrow{\text{realizzazione}}
 H
@@ -766,41 +766,41 @@ H
 S_3\wr S_3
 \subset
 S_{27}.
-\]
+```
 
 Con:
 
-\[
+```math
 G\cong S_3^3,
 \qquad
 H\cong G,
 \qquad
 |H|=216,
-\]
+```
 
 e:
 
-\[
+```math
 \Gamma_{3,3}
 =
-\langle H,\MSC\rangle
+\langle H,\mathrm{MSC}\rangle
 =
 \langle\mathcal S_F\rangle,
 \qquad
 |\Gamma_{3,3}|=648.
-\]
+```
 
 ## 5.3 Gaia
 
-Il nome narrativo **Gaia** resta associato alle trasformazioni complete, cioè a \(G\)/\(H\) secondo il livello astratto o concreto.
+Il nome narrativo **Gaia** resta associato alle trasformazioni complete, cioè a $G$ / $H$ secondo il livello astratto o concreto.
 
-Non associare Gaia a \(\Gamma\).
+Non associare Gaia a $\Gamma$.
 
 ## 5.4 Rovesciamento globale
 
-\[
+```math
 J\in H.
-\]
+```
 
 Il rovesciamento globale non amplia il gruppo.
 
@@ -809,7 +809,7 @@ Il rovesciamento globale non amplia il gruppo.
 Preservare la distinzione:
 
 - 1 728 Procedure fisiche;
-- 216 trasformazioni complete distinte in \(H\).
+- 216 trasformazioni complete distinte in $H$.
 
 Non introdurre una “Tavola 1 728” di trasformazioni distinte.
 
@@ -833,24 +833,24 @@ Le versioni successive devono, per quanto possibile:
 3. **Vista Fibre:** livelli, trasporto, somme e ricostruzione. Con questa
    vista si completa il perimetro della **4.1.0**.
 4. **Vista Gruppo:** milestone successiva della linea 4.1.x, da sviluppare
-   progressivamente a partire dal Cayley di \(H\).
+   progressivamente a partire dal Cayley di $H$.
 
 ## 4.2
 
-1. \(\mathcal S_F\) esplicita;
+1. $\mathcal S_F$ esplicita;
 2. eventuali approfondimenti analitici nel Laboratorio delle fibre (§2.4);
-3. eventuali usi ulteriori di \(\Lambda_{i,u}\) (§2.3);
-4. forma canonica di \(J\);
+3. eventuali usi ulteriori di $\Lambda_{i,u}$ (§2.3);
+4. forma canonica di $J$;
 5. equivalenze fra Procedure;
 6. dominio Kronecker esteso su 27 carte;
-7. valutazione di \(b^m\);
+7. valutazione di $b^m$;
 8. valutazione del caso rettangolare.
 
 ## 4.3
 
 1. rappresentazione esplicita degli elementi del wreath product;
 2. sincronizzazione fra fattori locali, azione sulle coordinate e permutazione sulle 27 posizioni;
-3. appartenenza e confronto con \(H\), \(\Gamma_{3,3}\) e dominio Kronecker esteso;
+3. appartenenza e confronto con $H$, $\Gamma_{3,3}$ e dominio Kronecker esteso;
 4. tutor algebrico contestuale;
 5. modalità didattica con esercizi e correzione motivata.
 
@@ -889,17 +889,17 @@ Vista Fibre** soddisfano i criteri seguenti.
 
 ### Vista Posizioni
 
-- Per i casi verificati, i 27 vertici e gli archi \(i\to T(i)\) rispettano
-  la convenzione \(T(i)=j\). Cicli e punti fissi coincidono con il core.
+- Per i casi verificati, i 27 vertici e gli archi $i\to T(i)$ rispettano
+  la convenzione $T(i)=j$. Cicli e punti fissi coincidono con il core.
 - Selezionando un nodo si ottengono origine, immagine e ciclo di
-  appartenenza corretti. Se è disponibile il confronto con \(T^{-1}\),
-  gli archi dell'inversa risultano invertiti rispetto a quelli di \(T\).
+  appartenenza corretti. Se è disponibile il confronto con $T^{-1}$,
+  gli archi dell'inversa risultano invertiti rispetto a quelli di $T$.
 
 ### Vista Fibre
 
 - Nei casi verificati, fibre e partizioni per livello, trasporto, somme e
   ricostruzione coincidono con i risultati dei servizi esistenti.
-- Le etichette \(\Sigma\) e \(\Lambda\) compaiono soltanto nei casi in cui le
+- Le etichette $\Sigma$ e $\Lambda$ compaiono soltanto nei casi in cui le
   rispettive quantità sono definite. La GUI presenta i dati e le relazioni
   forniti dal livello matematico.
 
@@ -945,7 +945,7 @@ Qualunque sviluppo di questo tipo richiede una decisione progettuale separata.
 Alla pubblicazione della 4.0.0:
 
 - la base matematica è consolidata;
-- \(H\) e \(\Gamma\) sono distinti correttamente;
+- $H$ e $\Gamma$ sono distinti correttamente;
 - la Fase P ha riallineato programma e libro;
 - la suite finale è verde;
 - wheel, sdist e bundle Windows sono stati costruiti;
