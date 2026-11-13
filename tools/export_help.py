@@ -19,6 +19,7 @@ _PAGINE = {
     "en": ("How-to", "Help", "Skip to content", "Help by tab", "Topics"),
 }
 _LINGUE = {"it": "Italiano", "en": "English"}
+_HOME = {"it": "Pagina principale", "en": "Home"}
 _SCHEDE = {
     "stadio": ("tab.stage", "s04"), "anteprima": ("tab.preview", "s14"),
     "analisi": ("tab.analysis", "s15"), "explorer": ("tab.explorer", "s16"),
@@ -34,7 +35,7 @@ def _link(url, testo):
 def _documento(lingua, pagina, titolo, contenuto):
     guida, aiuto, salta, _, _ = _PAGINE[lingua]
     altra = "en" if lingua == "it" else "it"
-    navigazione = []
+    navigazione = [_link("../index.html", _HOME[lingua])]
     for nome, titolo_link in (("howto", guida), ("help", aiuto)):
         corrente = ' aria-current="page"' if nome == pagina else ""
         navigazione.append(f'<a href="{nome}.html"{corrente}>{titolo_link}</a>')

@@ -38,6 +38,8 @@ def test_export_bilingue_con_indici_e_collegamenti(tmp_path):
         guida = tmp_path / lingua / "howto.html"
         aiuto = tmp_path / lingua / "help.html"
         assert documenti[guida].lingua == documenti[aiuto].lingua == lingua
+        assert "../index.html" in documenti[guida].links
+        assert "../index.html" in documenti[aiuto].links
         assert set(SEZIONI) == documenti[guida].ids - {"content"}
         assert set(TOPICS) <= documenti[aiuto].ids
         assert novita in guida.read_text(encoding="utf-8")
