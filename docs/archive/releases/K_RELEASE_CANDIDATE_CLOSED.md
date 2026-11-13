@@ -286,7 +286,7 @@ precedente, verificato).
 
 ## 17. Benchmark
 
-`tests/benchmark_k.py` (non raccolto da pytest): selftest, Tavola 216,
+`tools/benchmark_k.py` (non raccolto da pytest): selftest, Tavola 216,
 riconoscimento (48 permutazioni, seed 27), catalogo I6 completo, round-trip J
 con ricalcolo. Tempi (secondi, fredda / calda min di 3), Linux x86_64 2 CPU:
 

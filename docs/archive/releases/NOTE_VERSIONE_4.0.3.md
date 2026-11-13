@@ -24,6 +24,6 @@ La 4.0.3 è una patch di manutenzione basata sulla [4.0.2](NOTE_VERSIONE_4.0.2.m
 
 ## Sviluppo
 
-La [roadmap 4.x](ROADMAP_4.x.md) parte dalla 4.0.3. La 4.1.0 comprende
+La [roadmap 4.x](../../release/ROADMAP_4.x.md) parte dalla 4.0.3. La 4.1.0 comprende
 l'infrastruttura grafica comune, la Vista Posizioni e la Vista Fibre.
 La Vista Gruppo è una milestone successiva della 4.1.x.

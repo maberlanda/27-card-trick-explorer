@@ -1,7 +1,7 @@
 # Roadmap della serie 4.x
 
 Questo documento raccoglie gli sviluppi pianificati dopo la
-[4.0.3](NOTE_VERSIONE_4.0.3.md) di *Gioco delle 27 carte*.
+[4.0.3](../archive/releases/NOTE_VERSIONE_4.0.3.md) di *Gioco delle 27 carte*.
 
 La 4.0.3 consolida la distribuzione Windows e l'interfaccia sulla base
 dei PDF ridisegnati nella 4.0.2.

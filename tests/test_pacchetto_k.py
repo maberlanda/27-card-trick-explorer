@@ -146,14 +146,15 @@ def test_contenuto_della_sdist(artefatti):
     with tarfile.open(artefatti / SDIST) as t:
         nomi = [n.split("/", 1)[1] for n in t.getnames() if "/" in n]
     assert not [n for n in nomi if any(v in n for v in VIETATI if v != ".egg-info/")]
-    for atteso in ("pyproject.toml", "README.md", "LICENSE", "MANIFEST.in", "gioco27.spec",
+    for atteso in ("pyproject.toml", "README.md", "CONTRIBUTORS.md", "LICENSE", "MANIFEST.in", "gioco27.spec",
                    "gioco27.py", "avvia.bat", "controlla_requisiti.py", "conftest.py",
                    "requirements.txt", "requirements-dev.txt",
                    "gioco27/assets/LICENSE-DejaVu.txt", "gioco27/assets/DejaVuSans.ttf",
                    "tests/fixtures/esperimento_j1_programma_3.1.3.json",
-                   "docs/README.md", "docs/audits/V4_COVERAGE_MATRIX.csv"):
+                   "tools/benchmark_k.py", "docs/README.md", "docs/audits/V4_COVERAGE_MATRIX.csv",
+                   "docs/archive/README.md", "docs/archive/releases/NOTE_VERSIONE_3.1.1.md"):
         assert atteso in nomi, atteso
-    assert not [n for n in nomi if n.startswith((".github", "build/", "dist/"))]
+    assert not [n for n in nomi if n.startswith((".github", ".local-archive/", "build/", "dist/"))]
 
 
 # ───────────────────────── installazione pulita ──────────────────────────────

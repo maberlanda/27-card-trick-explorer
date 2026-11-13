@@ -2,11 +2,10 @@
 
 Protegge: radice ordinata, documentazione classificata in `docs/`, nessun
 artefatto generato versionato, un solo Tooltip, riferimenti correnti ai
-documenti risolvibili, inventario macchina-leggibile completo, PDF
+documenti risolvibili, archivio storico separato, PDF
 dell'utente mai versionati.
 """
 import ast
-import csv
 import re
 import subprocess
 from pathlib import Path
@@ -19,7 +18,7 @@ ROOT = Path(__file__).resolve().parents[1]
 #: aggiunto qui con una ragione, o messo nella sua cartella.
 RADICE_AMMESSA = {
     ".gitattributes", ".gitignore", "CONTRIBUTORS.md", "LICENSE", "README.md", "avvia.bat",
-    "conftest.py", "controlla_requisiti.py", "docs", "gioco27", "gioco27.py",
+    "conftest.py", "controlla_requisiti.py", "docs", "gioco27", "gioco27.py", "tools",
     "pyproject.toml", "requirements-dev.txt", "requirements.txt", "tests",
     "gioco27.spec",        # K (N04): ricetta PyInstaller ufficiale, versionata
     "MANIFEST.in",         # K: contenuto esplicito della sdist
@@ -51,20 +50,20 @@ def test_radice_ordinata(tracciati):
 def test_documentazione_classificata(tracciati):
     assert not [p for p in tracciati if "/" not in p and p.endswith((".md", ".csv"))
                 and p not in {"CONTRIBUTORS.md", "README.md"}]
-    chiusure = [p for p in tracciati if p.endswith("_CLOSED.md")]
-    # K: la chiusura della release candidate sta con le note di versione.
-    ammesse_fuori = {"docs/release/K_RELEASE_CANDIDATE_CLOSED.md"}
-    assert chiusure and all(p.startswith("docs/history/") or p in ammesse_fuori
-                            for p in chiusure)
-    for p in tracciati:
-        if p.startswith("docs/"):
-            assert p == "docs/README.md" or p.split("/")[1] in {
-                "history", "decisions", "audits", "release"}, p
+    documenti = {p for p in tracciati if p.startswith("docs/")}
+    corrente = ("docs/audits/", "docs/decisions/", "docs/release/")
+    archivio = ("docs/archive/audits/", "docs/archive/compartments/", "docs/archive/releases/")
+    indici = {"docs/README.md", "docs/archive/README.md"}
+    assert indici <= documenti
+    assert all(p in indici or p.startswith(corrente + archivio) for p in documenti)
+    assert all(p.startswith(archivio) for p in documenti if p.endswith("_CLOSED.md"))
+    assert all(p.startswith(archivio) for p in documenti if p.endswith("K0_FILE_INVENTORY.csv"))
 
 
 def test_nessun_artefatto_generato_versionato(tracciati):
     vietati = re.compile(r"(__pycache__/|\.py[cod]$|^build/|^dist/|\.egg-info/|"
-                         r"\.pytest_cache/|\.coverage|\.parziale$|~$|\.bak$|\.tmp$|\.log$)")
+                         r"^\.local-archive/|^tree\.txt$|\.pytest_cache/|\.coverage|"
+                         r"\.parziale$|~$|\.bak$|\.tmp$|\.log$)")
     assert not [p for p in tracciati if vietati.search(p)]
 
 
@@ -92,19 +91,11 @@ def test_riferimenti_correnti_ai_documenti_esistono():
     assert citati and not mancanti, mancanti
 
 
-def test_inventario_completo(tracciati):
-    percorso = ROOT / "docs" / "audits" / "K0_FILE_INVENTORY.csv"
-    with percorso.open(encoding="utf-8", newline="") as f:
-        righe = list(csv.DictReader(f))
-    assert {"path", "category", "tracked", "action", "reason"} <= set(righe[0])
-    inventariati = {r["path"] for r in righe}
-    # Radice e docs/ devono essere sempre classificati; codice e test nuovi
-    # si aggiungono all'inventario alla prossima revisione (audit finale).
-    non_classificati = sorted(p for p in set(tracciati) - inventariati
-                              if not p.startswith(("gioco27/", "tests/")))
-    assert not non_classificati, non_classificati
-    for r in righe:
-        assert r["category"][:1] in "ABCDEFGHIJKLMNOPQ" and r["action"] in {
-            "KEEP", "MOVE", "RENAME", "DELETE", "DEFER", "INVESTIGATE"}, r
-        assert r["reason"].strip(), r["path"]
-    assert {r["path"] for r in righe if r["category"].startswith("P")} == set(PDF_UTENTE)
+def test_collegamenti_relativi_della_documentazione():
+    mancanti = []
+    for doc in [ROOT / "README.md", *(ROOT / "docs").rglob("*.md")]:
+        for destinazione in re.findall(r"\]\(([^)]+)\)", doc.read_text(encoding="utf-8")):
+            percorso = destinazione.split("#", 1)[0]
+            if percorso and "://" not in percorso and not (doc.parent / percorso).exists():
+                mancanti.append((doc.relative_to(ROOT).as_posix(), percorso))
+    assert not mancanti, mancanti

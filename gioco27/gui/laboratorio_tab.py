@@ -78,17 +78,6 @@ class LaboratorioFrame(ttk.Frame):
         self.mostra_grafo()
 
     # ── utilita' ─────────────────────────────────────────────────────────────
-    def _paragrafo_intestazione(self, titolo, nota):
-        """Un'etichetta sola: titolo e nota di seguito, su due righe.
-
-        A capo fisso a 1160 px: sta nei 1202 px utili a 1280×720, e in italiano
-        e in inglese il paragrafo resta su due righe sia con i font di Tk 8.6
-        (DejaVu Sans) sia con quelli di Tk 9. Un a capo che seguisse la
-        larghezza dell'etichetta si bloccherebbe sulla finestra piu' larga vista.
-        """
-        return ttk.Label(self, text=f"{titolo}     {nota}", foreground="#1F4E79",
-                         justify="left", wraplength=1160, padding=0)
-
     def _testo(self, padre, altezza=11, larghezza=96):
         t = tk.Text(padre, height=altezza, width=larghezza, wrap="word", relief="flat",
                     font=("Consolas", 9), background="#FAFCFF", takefocus=True)

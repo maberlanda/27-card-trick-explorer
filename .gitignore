@@ -185,6 +185,9 @@ cython_debug/
 # Istantanea locale dell'albero delle cartelle.
 /tree.txt
 
+# Vecchi pacchetti, script di rilascio e risultati di verifica conservati in locale.
+/.local-archive/
+
 # Output locali del redesign PDF; documentazione ufficiale e fixture escluse.
 /Audit_generatore_PDF_stile_C_v4.0.1.md
 /Audit_generatore_PDF_stile_C_v4.0.1.pdf

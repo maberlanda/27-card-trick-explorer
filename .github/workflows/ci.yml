@@ -8,7 +8,7 @@
 #                    e avvio dell'eseguibile
 #
 # Nessun passo critico usa continue-on-error. La matrice segue requires-python
-# (>= 3.10) e docs/release/K_RELEASE_CANDIDATE_CLOSED.md § 6.
+# (>= 3.10) e docs/archive/releases/K_RELEASE_CANDIDATE_CLOSED.md § 6.
 
 name: ci
 
@@ -45,7 +45,7 @@ jobs:
       - name: Diagnostica dipendenze
         run: python controlla_requisiti.py --dev
       - name: Analisi statica (pyflakes)
-        run: python -m pyflakes gioco27 tests gioco27.py controlla_requisiti.py conftest.py
+        run: python -m pyflakes gioco27 tests tools gioco27.py controlla_requisiti.py conftest.py
       - name: Baseline matematica
         run: python -m pytest -q -p no:cacheprovider tests/test_baseline_matematica.py
       - name: Selftest (normale e con -O)

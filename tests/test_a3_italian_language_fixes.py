@@ -108,10 +108,10 @@ def test_il_calco_ordine_pubblico_non_ricompare_nelle_superfici_correnti():
     correnti = [
         ROOT / "README.md",
         ROOT / "gioco27/i18n.py",
-        ROOT / "docs/release/NOTE_VERSIONE_4.0.0.md",
-        ROOT / "docs/audits/A1_FINAL_MATHEMATICAL_AUDIT.md",
-        ROOT / "docs/audits/A1_FINAL_MATHEMATICAL_AUDIT.csv",
-        ROOT / "docs/audits/A3_FINAL_ITALIAN_LANGUAGE_AUDIT.md",
+        ROOT / "docs/archive/releases/NOTE_VERSIONE_4.0.0.md",
+        ROOT / "docs/archive/audits/A1_FINAL_MATHEMATICAL_AUDIT.md",
+        ROOT / "docs/archive/audits/A1_FINAL_MATHEMATICAL_AUDIT.csv",
+        ROOT / "docs/archive/audits/A3_FINAL_ITALIAN_LANGUAGE_AUDIT.md",
     ]
     for percorso in correnti:
         assert "ordine pubblico" not in percorso.read_text(encoding="utf-8")

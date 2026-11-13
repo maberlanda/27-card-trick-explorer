@@ -10,7 +10,7 @@ name = "gioco27"
 dynamic = ["version"]
 description = "Gioco delle 27 carte — analisi combinatoria e algebrica del trucco delle 27 carte"
 readme = "README.md"
-# 3.10–3.14 certificate dalla suite (docs/release/K_RELEASE_CANDIDATE_CLOSED.md § 6).
+# 3.10–3.14 certificate dalla suite (docs/archive/releases/K_RELEASE_CANDIDATE_CLOSED.md § 6).
 requires-python = ">=3.10"
 license = "GPL-3.0-only"
 license-files = ["LICENSE", "gioco27/assets/LICENSE-DejaVu.txt"]

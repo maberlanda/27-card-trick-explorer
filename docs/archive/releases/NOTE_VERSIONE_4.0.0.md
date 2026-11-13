@@ -172,7 +172,7 @@ senza cambiare alcun calcolo.
 
 ## Riferimenti di prestazione
 
-Tempi misurati con `python tests/benchmark_k.py` (Linux x86_64, 2 CPU,
+Tempi misurati con il [benchmark manuale](../../../tools/benchmark_k.py) (Linux x86_64, 2 CPU,
 CPython 3.12.14, numpy 2.5.3). «Fredda» = prima esecuzione nel processo,
 «calda» = migliore di 3. Sono una baseline, non una soglia.
 

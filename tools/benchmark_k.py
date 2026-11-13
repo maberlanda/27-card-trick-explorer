@@ -2,8 +2,8 @@
 """Benchmark della 4.0.0 (compartimento K): piccoli, deterministici, senza soglie.
 
 Uso (dalla radice del repository o dalla sdist):
-    python tests/benchmark_k.py            # tabella leggibile
-    python tests/benchmark_k.py --json     # stesso contenuto in JSON
+    python tools/benchmark_k.py            # tabella leggibile
+    python tools/benchmark_k.py --json     # stesso contenuto in JSON
 
 Non e' un test (pytest non lo raccoglie: il nome non comincia con test_).
 Ogni misura riporta la prima esecuzione nel processo («fredda»: include le
