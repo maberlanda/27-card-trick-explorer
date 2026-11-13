@@ -34,6 +34,9 @@ def test_export_bilingue_con_indici_e_collegamenti(tmp_path):
     assert i18n.get_language() == precedente
     documenti = {p: Documento(p) for p in tmp_path.rglob("*.html")}
     assert len(documenti) == 5
+    indice = tmp_path / "index.html"
+    readme = "https://github.com/maberlanda/27-card-trick-explorer#readme"
+    assert readme in documenti[indice].links
     for lingua, novita in (("it", "Fibre"), ("en", "Fibres")):
         guida = tmp_path / lingua / "howto.html"
         aiuto = tmp_path / lingua / "help.html"
@@ -45,6 +48,8 @@ def test_export_bilingue_con_indici_e_collegamenti(tmp_path):
         assert novita in guida.read_text(encoding="utf-8")
     for file, documento in documenti.items():
         for link in documento.links:
+            if file == indice and link == readme:
+                continue
             url = urlsplit(link)
             assert not url.scheme
             destinazione = (file.parent / url.path).resolve() if url.path else file

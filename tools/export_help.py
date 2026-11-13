@@ -191,6 +191,7 @@ def esporta(destinazione):
 <h1>Gioco delle 27 carte</h1>
 <p>Italiano · <a href="it/howto.html">Guida</a> · <a href="it/help.html">Aiuto</a></p>
 <p lang="en">English · <a href="en/howto.html">How-to</a> · <a href="en/help.html">Help</a></p>
+<p><a href="https://github.com/maberlanda/27-card-trick-explorer#readme">README del progetto su GitHub</a></p>
 </main></body></html>
 """
     (destinazione / "index.html").write_text(indice, encoding="utf-8")
