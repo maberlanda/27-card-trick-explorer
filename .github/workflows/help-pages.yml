@@ -1,0 +1,45 @@
+name: Guida e aiuto web
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/help-pages.yml"
+      - "gioco27/**"
+      - "tools/export_help.py"
+      - "tools/help_web.css"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: help-pages
+  cancel-in-progress: false
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python tools/export_help.py build/help-web
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/help-web
+
+  publish:
+    needs: export
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Pubblica su GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

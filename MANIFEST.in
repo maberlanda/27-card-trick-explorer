@@ -6,7 +6,7 @@ include gioco27.py avvia.bat controlla_requisiti.py conftest.py gioco27.spec
 include gioco27/assets/LICENSE-DejaVu.txt
 recursive-include gioco27/assets *.ttf
 recursive-include tests *.py *.json
-recursive-include tools *.py
+recursive-include tools *.py *.css
 recursive-include docs *.md *.csv
 
 # Mai nella distribuzione: fonti esterne (DP12), cache, artefatti di build.

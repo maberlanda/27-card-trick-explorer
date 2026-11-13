@@ -9,6 +9,11 @@ integrata** organizzata come percorso (scheda «Inizia qui»).
 > **4.1.0** aggiunge i diagrammi e le tabelle di **Cicli → Posizioni**
 > e **Cicli → Fibre**. Vedi le [note della 4.1.0](docs/release/NOTE_VERSIONE_4.1.0.md).
 
+**Documentazione web** · [Guida](https://maberlanda.github.io/27-card-trick-explorer/it/howto.html)
+· [Aiuto](https://maberlanda.github.io/27-card-trick-explorer/it/help.html)
+· [How-to](https://maberlanda.github.io/27-card-trick-explorer/en/howto.html)
+· [Help](https://maberlanda.github.io/27-card-trick-explorer/en/help.html)
+
 ## Nomenclatura
 
 * **H** — le 216 trasformazioni separabili (la Tavola 216; il libro la chiama

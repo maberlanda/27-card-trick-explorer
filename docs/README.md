@@ -34,3 +34,11 @@ Questa cartella raccoglie la documentazione **di progetto e di sviluppo**.
 
 Il codice applicativo è in `gioco27/`, i test e le fixture sono in `tests/`
 e il benchmark manuale è in [tools/](../tools/benchmark_k.py).
+
+## Guida e aiuto sul web
+
+`python tools/export_help.py` genera le quattro pagine HTML in
+`build/help-web/`. Apri `build/help-web/index.html` per consultarle anche
+offline. L’esportazione usa i testi dell’app e conserva l’indice, i
+collegamenti agli argomenti e il passaggio fra italiano e inglese.
+Gli aggiornamenti ai testi su `main` avviano la pubblicazione su GitHub Pages.

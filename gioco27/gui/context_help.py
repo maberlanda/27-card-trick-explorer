@@ -1,6 +1,5 @@
 """Shared operational help: one source per topic, reusable inline banners."""
 from .i18n import tr
-from .help_banner import HelpBanner
 
 TOPICS = {
     "A01": "s02", "A02": "s01", "A03": "i2t", "A04": "s04",
@@ -21,6 +20,8 @@ def text(topics):
 
 
 def banner(parent, topic, on_open_guide=None, short=None):
+    from .help_banner import HelpBanner
+
     if on_open_guide is None:
         owner = parent
         while owner is not None and on_open_guide is None:

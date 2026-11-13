@@ -151,7 +151,8 @@ def test_contenuto_della_sdist(artefatti):
                    "requirements.txt", "requirements-dev.txt",
                    "gioco27/assets/LICENSE-DejaVu.txt", "gioco27/assets/DejaVuSans.ttf",
                    "tests/fixtures/esperimento_j1_programma_3.1.3.json",
-                   "tools/benchmark_k.py", "docs/README.md", "docs/audits/V4_COVERAGE_MATRIX.csv",
+                   "tools/benchmark_k.py", "tools/export_help.py", "tools/help_web.css",
+                   "docs/README.md", "docs/audits/V4_COVERAGE_MATRIX.csv",
                    "docs/archive/README.md", "docs/archive/releases/NOTE_VERSIONE_3.1.1.md"):
         assert atteso in nomi, atteso
     assert not [n for n in nomi if n.startswith((".github", ".local-archive/", "build/", "dist/"))]
