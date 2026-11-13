@@ -4,6 +4,7 @@ import re
 
 import pytest
 
+from gioco27 import __version__
 from gioco27.core import detail_pdf as pdf
 from gioco27.core.detail import DECK, combination_detail
 from gioco27.core.permutations import R_label
@@ -305,7 +306,7 @@ def test_real_pdf_a3_header_footer_legend_and_two_per_page():
         assert text.count('Ordine ') == 2
         assert 'PDF dettagliato' in text and '4 configurazioni totali' in text
         assert f'Pagina {number} / 2' in text
-        assert 'Versione 4.0.3' in text
+        assert f"Versione {__version__}" in text
         assert 'report' not in text.lower()
 
 

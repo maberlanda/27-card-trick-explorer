@@ -16,7 +16,7 @@ import pytest
 import gioco27
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSIONE = "4.0.3"
+VERSIONE = "4.1.0"
 PDF_FONTE = ("LIBRO_MAIN.pdf", "Articolo.pdf")
 FIXTURE_313 = ROOT / "tests" / "fixtures" / "esperimento_j1_programma_3.1.3.json"
 
@@ -31,7 +31,7 @@ def _pyproject():
 
 # ─────────────────────────────── versione ────────────────────────────────────
 
-def test_versione_unica_4_0_0():
+def test_versione_unica():
     assert gioco27.__version__ == VERSIONE
     progetto = _pyproject()["project"]
     assert "version" not in progetto and "version" in progetto["dynamic"]
@@ -273,7 +273,7 @@ def test_pdf_fonte_esclusi_da_ogni_ricetta():
 
 # ────────────────────────── J: esperimenti 3.1.3 ─────────────────────────────
 
-def test_esperimento_salvato_da_3_1_3_si_carica_in_4_0_0(tmp_path):
+def test_esperimento_salvato_da_3_1_3_si_carica_nella_versione_corrente(tmp_path):
     from gioco27.services import esperimento as E
     from gioco27.services.sessione import SessioneLavoro
     testo = FIXTURE_313.read_text(encoding="utf-8")

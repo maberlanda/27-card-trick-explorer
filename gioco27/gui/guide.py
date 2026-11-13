@@ -385,6 +385,7 @@ def _s20(ins, sep):
     ins("bullet", _t("guide.s20.summary"))
     ins("body", _t("guide.s20.subtabs_intro"))
     ins("bullet", _t("guide.s20.subtabs"))
+    ins("bullet", _t("guide.s20.fibres"))
     ins("note", _t("guide.s20.note"))
     sep()
 

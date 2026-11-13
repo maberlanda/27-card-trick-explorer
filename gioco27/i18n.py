@@ -1063,10 +1063,11 @@ _ITALIAN = {
     "guide.s19.tabs.items": "  1.  Istruzioni per il mago: per ogni fase, il MESCOLAMENTO (sigla funzionale) e l'IMPILAMENTO (gesto fisico, mazzetti dal dorso) — con l'avvertenza della Prima Crisi quando le due sigle differiscono (CDS↔DSC).\n  2.  Visualizzazione mazzo: le 7 fotografie fisiche (mazzo iniziale, colonne e raccolta per ciascuna fase) con la carta del pubblico evidenziata.\n  3.  Pratica interattiva: indichi la colonna e l'impilamento, il contatore registra gli errori. Impilare la sigla del mescolamento quando serve l'inversa è l'errore classico (E1). Con «conseguenze reali» il gesto sbagliato si applica davvero (sezione {ref_i3}).\n  4.  Spettatore (carta ignota): le risposte S/C/D restringono le candidate 27 → 9 → 3 → 1 (sezione {ref_i4}).\n\n",
     "guide.s19.errors.title": "  Contatore errori",
     "guide.s19.errors.body": "Ogni volta che fai clic sulla colonna sbagliata o scegli l'impilamento errato, il contatore in alto aumenta. Un conteggio pari a zero indica un'esecuzione senza errori.\n",
-    "guide.s20.intro": "Analizza la struttura ciclica della permutazione T calcolata più di recente nell'Explorer. Mostra:\n\n",
+    "guide.s20.intro": "Analizza l'ultima trasformazione T pubblicata da Anteprima o Explorer. Il riepilogo mostra:\n\n",
     "guide.s20.summary": "  •  Ordine di T: minimo comune multiplo delle lunghezze dei cicli.\n  •  N° cicli: quanti cicli disgiunti compongono T (punti fissi inclusi).\n  •  Tipo: il tipo ciclico, cioè quanti cicli per ciascuna lunghezza.\n\n",
-    "guide.s20.subtabs_intro": "Sotto il riepilogo ci sono due sotto-tab:\n\n",
-    "guide.s20.subtabs": "  •  Cicli disgiunti  —  l'elenco dei cicli (a₁ a₂ … aₖ), colorati per lunghezza, con i punti fissi segnalati.\n  •  Orbite carte     —  scelta una carta, la sequenza completa delle posizioni che occupa applicando T ripetutamente, fino al ritorno all'origine.\n\n",
+    "guide.s20.subtabs_intro": "Sotto il riepilogo ci sono quattro schede:\n\n",
+    "guide.s20.subtabs": "  •  Cicli disgiunti  —  l'elenco dei cicli (a₁ a₂ … aₖ), colorati per lunghezza, con i punti fissi segnalati.\n  •  Orbite carte     —  scelta una carta, la sequenza completa delle posizioni che occupa applicando T ripetutamente, fino al ritorno all'origine.\n  •  Posizioni — diagramma delle orbite di T. Seleziona una posizione con il mouse o con le frecce per seguirne il percorso. L’equivalente testuale elenca le posizioni in una tabella. Seleziona una riga per vedere il dettaglio. Puoi esportare il diagramma in SVG.\n\n",
+    "guide.s20.fibres": "  •  Fibre — nove gruppi di posizioni con una cifra ternaria fissata, tre per livello. Seleziona una fibra per vedere elementi, somma e immagine. Le frecce indicano gli arrivi esatti, anche a un altro livello con MSC. Σ somma le immagini e Λ somma le preimmagini della fibra selezionata. Il dettaglio mostra i candidati ottenuti con (somma − Cᵢ)/3^(2+i) e il fattore locale quando esiste. Vedi il ⟦rif:ricostruzione_fibre⟧ del libro e il criterio delle somme nella sezione Riconoscimento. L’equivalente testuale è una tabella: scorri le colonne con la barra orizzontale o con Maiusc e le frecce sinistra e destra. Puoi anche esportare il diagramma in SVG.\n\n",
     "guide.s20.note": "Il tab Cicli si aggiorna ogni volta che si calcola una nuova T, sia nell'Explorer sia nel tab Anteprima.\n",
     "guide.s21.intro": "Questa scheda NON dipende dai filtri: risponde a una domanda globale sul gruppo. Per ogni T raggiungibile come  A₂∘MSC∘A₁∘MSC∘A₀∘MSC  con Aᵢ ∈ GEN3⊗GEN3⊗GEN3, conta quante terne (A₀,A₁,A₂) la producono.\n\n",
     "guide.s21.subtabs_intro": "Premi «▶ Calcola distribuzione» per mostrare due sottoschede:\n\n",
@@ -3226,10 +3227,11 @@ _ENGLISH = {
     "guide.s19.tabs.items": "  1.  Instructions for the magician: for each phase, the SHUFFLE (functional code) and the STACKING (physical action, piles from the back) — with the First Crisis warning when the two codes differ (CDS↔DSC).\n  2.  Deck view: the 7 physical snapshots (initial deck, columns and pickup for each phase) with the spectator's card highlighted.\n  3.  Interactive practice: you indicate the column and the stacking, and the counter records errors. Stacking the shuffle code when its inverse is needed is the classic error (E1). With “real consequences” the wrong gesture is really applied (section {ref_i3}).\n  4.  Spectator (unknown card): the S/C/D answers narrow the candidates 27 → 9 → 3 → 1 (section {ref_i4}).\n\n",
     "guide.s19.errors.title": "  Error counter",
     "guide.s19.errors.body": "Each time you click the wrong column or choose the wrong stacking, the counter at the top increases. Zero errors means a perfect performance.\n",
-    "guide.s20.intro": "Analyzes the cycle structure of the permutation T currently calculated in Explorer. It shows:\n\n",
+    "guide.s20.intro": "Analyzes the latest transformation T published by Preview or Explorer. The summary shows:\n\n",
     "guide.s20.summary": "  •  Order of T: least common multiple of the cycle lengths.\n  •  No. of cycles: how many disjoint cycles make up T (fixed points included).\n  •  Type: the cycle type, that is, how many cycles of each length.\n\n",
-    "guide.s20.subtabs_intro": "Below the summary there are two sub-tabs:\n\n",
-    "guide.s20.subtabs": "  •  Disjoint cycles  —  the list of cycles (a₁ a₂ … aₖ), colored by length, with fixed points marked.\n  •  Card orbits      —  for a chosen card, the complete sequence of positions it occupies as T is applied repeatedly, until it returns to its origin.\n\n",
+    "guide.s20.subtabs_intro": "There are four tabs below the summary:\n\n",
+    "guide.s20.subtabs": "  •  Disjoint cycles  —  the list of cycles (a₁ a₂ … aₖ), colored by length, with fixed points marked.\n  •  Card orbits      —  for a chosen card, the complete sequence of positions it occupies as T is applied repeatedly, until it returns to its origin.\n  •  Positions — diagram of the orbits of T. Select a position with the mouse or arrow keys to follow its orbit. The text equivalent lists positions in a table. Select a row to see its details. You can export the diagram as SVG.\n\n",
+    "guide.s20.fibres": "  •  Fibres — nine groups of positions with a fixed ternary digit, three per level. Select a fibre to see its members, sum and image. Arrows show exact targets, including changes of level under MSC. Σ adds the images and Λ adds the preimages of the selected fibre. The details show the candidates from (sum − Cᵢ)/3^(2+i) and the local factor when available. See book ⟦rif:ricostruzione_fibre⟧ and the sum criterion in the Recognition section. The text equivalent is a table: scroll across columns with the horizontal scrollbar or Shift and the left and right arrows. You can also export the diagram as SVG.\n\n",
     "guide.s20.note": "The Cycles tab updates every time a new T is calculated, both in Explorer and in the Preview tab.\n",
     "guide.s21.intro": "This tab does NOT depend on the filters: it answers a global question about the group. For every T reachable as  A₂∘MSC∘A₁∘MSC∘A₀∘MSC  with Aᵢ ∈ GEN3⊗GEN3⊗GEN3, it counts how many triples (A₀,A₁,A₂) produce it.\n\n",
     "guide.s21.subtabs_intro": "Press “▶ Calculate distribution” and two sub-tabs appear:\n\n",
@@ -5034,6 +5036,75 @@ _ENGLISH.update({
     'export.document.matrix.legend_levels': 'Levels: P₀/J₀ cards in triples; P₁/J₁ triples in packets; P₂/J₂ packets. ⊗ combines levels, from 2 to 0.',
     'export.document.matrix.legend_composition': 'Read ∘ from right to left. MSC deals into three columns: the order is J → MSC → P. Nonuniform J describes level reorders, not a single deck flip.',
     'export.document.matrix.legend_sectors': 'Sector s/c/d = base-3 digits 0/1/2 of the position, from level 2 to 0. Cycle (a b c): a→b→c→a; single-position cycles are fixed points.',
+})
+
+_ITALIAN.update({
+    "graph.diagram": "Diagramma",
+    "graph.text": "Equivalente testuale",
+    "graph.keys": "Frecce per selezionare un vertice. Home e Fine per il primo e l’ultimo.",
+    "graph.detail": "Dettaglio del vertice",
+    "graph.empty": "Nessun vertice da mostrare.",
+    "graph.vertices": "Vertici",
+    "graph.parts": "Parti",
+    "graph.part": "Parte {number} — {name}",
+    "graph.arrows": "Archi orientati",
+    "graph.no_arrows": "Nessun arco.",
+})
+
+_ENGLISH.update({
+    "graph.diagram": "Diagram",
+    "graph.text": "Text equivalent",
+    "graph.keys": "Use the arrow keys to select a vertex. Home and End select the first and last.",
+    "graph.detail": "Vertex details",
+    "graph.empty": "No vertices to display.",
+    "graph.vertices": "Vertices",
+    "graph.parts": "Parts",
+    "graph.part": "Part {number} — {name}",
+    "graph.arrows": "Directed edges",
+    "graph.no_arrows": "No edges.",
+})
+
+
+_ITALIAN.update({
+    "positions.tab": "Posizioni",
+    "positions.table_headers": "Posizione iniziale|Posizione finale|Ciclo|Tipo|Orbita completa",
+    "positions.scope": "Orbite delle posizioni sotto T. Per seguire una carta, usa la scheda Orbite.",
+    "positions.cycle_length": "Ciclo di lunghezza {length}",
+    "positions.detail": "Posizione iniziale {origin} → posizione finale {image}\nCiclo {cycle} · {kind}\nOrbita della posizione: {orbit}",
+    "positions.export": "Esporta SVG…",
+    "positions.svg_title": "Orbite delle 27 posizioni",
+})
+
+_ENGLISH.update({
+    "positions.tab": "Positions",
+    "positions.table_headers": "Initial position|Final position|Cycle|Type|Full orbit",
+    "positions.scope": "Orbits of positions under T. To follow a card, use the Orbits tab.",
+    "positions.cycle_length": "Cycle of length {length}",
+    "positions.detail": "Initial position {origin} → final position {image}\nCycle {cycle} · {kind}\nOrbit of the position: {orbit}",
+    "positions.export": "Export SVG…",
+    "positions.svg_title": "Orbits of the 27 positions",
+})
+
+_ITALIAN.update({
+    "fibres.tab": "Fibre",
+    "fibres.table_headers": "Fibra|Arrivo|Σ di T|Λ di T⁻¹|Candidato T|Candidato T⁻¹|Fattore locale|Livello|Cifra fissata|Livelli liberi|Elementi|Somma|Immagine T(F)|Cᵢ",
+    "fibres.scope": "Gli archi mostrano dove T manda una fibra intera. Ricostruzione mediante le fibre digitali ({theorem} del libro).",
+    "fibres.svg_title": "Trasporto delle fibre digitali sotto T",
+    "fibres.level": "Livello {level}",
+    "fibres.split": "immagine distribuita fra più fibre",
+    "fibres.no_factor": "assente per questo livello",
+    "fibres.detail": "Cifra fissata n{level} = {digit} · Livelli liberi {free}\nElementi ({members}) · Somma degli elementi {total}\nImmagine T(F) = ({image}) · Arrivo: {target}\nΣ di T = {sigma} · Λ di T⁻¹ = {lam} (somma delle preimmagini)\nCandidati da (somma − Cᵢ)/3^(2+i), con Cᵢ = {constant}: {forward} per T, {backward} per T⁻¹\nFattore locale M{level} su (0, 1, 2): {factor}",
+})
+
+_ENGLISH.update({
+    "fibres.tab": "Fibres",
+    "fibres.table_headers": "Fibre|Target|Σ for T|Λ for T⁻¹|T candidate|T⁻¹ candidate|Local factor|Level|Fixed digit|Free levels|Members|Sum|Image T(F)|Cᵢ",
+    "fibres.scope": "Arrows show where T sends an entire fibre. Reconstruction from digital fibres (book {theorem}).",
+    "fibres.svg_title": "Transport of digital fibres under T",
+    "fibres.level": "Level {level}",
+    "fibres.split": "image spread across several fibres",
+    "fibres.no_factor": "unavailable at this level",
+    "fibres.detail": "Fixed digit n{level} = {digit} · Free levels {free}\nMembers ({members}) · Sum of members {total}\nImage T(F) = ({image}) · Target: {target}\nΣ for T = {sigma} · Λ for T⁻¹ = {lam} (sum of preimages)\nCandidates from (sum − Cᵢ)/3^(2+i), with Cᵢ = {constant}: {forward} for T, {backward} for T⁻¹\nLocal factor M{level} on (0, 1, 2): {factor}",
 })
 
 CATALOGS: Mapping[str, Mapping[str, str]] = {

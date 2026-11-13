@@ -217,4 +217,5 @@ docs/release/ROADMAP_4.x.md,F DEVELOPER DOCUMENTATION CURRENT,yes,"README, docs/
 docs/audits/AUDIT_ROADMAP_4x.md,G PROJECT AUDIT / DESIGN,yes,"docs/README.md, ROADMAP_4.x.md",Audit progettuale della roadmap della serie 4.x,KEEP,"4.0.1: valutazione del 5 ottobre 2026, da discutere senza applicazione automatica",low
 docs/release/NOTE_VERSIONE_4.0.1.md,H HISTORICAL / CLOSED,yes,"note 4.0.2",note della release 4.0.1,KEEP,"4.0.1: note di release (corrente fino alla 4.0.2)",low
 docs/release/NOTE_VERSIONE_4.0.2.md,H HISTORICAL / CLOSED,yes,"note 4.0.3, roadmap",note della release 4.0.2,KEEP,"4.0.2: note di release storiche",low
-docs/release/NOTE_VERSIONE_4.0.3.md,H HISTORICAL / CLOSED,yes,"README, docs/README.md, roadmap",note della release 4.0.3,KEEP,"4.0.3: note della versione corrente",low
+docs/release/NOTE_VERSIONE_4.0.3.md,H HISTORICAL / CLOSED,yes,roadmap,note della release 4.0.3,KEEP,Note storiche della 4.0.3,low
+docs/release/NOTE_VERSIONE_4.1.0.md,F DEVELOPER DOCUMENTATION CURRENT,yes,"README, docs/README.md",note della release 4.1.0,KEEP,Documenta Posizioni e Fibre,low

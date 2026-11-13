@@ -6,9 +6,9 @@ Questa cartella raccoglie la documentazione **di progetto e di sviluppo**.
 
 ## Riprendere lo sviluppo
 
-1. Le [note della 4.0.3](release/NOTE_VERSIONE_4.0.3.md) descrivono la base di manutenzione da cui parte la 4.1.
+1. Le [note della 4.1.0](release/NOTE_VERSIONE_4.1.0.md) descrivono le nuove viste strutturali.
 2. La [roadmap 4.x](release/ROADMAP_4.x.md) raccoglie gli sviluppi pianificati.
-   La 4.1.0 comprende l'infrastruttura grafica comune, la Vista Posizioni e la Vista Fibre.
+   La Vista Gruppo è una tappa successiva della serie 4.1.x.
 3. L'[audit della roadmap](audits/AUDIT_ROADMAP_4x.md) censisce le capacità
    disponibili al 5 ottobre 2026 e propone un diverso raggruppamento di alcune attività.
    Per le decisioni recepite vale la roadmap corrente. Prima di aprire una voce, confrontare
@@ -30,7 +30,7 @@ Questa cartella raccoglie la documentazione **di progetto e di sviluppo**.
 | `audits/` | **riferimento** | audit di copertura matematico-didattica V4 e la sua matrice (`V4_COVERAGE_MATRIX.csv`, letta dai test di I7); inventario dei file K0; audit progettuale della roadmap (`AUDIT_ROADMAP_4x.md`), da valutare senza applicazione automatica |
 | `decisions/` | **corrente come riferimento** | decisioni approvate prima dei compartimenti (`V4_PRE_I1`, `V4_PRE_I2`, `V4_PRE_I5`) e la baseline di riconciliazione Git (`GIT_BASELINE_AND_RECONCILIATION.md`), citate da codice e test |
 | `history/` | **storico, chiuso** | documenti di chiusura dei compartimenti A … J e K0, in ordine di esecuzione |
-| `release/` | **storico**, tranne la 4.0.3 e la roadmap | note della **4.0.3** (`NOTE_VERSIONE_4.0.3.md`, corrente), note storiche fino alla 4.0.2, chiusura del compartimento K (`K_RELEASE_CANDIDATE_CLOSED.md`) e roadmap corrente (`ROADMAP_4.x.md`) |
+| `release/` | **storico**, tranne la 4.1.0 e la roadmap | note della **4.1.0** (`NOTE_VERSIONE_4.1.0.md`), note storiche fino alla 4.0.3, chiusura del compartimento K (`K_RELEASE_CANDIDATE_CLOSED.md`) e roadmap corrente (`ROADMAP_4.x.md`) |
 
 ## Regole
 

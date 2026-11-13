@@ -8,10 +8,17 @@ Mostra per la permutazione T corrente:
   - Tipo di ciclo: quanti cicli di ogni lunghezza
 """
 import tkinter as tk
-from tkinter import ttk
+from tkinter import filedialog, messagebox, ttk
 
 from ..core.analysis import cycle_decomposition, order_of, cycle_type, orbit_of
+from ..core.dominio import valida_permutazione
+from ..core.parallel import atomic_write
+from ..services.grafi import GrafoOrientato
+from ..services.riconoscimento import analizza_fibre
+from .errori import per_file
 from .i18n import tr
+from .vista_fibre import VistaFibre, didascalia_fibre
+from .vista_posizioni import VistaPosizioni, prepara_posizioni
 
 # Palette colori per i cicli (fino a 27 colori distinti)
 _CYCLE_PALETTE = [
@@ -93,7 +100,7 @@ class CyclesFrame(ttk.Frame):
                   font=("Courier New", 10),
                   foreground="#555").grid(row=0, column=5, sticky="w", padx=4)
 
-        # ── Notebook interno: Cicli | Orbite ───────────────────────────────
+        # ── Notebook interno: Cicli | Orbite | Posizioni | Fibre ───────────────
         nb = ttk.Notebook(self)
         nb.grid(row=2, column=0, sticky="nsew", padx=10, pady=(0, 8))
 
@@ -106,6 +113,39 @@ class CyclesFrame(ttk.Frame):
 
         self._build_cycles_tab()
         self._build_orbits_tab()
+        nb.enable_traversal()
+        self._vista_posizioni, self._btn_svg = self._build_graph_tab(
+            nb, "positions", tr("positions.scope"), "T.svg", VistaPosizioni)
+        self._vista_fibre, self._btn_fibre_svg = self._build_graph_tab(
+            nb, "fibres", didascalia_fibre(), "fibre.svg", classe_vista=VistaFibre)
+
+    def _build_graph_tab(self, nb, chiave, didascalia, nome_file, classe_vista):
+        scheda = ttk.Frame(nb)
+        nb.add(scheda, text=f"  {tr(f'{chiave}.tab')}  ")
+        comandi = ttk.Frame(scheda, padding=(8, 4))
+        comandi.pack(fill="x")
+        vista = classe_vista(scheda)
+        pulsante = ttk.Button(
+            comandi, text=tr("positions.export"), state="disabled",
+            command=lambda: self._esporta_grafo(vista, tr(f"{chiave}.svg_title"), nome_file))
+        pulsante.pack(side="right", padx=(8, 0))
+        ttk.Label(comandi, text=didascalia, wraplength=540).pack(side="left")
+        vista.pack(fill="both", expand=True)
+        return vista, pulsante
+
+    def _esporta_grafo(self, vista, titolo, nome_file):
+        if self._perm is None:
+            return
+        diagramma = vista.esporta_svg(titolo)
+        percorso = filedialog.asksaveasfilename(
+            parent=self, title=tr("positions.export"), defaultextension=".svg",
+            filetypes=[("SVG", "*.svg")], initialfile=nome_file)
+        if percorso:
+            try:
+                with atomic_write(percorso) as stream:
+                    stream.write(diagramma)
+            except OSError as errore:
+                messagebox.showerror(*per_file(errore, percorso), parent=self)
 
     def _build_cycles_tab(self):
         fr = self._cycles_tab
@@ -187,12 +227,17 @@ class CyclesFrame(ttk.Frame):
 
     def set_permutation(self, perm):
         """Aggiorna la visualizzazione con una nuova permutazione T (list/array len 27)."""
-        self._perm = list(perm)
+        self._perm = list(valida_permutazione(perm, 27))
+        cicli = cycle_decomposition(self._perm)
         self._hint.configure(text="")
         self._aggiorna_link_tavola()
-        self._refresh_summary()
-        self._refresh_cycles_text()
+        self._refresh_summary(cicli)
+        self._refresh_cycles_text(cicli)
         self._refresh_orbit()
+        self._vista_posizioni.mostra(*prepara_posizioni(self._perm, cicli))
+        self._vista_fibre.mostra_analisi(analizza_fibre(self._perm))
+        self._btn_svg.state(["!disabled"])
+        self._btn_fibre_svg.state(["!disabled"])
 
     def reset(self):
         """Riporta il tab allo stato iniziale (nessuna T caricata)."""
@@ -207,6 +252,10 @@ class CyclesFrame(ttk.Frame):
         self._hint.configure(
             text=tr("cycles.reset_hint"))
         self._aggiorna_link_tavola()
+        self._vista_posizioni.mostra(GrafoOrientato(), {})
+        self._vista_fibre.mostra_analisi(None)
+        self._btn_svg.state(["disabled"])
+        self._btn_fibre_svg.state(["disabled"])
 
     # ─── I2d: verso la Tavola ─────────────────────────────────────────────────
 
@@ -234,28 +283,19 @@ class CyclesFrame(ttk.Frame):
 
     # ─── Refresh ─────────────────────────────────────────────────────────────
 
-    def _refresh_summary(self):
-        if self._perm is None:
-            return
-        perm = self._perm
-        ord_ = order_of(perm)
-        cycs = cycle_decomposition(perm)
-        ct   = cycle_type(perm)
+    def _refresh_summary(self, cycs):
+        ord_ = order_of(self._perm)
+        ct = cycle_type(self._perm)
         type_str = "  ".join(f"{cnt}×({ln})" for ln, cnt in sorted(ct.items()))
         self._order_var.set(str(ord_))
         self._ncycles_var.set(str(len(cycs)))
         self._type_var.set(type_str)
 
-    def _refresh_cycles_text(self):
-        if self._perm is None:
-            return
-        txt  = self._cycles_txt
-        perm = self._perm
-        cycs = cycle_decomposition(perm)
-        ct   = cycle_type(perm)
+    def _refresh_cycles_text(self, cycs):
+        txt = self._cycles_txt
 
         # Assegna un colore per lunghezza di ciclo
-        lengths = sorted(ct.keys())
+        lengths = sorted({len(ciclo) for ciclo in cycs})
         col_for_len = {l: _CYCLE_PALETTE[i % len(_CYCLE_PALETTE)]
                        for i, l in enumerate(lengths)}
 

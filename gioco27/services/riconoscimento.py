@@ -54,6 +54,7 @@ from ..core.dominio import valida_indice, valida_permutazione
 __all__ = [
     "IngressoNonValido", "Permutazione", "Terna", "Conflitto", "EsitoLivello",
     "Separabilita", "LivelloSomme", "CriterioSomme", "ClasseEstesa",
+    "FibraDigitale", "AnalisiFibre", "analizza_fibre",
     "RitornoDaGuide", "Raggiungibilita", "EffettoPosizione", "EsitoA1",
     "AVANTI", "INDIETRO", "COSTANTI_C", "LEGGI_A1",
     "permutazione", "inversa", "da_mazzi", "trasformazione_relativa",
@@ -167,6 +168,11 @@ def traslazione(k: int) -> Permutazione:
 
 def _cifra(x: int, livello: int) -> int:
     return _gr.digits3(x)[2 - livello]
+
+
+_FIBRE_DIGITALI = tuple(
+    tuple(tuple(x for x in range(N) if _cifra(x, i) == t) for t in range(3))
+    for i in range(3))
 
 
 # ═════════════════════════ riconoscitore diretto ════════════════════════════
@@ -305,8 +311,8 @@ def somme_di_fibra(p, verso: str = AVANTI) -> Tuple[Terna, Terna, Terna]:
     Indietro: fibre di posizioni finali, somme delle preimmagini → fattori di T⁻¹.
     """
     q = _orientata(p, verso)
-    return tuple(tuple(sum(q[x] for x in range(N) if _cifra(x, i) == t)
-                       for t in range(3)) for i in range(3))
+    return tuple(tuple(sum(q[x] for x in elementi) for elementi in famiglia)
+                 for famiglia in _FIBRE_DIGITALI)
 
 
 def _orientata(p, verso):
@@ -333,6 +339,38 @@ def criterio_somme(p, verso: str = AVANTI) -> CriterioSomme:
         ricostruita = tuple(9 * r2[x // 9] + 3 * r1[(x // 3) % 3] + r0[x % 3]
                             for x in range(N))
     return CriterioSomme(verso, q, livelli, ricostruita)
+
+
+@dataclass(frozen=True)
+class FibraDigitale:
+    livello: int
+    cifra: int
+    elementi: tuple[int, ...]
+    somma: int
+    immagine: tuple[int, ...]
+    arrivo: Optional[tuple[int, int]]
+
+
+@dataclass(frozen=True)
+class AnalisiFibre:
+    fibre: tuple[FibraDigitale, ...]
+    diretta: CriterioSomme
+    inversa: CriterioSomme
+    separabilita: Separabilita
+
+
+def analizza_fibre(p) -> AnalisiFibre:
+    """Descrive le fibre, il trasporto esatto e i risultati dei due criteri."""
+    diretta = criterio_somme(p, AVANTI)
+    q = diretta.analizzata
+    identificatori = {elementi: (i, t) for i, famiglia in enumerate(_FIBRE_DIGITALI)
+                      for t, elementi in enumerate(famiglia)}
+    fibre = []
+    for elementi, (i, t) in identificatori.items():
+        immagine = tuple(sorted(q[x] for x in elementi))
+        fibre.append(FibraDigitale(i, t, elementi, sum(elementi), immagine,
+                                  identificatori.get(immagine)))
+    return AnalisiFibre(tuple(fibre), diretta, criterio_somme(q, INDIETRO), separabile(q))
 
 
 # ═══════════════════ appartenenza a Γ (nome tecnico: classe estesa) ═══════════

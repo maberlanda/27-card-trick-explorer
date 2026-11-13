@@ -1,4 +1,4 @@
-# Gioco delle 27 carte — 4.0.3
+# Gioco delle 27 carte — 4.1.0
 
 Programma didattico e di ricerca sul trucco delle 27 carte: simula il gioco
 fisico carta per carta, ne descrive la matematica (base 3, prodotti di
@@ -6,10 +6,8 @@ Kronecker, il mescolamento MSC) e permette di verificarla, esplorarla e
 riprodurla. Interfaccia grafica in italiano e inglese, con una **Guida
 integrata** organizzata come percorso (scheda «Inizia qui»).
 
-> **4.0.3** ripristina il PDF matriciale nell'eseguibile autonomo per
-> Windows, migliora il layout di Explorer → Riconoscimento nelle finestre
-> piccole e rende più affidabili gli aggiornamenti dell'interfaccia durante
-> i lavori in background. Vedi le [note della 4.0.3](docs/release/NOTE_VERSIONE_4.0.3.md).
+> **4.1.0** aggiunge i diagrammi e le tabelle di **Cicli → Posizioni**
+> e **Cicli → Fibre**. Vedi le [note della 4.1.0](docs/release/NOTE_VERSIONE_4.1.0.md).
 
 ## Nomenclatura
 
@@ -177,18 +175,21 @@ Configurazione, cache e log sono in `~/.gioco27/`
   l'utente e gli export usano H e Γ.
 * L'eseguibile Windows è distribuito con la relativa GitHub Release.
 
-## Sviluppi futuri
+## Visualizzazioni strutturali
 
-La [roadmap 4.x](docs/release/ROADMAP_4.x.md) prevede per la 4.1.0 un modello
-grafico comune, la Vista Posizioni (cicli e orbite) e la Vista Fibre. La Vista
-Gruppo, con i grafi di Cayley e le classi laterali, segue nella serie 4.1.x.
+La 4.1.0 introduce un modello grafico comune e due viste. Dopo aver calcolato
+una trasformazione in Anteprima o Explorer, apri **Cicli → Posizioni** per il diagramma delle
+orbite oppure **Cicli → Fibre** per il trasporto tra fibre, le somme e la
+ricostruzione dei fattori locali. Entrambe offrono una versione testuale e
+l'export SVG. La Vista Gruppo, con i grafi di Cayley e le classi laterali,
+segue nella serie 4.1.x. [Roadmap 4.x](docs/release/ROADMAP_4.x.md)
 
 ## Documentazione
 
 La Guida completa è integrata nel programma. La documentazione di progetto
 (audit, decisioni, chiusure dei compartimenti, note di versione) è in
 `docs/` — vedi `docs/README.md`; le note correnti sono in
-`docs/release/NOTE_VERSIONE_4.0.3.md`. Autore e assistenza al progetto sono
+`docs/release/NOTE_VERSIONE_4.1.0.md`. Autore e assistenza al progetto sono
 indicati in `CONTRIBUTORS.md`.
 
 ## Licenza

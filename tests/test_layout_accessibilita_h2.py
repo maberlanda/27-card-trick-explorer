@@ -522,6 +522,7 @@ CANVAS = {
     "onboarding_tab.py":  "struttura — la tela che fa scorrere la scheda",
     "distribution_tab.py": "informativo — l'istogramma delle decomposizioni",
     "explorer_tab.py":    "informativo — le matrici 27×27 e i fattori 3×3",
+    "vista_grafo.py":     "informativo — i grafi di Posizioni e Fibre con equivalente tabellare",
 }
 
 
@@ -608,12 +609,14 @@ def test_i_canvas_informativi_hanno_tutti_un_alternativa():
     """Se ne compare uno informativo nuovo, deve portarsi dietro il testo."""
     informativi = {nome for nome, ruolo in CANVAS.items()
                    if ruolo.startswith("informativo")}
-    assert informativi == {"distribution_tab.py", "explorer_tab.py"}
+    assert informativi == {"distribution_tab.py", "explorer_tab.py", "vista_grafo.py"}
 
     from gioco27.gui.distribution_tab import DistributionFrame
     from gioco27.gui.explorer_tab import ExplorerTabMixin
+    from gioco27.gui.vista_grafo import testo_grafo
     assert callable(ExplorerTabMixin._matrice_in_testo)
     assert callable(DistributionFrame.istogramma_in_testo)
+    assert callable(testo_grafo)
 
 
 # ═════════ il riscontro di un salvataggio: dentro il dialogo ════════════════
@@ -914,6 +917,7 @@ def test_nessuna_rotta_mostra_piu_un_errore_di_sistema_nudo():
         "app.py": 1,                 # pulizia della cache
         "cayley_dialog.py": 2,
         "conjugacy_dialog.py": 2,
+        "cycles_tab.py": 1,          # export SVG delle viste strutturali
         "decomposition.py": 3,
         "sessione_tab.py": 1,        # UX-1: salvataggio prima di abbandonare
     }

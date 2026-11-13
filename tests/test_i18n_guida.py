@@ -21,8 +21,8 @@ GUIDE = ROOT / "gioco27" / "gui" / "guide.py"
 # I7: 33 sezioni storiche + 8 nuove (i1, i2m, i2t, i3, i4, i5, i6, storia),
 # raccolte in 13 parti; il numero di sezione e' la posizione nel percorso.
 N_SECTIONS = 41
-N_SEGMENTS = 751      # A2-FIX: +20 voci matematiche nel glossario della Guida
-N_GUIDE_KEYS = 458    # J: +3 (guide.s29.action.session, guide.s29.session.title/body)
+N_SEGMENTS = 752      # Vista Fibre: +1 voce nella sezione Cicli
+N_GUIDE_KEYS = 459    # Vista Fibre: +1 (guide.s20.fibres)
 
 # Chiavi il cui valore è legittimamente identico nelle due lingue.
 SAME_IN_BOTH = {
